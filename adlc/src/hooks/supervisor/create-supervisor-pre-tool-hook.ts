@@ -4,9 +4,9 @@
  * The first policy that returns a block wins.
  */
 
-import type { HookJSONOutput, PreToolUseHookInput } from "../types.js";
-import checkBrowserThrash from "./browser-thrash.js";
-import { buildPreToolEvent } from "./event-builder.js";
+import type { HookJSONOutput, PreToolUseHookInput } from "../types.ts";
+import checkBrowserThrash from "./browser-thrash.ts";
+import { buildPreToolEvent } from "./event-builder.ts";
 import {
     checkInstallGate,
     clearExpiredInstallBypass,
@@ -14,10 +14,10 @@ import {
     hasManifestDiff,
     isInstallCommand,
     readInstallOverride
-} from "./install-gate.js";
-import { applyEventToState, type SupervisorState } from "./state.js";
-import checkTestThrash from "./test-thrash.js";
-import checkWallClock from "./wall-clock.js";
+} from "./install-gate.ts";
+import { applyEventToState, type SupervisorState } from "./state.ts";
+import checkTestThrash from "./test-thrash.ts";
+import checkWallClock from "./wall-clock.ts";
 
 const PASS: HookJSONOutput = { continue: true };
 

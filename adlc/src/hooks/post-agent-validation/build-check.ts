@@ -1,6 +1,6 @@
 /** Full monorepo build. */
 
-import { run } from "./utils.js";
+import { run } from "./utils.ts";
 
 export async function buildCheck(cwd: string): Promise<string[]> {
     const result = await run(cwd, "pnpm build");

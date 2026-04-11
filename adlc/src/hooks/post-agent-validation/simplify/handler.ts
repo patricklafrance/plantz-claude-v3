@@ -6,14 +6,14 @@
  *   2 -- build, lint, tests, file-disable scan, import guard (parallel)
  */
 
-import { buildCheck } from "../build-check.js";
-import { formatFix } from "../format-fix.js";
-import { crossBoundaryImportsCheck } from "../import-check.js";
-import { lintCheck } from "../lint-check.js";
-import { lintFix } from "../lint-fix.js";
-import { noFileDisableCheck } from "../no-file-disable-check.js";
-import { testsCheck } from "../tests-check.js";
-import { getChangedFiles } from "../utils.js";
+import { buildCheck } from "../build-check.ts";
+import { formatFix } from "../format-fix.ts";
+import { crossBoundaryImportsCheck } from "../import-check.ts";
+import { lintCheck } from "../lint-check.ts";
+import { lintFix } from "../lint-fix.ts";
+import { noFileDisableCheck } from "../no-file-disable-check.ts";
+import { testsCheck } from "../tests-check.ts";
+import { getChangedFiles } from "../utils.ts";
 
 export async function handleSimplify(cwd: string): Promise<string[]> {
     const changedFiles = getChangedFiles(cwd);

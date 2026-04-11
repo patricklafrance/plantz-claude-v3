@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { hasFile } from "../utils.js";
+import { hasFile } from "../utils.ts";
 
 const SLICE_REF_RE = /slice\s+\d+/i;
 

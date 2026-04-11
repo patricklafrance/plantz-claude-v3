@@ -6,8 +6,8 @@
  *   2 -- every acceptance criterion from the slice appears in Passed or Failed
  */
 
-import { criteriaCoverageCheck } from "./criteria-coverage-check.js";
-import { resultsFileCheck } from "./verification-results-check.js";
+import { criteriaCoverageCheck } from "./criteria-coverage-check.ts";
+import { resultsFileCheck } from "./verification-results-check.ts";
 
 export function handleReviewer(cwd: string): string[] {
     const problems = resultsFileCheck(cwd);

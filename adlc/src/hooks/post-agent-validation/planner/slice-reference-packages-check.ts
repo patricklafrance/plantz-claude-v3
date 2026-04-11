@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { listFiles } from "../utils.js";
+import { listFiles } from "../utils.ts";
 
 /** True when the content contains a `## Reference Packages` heading. */
 function hasReferencePackages(content: string): boolean {

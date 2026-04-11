@@ -5,7 +5,7 @@
  * Shared by: architect, domain-mapper.
  */
 
-import { getChangedFiles } from "../utils.js";
+import { getChangedFiles } from "../utils.ts";
 
 const PLAN_FILE_RE = /^\.adlc\/(?:plan-header\.md|slices\/.+\.md)$/;
 

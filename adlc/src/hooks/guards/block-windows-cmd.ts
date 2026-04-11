@@ -1,5 +1,5 @@
-import type { PreflightResult } from "./types.js";
-import { splitCommandSegments } from "./utils.js";
+import type { PreflightResult } from "./types.ts";
+import { splitCommandSegments } from "./utils.ts";
 
 const MESSAGE = "Blocked: use bash directly, not Windows cmd.";
 

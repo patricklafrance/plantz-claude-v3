@@ -1,6 +1,6 @@
 /** Verify that at least one slice file exists in .adlc/slices/. */
 
-import { listFiles } from "../utils.js";
+import { listFiles } from "../utils.ts";
 
 export function sliceFilesCheck(cwd: string): string[] {
     const files = listFiles(cwd, "slices", ".md");

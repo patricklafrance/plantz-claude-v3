@@ -4,7 +4,7 @@
  * Ported from agent-hooks/src/adlc-supervisor/context.mjs + utils.mjs.
  */
 
-import type { SupervisorEvent, SupervisorState } from "./state.js";
+import type { SupervisorEvent, SupervisorState } from "./state.ts";
 
 // ── Command utilities ────────────────────────────────────────────────
 

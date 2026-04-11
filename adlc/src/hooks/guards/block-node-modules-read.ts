@@ -1,5 +1,5 @@
-import type { PreflightResult } from "./types.js";
-import { pathIncludesNodeModules, splitCommandSegments } from "./utils.js";
+import type { PreflightResult } from "./types.ts";
+import { pathIncludesNodeModules, splitCommandSegments } from "./utils.ts";
 
 const MESSAGE = "Blocked: don't read library source in node_modules (type definitions — .d.ts, .d.mts, .d.cts — are allowed).";
 const BASH_READ_PREFIX = /^(?:rg|grep|find|fd|cat|less|more|head|tail|sed|awk|ls|tree|Get-Content|Select-String)(?:\s|$)/i;

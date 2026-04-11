@@ -1,4 +1,4 @@
-import type { PreflightResult } from "./types.js";
+import type { PreflightResult } from "./types.ts";
 
 const MESSAGE = "Blocked: do not modify .env files — environment secrets must not be touched by the harness.";
 const ENV_PATTERN = /(?:^|[\\/])\.env(?:\..+)?$/;

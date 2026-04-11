@@ -3,9 +3,9 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { DEFAULTS } from "../../config.js";
-import type { Progress } from "../../progress.js";
-import { type AgentDefinition, runAgent } from "../agents.js";
+import { DEFAULTS } from "../../config.ts";
+import type { Progress } from "../../progress.ts";
+import { type AgentDefinition, runAgent } from "../agents.ts";
 
 export async function runPlacement(
     featureDescription: string,

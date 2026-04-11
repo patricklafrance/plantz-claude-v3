@@ -8,7 +8,7 @@
  * Thresholds are per-agent-type, calibrated from observed healthy run durations.
  */
 
-import type { SupervisorState } from "./state.js";
+import type { SupervisorState } from "./state.ts";
 
 export interface WallClockEvent {
     agentName: string | null;

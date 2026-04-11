@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { SliceNode } from "./types.js";
+import type { SliceNode } from "./types.ts";
 
 const SLICE_FILENAME_RE = /^slice-(\d+)-(.+)\.md$/;
 const DEPENDS_ON_RE = /^>\s*\*\*Depends on:\*\*\s*(.+)$/m;

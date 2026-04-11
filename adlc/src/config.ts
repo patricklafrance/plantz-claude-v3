@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { Ports } from "./ports.js";
+import type { Ports } from "./ports.ts";
 
 // ── Model resolution ─────────────────────────────────────
 

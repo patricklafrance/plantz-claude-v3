@@ -11,7 +11,7 @@
  * 3. Budget cap — hard limit on total test commands per agent run
  */
 
-import type { SupervisorEvent, SupervisorState } from "./state.js";
+import type { SupervisorEvent, SupervisorState } from "./state.ts";
 
 interface TestThrashResult {
     action: "block";

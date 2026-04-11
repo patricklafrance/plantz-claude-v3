@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { parse } from "yaml";
 
-import { resolveModel, MODEL_IDS, type ResolvedConfig } from "../config.js";
-import type { DocCandidate } from "../context.js";
+import { resolveModel, MODEL_IDS, type ResolvedConfig } from "../config.ts";
+import type { DocCandidate } from "../context.ts";
 
 /** SDK-compatible agent definition. */
 export type AgentDefinition = {

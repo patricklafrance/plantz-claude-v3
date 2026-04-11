@@ -1,6 +1,6 @@
 /** Block commits that un-ignore .adlc/ or .adlc-metrics/ paths — all ADLC artifacts are ephemeral. */
 
-import { run } from "../post-agent-validation/utils.js";
+import { run } from "../post-agent-validation/utils.ts";
 
 const EPHEMERAL_PREFIXES = ["!.adlc/", "!.adlc-metrics/"];
 

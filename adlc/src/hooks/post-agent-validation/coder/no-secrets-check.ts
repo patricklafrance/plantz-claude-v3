@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, copyFileSync, mkdirSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { resolve, join, dirname } from "node:path";
 
-import { run } from "../utils.js";
+import { run } from "../utils.ts";
 
 export async function noSecretsCheck(cwd: string, changedFiles: string[]): Promise<string[]> {
     const available = await run(cwd, "gitleaks version");

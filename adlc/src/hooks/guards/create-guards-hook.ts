@@ -4,11 +4,11 @@
  * Blocks bad patterns: wrong package manager, cmd.exe, reading node_modules source.
  */
 
-import type { HookJSONOutput, PreToolUseHookInput } from "../types.js";
-import checkBlockEnvWrite from "./block-env-write.js";
-import checkBlockNodeModulesRead from "./block-node-modules-read.js";
-import checkBlockNpm from "./block-npm.js";
-import checkBlockWindowsCmd from "./block-windows-cmd.js";
+import type { HookJSONOutput, PreToolUseHookInput } from "../types.ts";
+import checkBlockEnvWrite from "./block-env-write.ts";
+import checkBlockNodeModulesRead from "./block-node-modules-read.ts";
+import checkBlockNpm from "./block-npm.ts";
+import checkBlockWindowsCmd from "./block-windows-cmd.ts";
 
 const guards = [checkBlockNpm, checkBlockWindowsCmd, checkBlockNodeModulesRead, checkBlockEnvWrite];
 

@@ -1,5 +1,5 @@
-import { parseSliceDependencies } from "./parser.js";
-import type { DAG, SliceNode, Wave } from "./types.js";
+import { parseSliceDependencies } from "./parser.ts";
+import type { DAG, SliceNode, Wave } from "./types.ts";
 
 /**
  * Topological-sort slices into execution waves.

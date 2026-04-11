@@ -1,6 +1,6 @@
 /** Verify that .adlc/plan-header.md exists and is non-empty. */
 
-import { hasFile } from "../utils.js";
+import { hasFile } from "../utils.ts";
 
 export function planHeaderCheck(cwd: string): string[] {
     if (hasFile(cwd, "plan-header.md")) {

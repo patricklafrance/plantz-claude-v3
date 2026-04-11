@@ -22,7 +22,7 @@
  * 5. Screenshot nudge — one-time suggestion on first screenshot
  */
 
-import type { SupervisorEvent, SupervisorState } from "./state.js";
+import type { SupervisorEvent, SupervisorState } from "./state.ts";
 
 interface BrowserThrashResult {
     action: "block";

@@ -2,7 +2,7 @@
  * The domain-mapper must produce .adlc/domain-mapping.md.
  */
 
-import { hasFile } from "../utils.js";
+import { hasFile } from "../utils.ts";
 
 export function mappingFileCheck(cwd: string): string[] {
     if (hasFile(cwd, "domain-mapping.md")) {

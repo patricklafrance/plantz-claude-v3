@@ -5,8 +5,8 @@
  * Currently handles bare `agent-browser` → `pnpm exec agent-browser`.
  */
 
-import type { HookJSONOutput, PreToolUseHookInput } from "../types.js";
-import { rewriteBareAgent } from "./agent-browser-rewrite.js";
+import type { HookJSONOutput, PreToolUseHookInput } from "../types.ts";
+import { rewriteBareAgent } from "./agent-browser-rewrite.ts";
 
 export function createRewritesHook() {
     return async (input: PreToolUseHookInput): Promise<HookJSONOutput> => {

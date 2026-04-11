@@ -1,6 +1,6 @@
 /** Auto-format (writes in place) and stage changes. Must run before lint. */
 
-import { run } from "../post-agent-validation/utils.js";
+import { run } from "../post-agent-validation/utils.ts";
 
 export async function formatFix(cwd: string): Promise<string[]> {
     let result = await run(cwd, "pnpm format-fix");

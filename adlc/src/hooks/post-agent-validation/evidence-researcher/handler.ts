@@ -5,7 +5,7 @@
  *   1. current-evidence-findings.md exists in .adlc/
  */
 
-import { hasFile } from "../utils.js";
+import { hasFile } from "../utils.ts";
 
 export function handleEvidenceResearcher(cwd: string): string[] {
     if (hasFile(cwd, "current-evidence-findings.md")) {

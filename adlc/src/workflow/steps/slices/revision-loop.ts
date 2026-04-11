@@ -5,12 +5,12 @@ import { resolve } from "node:path";
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
-import { DEFAULTS, type ResolvedConfig } from "../../../config.js";
-import { createHooks } from "../../../hooks/create-hooks.js";
-import type { Ports } from "../../../ports.js";
-import type { Progress } from "../../../progress.js";
-import type { AgentDefinition } from "../../agents.js";
-import { loadAllAgents } from "../../agents.js";
+import { DEFAULTS, type ResolvedConfig } from "../../../config.ts";
+import { createHooks } from "../../../hooks/create-hooks.ts";
+import type { Ports } from "../../../ports.ts";
+import type { Progress } from "../../../progress.ts";
+import type { AgentDefinition } from "../../agents.ts";
+import { loadAllAgents } from "../../agents.ts";
 
 /** Hooks record shape returned by createHooks. */
 type SDKHooks = ReturnType<typeof createHooks>["hooks"];

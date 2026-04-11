@@ -5,7 +5,7 @@
  *   1. current-challenge-verdict.md exists in .adlc/
  */
 
-import { hasFile } from "../utils.js";
+import { hasFile } from "../utils.ts";
 
 export function handleChallengeArbiter(cwd: string): string[] {
     if (hasFile(cwd, "current-challenge-verdict.md")) {

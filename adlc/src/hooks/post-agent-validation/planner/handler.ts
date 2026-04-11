@@ -8,10 +8,10 @@
  *   4. slice-ref-packages   -- every slice has a Reference Packages section
  */
 
-import { planHeaderCheck } from "./plan-header-check.js";
-import { sliceCriteriaCheck } from "./slice-criteria-check.js";
-import { sliceFilesCheck } from "./slice-files-check.js";
-import { sliceReferencePackagesCheck } from "./slice-reference-packages-check.js";
+import { planHeaderCheck } from "./plan-header-check.ts";
+import { sliceCriteriaCheck } from "./slice-criteria-check.ts";
+import { sliceFilesCheck } from "./slice-files-check.ts";
+import { sliceReferencePackagesCheck } from "./slice-reference-packages-check.ts";
 
 export function handlePlanner(cwd: string): string[] {
     const problems = [...planHeaderCheck(cwd), ...sliceFilesCheck(cwd)];

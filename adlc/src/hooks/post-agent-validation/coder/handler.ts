@@ -8,20 +8,20 @@
  *   3 -- kill dev server ports (always)
  */
 
-import { loadConfig, resolveConfig } from "../../../config.js";
-import { buildCheck } from "../build-check.js";
-import { formatFix } from "../format-fix.js";
-import { crossBoundaryImportsCheck } from "../import-check.js";
-import { lintCheck } from "../lint-check.js";
-import { lintFix } from "../lint-fix.js";
-import { noFileDisableCheck } from "../no-file-disable-check.js";
-import { testsCheck } from "../tests-check.js";
-import { getChangedFiles } from "../utils.js";
-import { contextRefreshCheck } from "./context-refresh.js";
-import { implementationNotesCheck } from "./implementation-notes-check.js";
-import { killPorts } from "./kill-ports.js";
-import { noSecretsCheck } from "./no-secrets-check.js";
-import { storyCoverageCheck } from "./story-coverage-check.js";
+import { loadConfig, resolveConfig } from "../../../config.ts";
+import { buildCheck } from "../build-check.ts";
+import { formatFix } from "../format-fix.ts";
+import { crossBoundaryImportsCheck } from "../import-check.ts";
+import { lintCheck } from "../lint-check.ts";
+import { lintFix } from "../lint-fix.ts";
+import { noFileDisableCheck } from "../no-file-disable-check.ts";
+import { testsCheck } from "../tests-check.ts";
+import { getChangedFiles } from "../utils.ts";
+import { contextRefreshCheck } from "./context-refresh.ts";
+import { implementationNotesCheck } from "./implementation-notes-check.ts";
+import { killPorts } from "./kill-ports.ts";
+import { noSecretsCheck } from "./no-secrets-check.ts";
+import { storyCoverageCheck } from "./story-coverage-check.ts";
 
 export async function handleCoder(cwd: string): Promise<string[]> {
     const changedFiles = getChangedFiles(cwd);

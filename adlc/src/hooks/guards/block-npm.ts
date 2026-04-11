@@ -1,5 +1,5 @@
-import type { PreflightResult } from "./types.js";
-import { splitCommandSegments } from "./utils.js";
+import type { PreflightResult } from "./types.ts";
+import { splitCommandSegments } from "./utils.ts";
 
 const RULES: { pattern: RegExp; message: string }[] = [
     { pattern: /^npm(?:\s|$)/, message: "Blocked: use pnpm instead of npm." },

@@ -3,7 +3,7 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { run } from "./workflow/orchestrator.js";
+import { run } from "./workflow/orchestrator.ts";
 
 const { values, positionals } = parseArgs({
     allowPositionals: true,

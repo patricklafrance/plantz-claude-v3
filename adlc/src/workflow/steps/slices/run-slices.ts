@@ -5,17 +5,17 @@ import { readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
-import type { ResolvedConfig } from "../../../config.js";
-import { allocatePorts } from "../../../ports.js";
-import type { Progress } from "../../../progress.js";
-import { runAgent, loadAllAgents } from "../../agents.js";
-import type { OrchestratorOptions } from "../../orchestrator.js";
-import { buildDAG } from "./dag/scheduler.js";
-import { runSlicePipeline } from "./revision-loop.js";
-import { collectResults } from "./worktree/collector.js";
-import { createWorktree, removeWorktree } from "./worktree/lifecycle.js";
-import { attemptMerge, completeMerge, abortMerge } from "./worktree/merger.js";
-import { seedAdlc } from "./worktree/seeder.js";
+import type { ResolvedConfig } from "../../../config.ts";
+import { allocatePorts } from "../../../ports.ts";
+import type { Progress } from "../../../progress.ts";
+import { runAgent, loadAllAgents } from "../../agents.ts";
+import type { OrchestratorOptions } from "../../orchestrator.ts";
+import { buildDAG } from "./dag/scheduler.ts";
+import { runSlicePipeline } from "./revision-loop.ts";
+import { collectResults } from "./worktree/collector.ts";
+import { createWorktree, removeWorktree } from "./worktree/lifecycle.ts";
+import { attemptMerge, completeMerge, abortMerge } from "./worktree/merger.ts";
+import { seedAdlc } from "./worktree/seeder.ts";
 
 const execAsync = promisify(exec);
 

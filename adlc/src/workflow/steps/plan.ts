@@ -1,8 +1,8 @@
 /** Step 2: Plan draft with adversarial challenge loop. */
 
-import { DEFAULTS } from "../../config.js";
-import type { Progress } from "../../progress.js";
-import { type AgentDefinition, runAgent } from "../agents.js";
+import { DEFAULTS } from "../../config.ts";
+import type { Progress } from "../../progress.ts";
+import { type AgentDefinition, runAgent } from "../agents.ts";
 
 export async function runPlan(featureDescription: string, cwd: string, agents: Record<string, AgentDefinition>, progress?: Progress): Promise<void> {
     for (let attempt = 0; attempt < DEFAULTS.maxPlanAttempts; attempt++) {

@@ -6,12 +6,12 @@
  *   2 — build, lint, tests, gitignore-check (parallel)
  */
 
-import { buildCheck } from "./build-check.js";
-import { formatFix } from "./format-fix.js";
-import { gitignoreCheck } from "./gitignore-check.js";
-import { lintCheck } from "./lint-check.js";
-import { lintFix } from "./lint-fix.js";
-import { testsCheck } from "./tests-check.js";
+import { buildCheck } from "./build-check.ts";
+import { formatFix } from "./format-fix.ts";
+import { gitignoreCheck } from "./gitignore-check.ts";
+import { lintCheck } from "./lint-check.ts";
+import { lintFix } from "./lint-fix.ts";
+import { testsCheck } from "./tests-check.ts";
 
 export async function handlePreCommit(cwd: string): Promise<string[]> {
     // Phase 1: autofix — format first, then lint-fix (sequential to avoid conflicts)

@@ -9,8 +9,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { noPlanMutationsCheck } from "../plan-gate/no-plan-mutations-check.js";
-import { hasFile } from "../utils.js";
+import { noPlanMutationsCheck } from "../plan-gate/no-plan-mutations-check.ts";
+import { hasFile } from "../utils.ts";
 
 const ISSUE_RE = /###\s+ISSUE-\d+/;
 

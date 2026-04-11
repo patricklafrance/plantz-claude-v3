@@ -1,6 +1,6 @@
 /** Verify that .adlc/verification-results.md exists and is non-empty. */
 
-import { hasFile } from "../utils.js";
+import { hasFile } from "../utils.ts";
 
 export function resultsFileCheck(cwd: string): string[] {
     if (hasFile(cwd, "verification-results.md")) {

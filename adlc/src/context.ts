@@ -6,8 +6,8 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import type { ResolvedConfig } from "./config.js";
-import { REQUIRED_SCRIPTS } from "./preflight.js";
+import type { ResolvedConfig } from "./config.ts";
+import { REQUIRED_SCRIPTS } from "./preflight.ts";
 
 // ── Types ────────────────────────────────────────────────
 

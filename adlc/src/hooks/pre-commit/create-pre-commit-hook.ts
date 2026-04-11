@@ -5,8 +5,8 @@
  * Registered on PreToolUse for Bash. Non-commit commands pass through.
  */
 
-import type { HookJSONOutput, PreToolUseHookInput } from "../types.js";
-import { handlePreCommit } from "./handler.js";
+import type { HookJSONOutput, PreToolUseHookInput } from "../types.ts";
+import { handlePreCommit } from "./handler.ts";
 
 const GIT_COMMIT_RE = /\bgit\s+commit\b/;
 

@@ -1,15 +1,15 @@
-import { loadConfig, resolveConfig } from "../config.js";
-import { buildProjectContext, contextToPreamble } from "../context.js";
-import { validateRepository } from "../preflight.js";
-import { Progress, formatDuration } from "../progress.js";
-import { classifyReferenceDocs, loadAllAgents } from "./agents.js";
-import { runDocument } from "./steps/document.js";
-import { runMonitor } from "./steps/monitor.js";
-import { runPlacement } from "./steps/placement.js";
-import { runPlan } from "./steps/plan.js";
-import { runPr } from "./steps/pr.js";
-import { runSimplify } from "./steps/simplify.js";
-import { runSlices } from "./steps/slices/run-slices.js";
+import { loadConfig, resolveConfig } from "../config.ts";
+import { buildProjectContext, contextToPreamble } from "../context.ts";
+import { validateRepository } from "../preflight.ts";
+import { Progress, formatDuration } from "../progress.ts";
+import { classifyReferenceDocs, loadAllAgents } from "./agents.ts";
+import { runDocument } from "./steps/document.ts";
+import { runMonitor } from "./steps/monitor.ts";
+import { runPlacement } from "./steps/placement.ts";
+import { runPlan } from "./steps/plan.ts";
+import { runPr } from "./steps/pr.ts";
+import { runSimplify } from "./steps/simplify.ts";
+import { runSlices } from "./steps/slices/run-slices.ts";
 
 export interface OrchestratorOptions {
     /** Target repository path. */

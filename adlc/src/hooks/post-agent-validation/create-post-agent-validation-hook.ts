@@ -8,18 +8,18 @@
  * already in a retry cycle — let it through to avoid infinite loops.
  */
 
-import type { HookJSONOutput, SubagentStopHookInput } from "../types.js";
-import { handleChallengeArbiter } from "./challenge-arbiter/handler.js";
-import { handleCoder } from "./coder/handler.js";
-import { handleDocument } from "./document/handler.js";
-import { handleModuleMapper } from "./domain-mapper/handler.js";
-import { handleEvidenceResearcher } from "./evidence-researcher/handler.js";
-import { archiveArtifacts, recordMetrics } from "./metrics.js";
-import { handlePlacementGate } from "./placement-gate/handler.js";
-import { handlePlanGate } from "./plan-gate/handler.js";
-import { handlePlanner } from "./planner/handler.js";
-import { handleReviewer } from "./reviewer/handler.js";
-import { handleSimplify } from "./simplify/handler.js";
+import type { HookJSONOutput, SubagentStopHookInput } from "../types.ts";
+import { handleChallengeArbiter } from "./challenge-arbiter/handler.ts";
+import { handleCoder } from "./coder/handler.ts";
+import { handleDocument } from "./document/handler.ts";
+import { handleModuleMapper } from "./domain-mapper/handler.ts";
+import { handleEvidenceResearcher } from "./evidence-researcher/handler.ts";
+import { archiveArtifacts, recordMetrics } from "./metrics.ts";
+import { handlePlacementGate } from "./placement-gate/handler.ts";
+import { handlePlanGate } from "./plan-gate/handler.ts";
+import { handlePlanner } from "./planner/handler.ts";
+import { handleReviewer } from "./reviewer/handler.ts";
+import { handleSimplify } from "./simplify/handler.ts";
 
 type HandlerFn = (cwd: string) => string[] | Promise<string[]>;
 

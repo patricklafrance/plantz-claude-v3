@@ -4,9 +4,9 @@
  * be auto-approved.
  */
 
-import type { HookJSONOutput, PostToolUseHookInput } from "../types.js";
-import { findInstallBypassData } from "./install-gate.js";
-import type { SupervisorState } from "./state.js";
+import type { HookJSONOutput, PostToolUseHookInput } from "../types.ts";
+import { findInstallBypassData } from "./install-gate.ts";
+import type { SupervisorState } from "./state.ts";
 
 const PASS: HookJSONOutput = { continue: true };
 

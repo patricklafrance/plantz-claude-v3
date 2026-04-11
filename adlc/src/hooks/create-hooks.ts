@@ -1,11 +1,11 @@
 /** Hook assembly — creates the SDK hooks configuration object. */
 
-import { createGuardsHook } from "./guards/create-guards-hook.js";
-import { createPostAgentValidationHook } from "./post-agent-validation/create-post-agent-validation-hook.js";
-import { createPreCommitHook } from "./pre-commit/create-pre-commit-hook.js";
-import { createRewritesHook } from "./rewrites/create-rewrites-hook.js";
-import { createSupervisorHooks } from "./supervisor/create-supervisor-hooks.js";
-import type { HookJSONOutput, PostToolUseHookInput, PreToolUseHookInput, SubagentStopHookInput } from "./types.js";
+import { createGuardsHook } from "./guards/create-guards-hook.ts";
+import { createPostAgentValidationHook } from "./post-agent-validation/create-post-agent-validation-hook.ts";
+import { createPreCommitHook } from "./pre-commit/create-pre-commit-hook.ts";
+import { createRewritesHook } from "./rewrites/create-rewrites-hook.ts";
+import { createSupervisorHooks } from "./supervisor/create-supervisor-hooks.ts";
+import type { HookJSONOutput, PostToolUseHookInput, PreToolUseHookInput, SubagentStopHookInput } from "./types.ts";
 
 // ── SDK callback types (kept local to avoid SDK dependency at type level) ──
 
