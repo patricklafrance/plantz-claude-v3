@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@squide/core': 7.0.0
+
 importers:
 
   .:
@@ -3158,11 +3161,6 @@ packages:
 
   '@so-ric/colorspace@1.1.6':
     resolution: {integrity: sha512-/KiKkpHNOBgkFJwu9sh48LkHSMYGyuTcSFK/qMBdnOAlrRJzRSXAOFB5qwzaVQuDl8wAvHVMkaASQDReTahxuw==}
-
-  '@squide/core@6.1.15':
-    resolution: {integrity: sha512-8uLEoxKxtMpzAB2Sy+IMngp3mhYjIlsyVjooA8OdxAoYEV10dEFxWimJJ6Tuw6aTzfKqTYCneGmhNC1A6HA8cQ==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0
 
   '@squide/core@7.0.0':
     resolution: {integrity: sha512-tKBbXo4kteO0lVSlsNb+mozvUMZja9NNEPSiUhHUtUGDY55ytEoudIsvWDk8O5jV9It0v+UCoWXDDrfh5QSHNQ==}
@@ -10071,13 +10069,6 @@ snapshots:
       color: 5.0.3
       text-hex: 1.0.0
 
-  '@squide/core@6.1.15(react@19.2.4)':
-    dependencies:
-      '@workleap/logging': 1.3.7
-      eventemitter3: 5.0.4
-      memoize: 11.0.0
-      react: 19.2.4
-
   '@squide/core@7.0.0(react@19.2.4)':
     dependencies:
       '@workleap/logging': 1.3.7
@@ -10113,7 +10104,7 @@ snapshots:
 
   '@squide/firefly@16.2.2(@opentelemetry/api@1.8.0)(@tanstack/react-query@5.96.1(react@19.2.4))(launchdarkly-js-client-sdk@3.9.1)(msw@2.12.14(@types/node@25.5.0)(typescript@6.0.2))(react-dom@19.2.4(react@19.2.4))(react-router@7.14.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@squide/core': 6.1.15(react@19.2.4)
+      '@squide/core': 7.0.0(react@19.2.4)
       '@squide/env-vars': 1.4.21(react@19.2.4)
       '@squide/launch-darkly': 1.0.14(launchdarkly-js-client-sdk@3.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@squide/msw': 4.0.19(msw@2.12.14(@types/node@25.5.0)(typescript@6.0.2))(react@19.2.4)

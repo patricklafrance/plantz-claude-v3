@@ -4,14 +4,7 @@ A headless CLI that plans, implements, and ships features using a multi-agent pi
 
 ## What is an agent harness?
 
-An agent harness enhances the agent's natural capabilities instead of micromanaging each step. Rather than scripting every tool call, it provides two complementary layers:
-
-- **Skills** define _what_ to do — lightweight orchestration that tells the agent where to go next
-- **Hooks** enforce _how well_ — automated verification, autofix, and context delivery that runs whether the agent remembers or not
-
-### Design principles
-
-This design is based on three principles from the [Agent Harness](https://medium.com/@bijit211987/agent-harness-b1f6d5a7a1d1) article:
+An agent harness enhances the agent's natural capabilities instead of micromanaging each step. **Skills** define _what_ to do; **hooks** enforce _how well_ — running whether the agent remembers or not. Design based on the [Agent Harness](https://medium.com/@bijit211987/agent-harness-b1f6d5a7a1d1) article:
 
 | # | Principle | Implementation |
 |---|-----------|----------------|
@@ -98,56 +91,27 @@ Every subagent is verified by hooks before the workflow advances. The agent cann
 
 Hooks fall into four categories: **verificators** that block completion until checks pass, **context refreshers** that surface easy-to-forget concerns at stop time, **autofixers** that correct issues before validation, and **guards** that enforce constraints on every tool call. If any check fails, the problems are fed back to the agent for correction — not reported as a final failure.
 
-### Verificators ([README](src/hooks/post-agent-checks/README.md))
+### Validators ([README](src/hooks/post-agent-checks/README.md))
 
 Block a subagent's completion until its deliverables meet structural and quality checks.
 
-| Agent | Check | What it validates |
-|-------|-------|-------------------|
-| `coder` | build | Full monorepo build |
-| `coder` | lint | Full monorepo lint — linter, formatter, typecheck, syncpack, knip |
-| `coder` | tests | Full monorepo tests — Vitest + Storybook a11y via Playwright |
-| `coder` | no-file-disable | Rejects file-level `/* oxlint-disable */` comments (line-level only) |
-| `coder` | no-secrets | gitleaks scan on changed files |
-| `coder` | import-guard | 4-layer architectural boundary enforcement (host > modules > packages) |
-| `coder` | implementation-notes | A file in `.adlc/implementation-notes/` must be created or updated |
-| `coder` | story-coverage | Every changed component in a module needs a matching `.stories.tsx` |
-| `planner` | plan-header | `.adlc/plan-header.md` must exist and be non-empty |
-| `planner` | slice-files | At least one `.md` file in `.adlc/slices/` |
-| `planner` | slice-criteria | Every slice must have `- [ ]` acceptance criteria |
-| `planner` | slice-ref-packages | Every slice must have a Reference Packages section |
-| `plan-gate` | no-plan-mutations | Must not modify plan files (read-only review) |
-| `plan-gate` | revision-slice-refs | Revision must reference specific slices with evidence |
-| `domain-mapper` | mapping-file | `.adlc/domain-mapping.md` must exist |
-| `domain-mapper` | engagement-check | Every medium+ confidence challenge has a resolution entry |
-| `evidence-researcher` | evidence-findings | `.adlc/current-evidence-findings.md` must exist |
-| `placement-gate` | no-plan-mutations | Must not modify plan files |
-| `placement-gate` | revision-issues | If revision exists, must contain `ISSUE` blocks |
-| `reviewer` | verification-results | `.adlc/verification-results.md` must exist |
-| `reviewer` | criteria-coverage | Results must cover every acceptance criterion from the slice |
+| Agent | Checks |
+|-------|--------|
+| `coder` | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
+| `planner` | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section |
+| `plan-gate` | no plan file mutations (read-only review), revision must reference specific slices with evidence |
+| `domain-mapper` | mapping file exists, every medium+ confidence challenge has a resolution entry |
+| `evidence-researcher` | evidence findings file exists |
+| `placement-gate` | no plan file mutations, revision must contain `ISSUE` blocks |
+| `reviewer` | verification results exist, results cover every acceptance criterion from the slice |
 
 ### Context refreshers
 
-By the time a subagent reaches completion, its original instructions are buried under thousands of tokens of code and tool output. Context refreshers block once per slice with a concise checklist — forcing recency-bias attention on concerns that are easy to forget.
-
-| Agent | Refresh | What it reminds |
-|-------|---------|-----------------|
-| `coder` | context-refresh | MSW handlers, story variants, implementation notes |
-
-Uses `.adlc/markers.json` keyed by slice name so the checklist fires once per slice — not on every stop attempt.
+Block once per slice with a concise checklist — forcing attention on concerns that are easy to forget after thousands of tokens. Currently: `coder` gets reminded about MSW handlers, story variants, and implementation notes (keyed by slice name via `.adlc/markers.json`).
 
 ### Autofixers
 
-Run corrections before validation to reduce noise. Formatting violations never appear as failures.
-
-| Agent | Autofix | What it does |
-|-------|---------|-------------|
-| `coder` | format-fix | `pnpm format-fix` before lint phase |
-| `coder` | lint-fix | `pnpm lint-fix` after format, before lint check |
-| `simplify` | format-fix | `pnpm format-fix` before lint phase |
-| `simplify` | lint-fix | `pnpm lint-fix` after format, before lint check |
-| `document` | format-fix | `pnpm format-fix` after doc updates |
-| `document` | lint-fix | `pnpm lint-fix` after format |
+`format-fix` and `lint-fix` run automatically before validation for `coder`, `simplify`, and `document`. Formatting violations never surface as failures.
 
 ### Run metrics
 
@@ -174,13 +138,13 @@ Constraints that apply to every tool call, regardless of which agent is running.
 
 ## Principle 2: Context should be delivered, not requested
 
-Agents shouldn't spend tool calls searching for information they will inevitably need. At the start of every run, the orchestrator builds a project context preamble from the target repository and injects it into every agent prompt:
+At the start of every run, the orchestrator builds a project context preamble and injects it into every agent prompt:
 
-- **Commands** — discovers standardized scripts (`build`, `lint`, `test`, `dev-app`, etc.) from the root `package.json` so agents know the exact commands to run
-- **Reference docs** — recursively scans the reference directory (default `./agent-docs/`), extracts titles, then classifies each doc into semantic categories (architecture, placement, API patterns, Storybook, styling, etc.) using a lightweight agent — with filename heuristics as fallback
-- **Structure** — injects the repo layout (apps, modules, packages paths), license, and author so agents place code correctly without exploring first
+- **Commands** — standardized scripts from the root `package.json` (`build`, `lint`, `test`, `dev-app`, etc.)
+- **Reference docs** — classified catalog of docs from `./agent-docs/`
+- **Structure** — repo layout, paths, license, and author
 
-The result: agents start with full context rather than burning tokens on `ls`, `cat`, and `find` calls to orient themselves.
+Agents start with full context rather than burning tokens on exploratory tool calls.
 
 ## Principle 3: Supervision must be real-time
 
@@ -193,7 +157,7 @@ The supervisor observes tool calls in real time during execution — not just at
 | `test-thrash` | Test reruns without code edits | Edit-gap detection with tiered recovery. Requires code changes between test runs. |
 | `install-gate` | Blind `pnpm install` | Blocks unless manifests changed, an override exists, or a PostToolUse dependency failure grants a one-shot bypass. |
 
-State is in-memory — shared across all tool calls within a single agent run, no disk I/O. The supervisor also consumes `PostToolUse` events so command-result evidence can unlock narrow recovery paths (e.g., a one-shot `pnpm install` bypass after a real missing-dependency failure).
+State is in-memory per agent run. `PostToolUse` events can unlock narrow recovery paths (e.g., a one-shot `pnpm install` bypass after a real missing-dependency failure).
 
 ---
 
@@ -243,24 +207,11 @@ Modules are fully isolated — modules never import from each other. Each has it
 
 ### Required root scripts
 
-The orchestrator validates that these scripts exist in the target repo's `package.json` at startup:
+The orchestrator validates these scripts at startup: `build`, `lint`, `test`, `typecheck`, `lint-check`, `lint-fix`, `format-check`, `format-fix`, `knip`, `syncpack`, `dev-app`, `dev-storybook`.
 
-`build`, `lint`, `test`, `typecheck`, `lint-check`, `lint-fix`, `format-check`, `format-fix`, `knip`, `syncpack`, `dev-app`, `dev-storybook`
+### Required tools
 
-### Required binaries
-
-`agent-browser` — must be installed as a devDependency (agents invoke it directly via `pnpm exec`)
-
-### Tech stack
-
-The orchestrator assumes and leverages these tools:
-
-| Tool | Purpose |
-|------|---------|
-| [pnpm](https://pnpm.io) | Package manager |
-| [Squide](https://github.com/gsoft-inc/wl-squide) | Modular application shell |
-| [Storybook](https://storybook.js.org) + [chromatic](https://www.chromatic.com) | Visual regression testing |
-| [agent-browser](https://www.npmjs.com/package/agent-browser) | Browser automation |
+[pnpm](https://pnpm.io), [Squide](https://github.com/gsoft-inc/wl-squide), [Storybook](https://storybook.js.org) + [Chromatic](https://www.chromatic.com), [agent-browser](https://www.npmjs.com/package/agent-browser) (devDependency — invoked via `pnpm exec`).
 
 ## Installation
 
@@ -286,22 +237,6 @@ The Agent SDK requires the experimental agent teams flag. Add this to your `.cla
 pnpm add @patlaf/adlc
 ```
 
-### Initialize a target repo
-
-In the repository where you want to run the harness:
-
-```bash
-pnpm adlc init
-```
-
-This creates an `adlc.config.ts` scaffold:
-
-```typescript
-import { defineConfig } from "@patlaf/adlc";
-
-export default defineConfig({});
-```
-
 ## Usage
 
 ### Run the full pipeline
@@ -320,10 +255,6 @@ pnpm adlc --dry-run "Add household feature"
 
 ```
 Usage: adlc [options] <feature-description>
-       adlc init
-
-Commands:
-  init                Scaffold adlc.config.ts if not present
 
 Options:
   --dry-run           Show wave schedule without executing
