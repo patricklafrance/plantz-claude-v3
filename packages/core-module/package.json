@@ -16,24 +16,24 @@
     "dependencies": {
         "@packages/api": "workspace:*",
         "@packages/components": "workspace:*",
-        "lucide-react": "^1.7.0"
+        "lucide-react": "^1.8.0"
     },
     "devDependencies": {
-        "@squide/firefly-storybook": "1.0.1",
-        "@storybook/react-vite": "10.3.4",
+        "@squide/firefly-storybook": "1.0.4",
+        "@storybook/react-vite": "10.3.5",
         "@types/react": "19.2.14",
         "@types/react-dom": "19.2.3",
-        "@typescript/native-preview": "7.0.0-dev.20260401.1",
+        "@typescript/native-preview": "7.0.0-dev.20260410.1",
         "@workleap/logging": "1.3.7",
         "@workleap/typescript-configs": "4.0.0",
-        "storybook": "10.3.4",
+        "storybook": "10.3.5",
         "typescript": "6.0.2"
     },
     "peerDependencies": {
-        "@squide/firefly": "^16.2.2",
-        "@tanstack/react-query": "^5.96.1",
-        "react": "^19.2.4",
-        "react-dom": "^19.2.4",
+        "@squide/firefly": "^17.0.1",
+        "@tanstack/react-query": "^5.97.0",
+        "react": "^19.2.5",
+        "react-dom": "^19.2.5",
         "react-router": "^7.14.0"
     }
 }

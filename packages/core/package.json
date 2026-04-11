@@ -12,7 +12,7 @@
         "typecheck": "tsgo"
     },
     "devDependencies": {
-        "@typescript/native-preview": "7.0.0-dev.20260401.1",
+        "@typescript/native-preview": "7.0.0-dev.20260410.1",
         "@workleap/typescript-configs": "4.0.0",
         "typescript": "6.0.2"
     }
