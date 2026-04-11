@@ -2,19 +2,7 @@
     "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
     "workspaces": {
         ".": {
-            "entry": [
-                "scripts/*.ts",
-                "agent-hooks/src/adlc-verification/subagent-stop.mjs",
-                "agent-hooks/src/adlc-verification/task-completed.mjs",
-                "agent-hooks/src/preflight/pre-tool-use.mjs",
-                "agent-hooks/src/pre-commit/pre-tool-use-bash.mjs",
-                "agent-hooks/src/safe-compact/post-compact.mjs",
-                ".claude/agents/scripts/generate-package-map.mjs",
-                ".claude/agents/scripts/wait-for-dev-server.mjs",
-                "agent-hooks/src/adlc-supervisor/post-tool-use.mjs",
-                "agent-hooks/src/adlc-supervisor/pre-tool-use.mjs",
-                "agent-hooks/src/adlc-supervisor/subagent-stop.mjs"
-            ],
+            "entry": ["scripts/*.ts", "adlc.config.ts", ".claude/hooks/post-compact.mjs"],
             "ignoreDependencies": ["netlify-cli", "agent-browser"]
         },
         "apps/host": {
@@ -29,8 +17,7 @@
                 "@squide/firefly-storybook",
                 "@tanstack/react-query",
                 "@workleap/logging",
-                "react-router",
-                "playwright"
+                "react-router"
             ]
         },
         "apps/storybook-management": {
@@ -62,8 +49,12 @@
             "entry": ["src/today/index.ts"]
         },
         "packages/components": {
-            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs", "src/index.ts"],
+            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs"],
             "ignoreDependencies": ["@tailwindcss/postcss"]
+        },
+        "adlc": {
+            "entry": ["src/cli.ts", "rslib.build.ts", "agents/generate-package-map.mjs"],
+            "ignoreDependencies": ["@rsbuild/core"]
         },
         "apps/storybook-packages": {
             "ignoreDependencies": [

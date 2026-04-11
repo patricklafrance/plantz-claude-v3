@@ -59,10 +59,14 @@
         "//#install-playwright": {
             "outputs": []
         },
-        "test": {
+        "test-app": {
             "dependsOn": ["//#install-playwright"],
             "inputs": ["$TURBO_DEFAULT$", "!**/README.md", "!**/CLAUDE.md"],
             "outputs": ["node_modules/.cache/vitest/**", "node_modules/.cache/storybook/**"]
+        },
+        "test-adlc": {
+            "inputs": ["$TURBO_DEFAULT$", "!**/README.md", "!**/CLAUDE.md"],
+            "outputs": ["node_modules/.cache/vitest/**"]
         }
     }
 }

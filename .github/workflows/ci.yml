@@ -60,6 +60,12 @@ jobs:
                       ${{ runner.os }}-turbo-
                   path: .turbo
 
+            - name: Test adlc
+              run: pnpm test-adlc
+
+            - name: Build adlc
+              run: pnpm build-adlc
+
             - name: Build host
               # For a PR, only build the host if it's diverging from the pull request original baseline.
               run: |
@@ -67,6 +73,15 @@ jobs:
                       pnpm turbo run build --filter=@apps/host...[${{ github.event.pull_request.base.sha }}]
                   else
                       pnpm build-host
+                  fi
+
+            - name: Build storybook
+              # For a PR, only build the Storybook if it's diverging from the pull request original baseline.
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                      pnpm turbo run build --filter=@apps/storybook...[${{ github.event.pull_request.base.sha }}]
+                  else
+                      pnpm build-storybook
                   fi
 
             - name: Oxfmt
@@ -96,16 +111,13 @@ jobs:
             - name: Syncpack
               run: pnpm turbo run syncpack
 
-            - name: Test harness
-              run: pnpm test-harness
-
             - name: Test app
               # For a PR, only test the projects that are diverging from the pull request original baseline.
               run: |
                   if [ "${{ github.event_name }}" == "pull_request" ]; then
-                      pnpm turbo run test --continue --filter=...[${{ github.event.pull_request.base.sha }}]
+                      pnpm turbo run test-app --continue --filter=...[${{ github.event.pull_request.base.sha }}]
                   else
-                      pnpm test
+                      pnpm test-app
                   fi
 
             - name: Save Turborepo cache

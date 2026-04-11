@@ -8,9 +8,9 @@
         "dev": "storybook dev -p 6006 --no-open --disable-telemetry",
         "build-storybook": "storybook build --disable-telemetry",
         "serve-storybook": "pnpm http-server storybook-static -p 8080 -P http://localhost:8080? -c-1",
-        "test": "pnpm run --sequential \"/^test:.*/\"",
-        "test:light": "vitest run",
-        "test:dark": "cross-env STORYBOOK_THEME=dark vitest run",
+        "test-app": "pnpm run --sequential \"/^test-app:.*/\"",
+        "test-app:light": "vitest run",
+        "test-app:dark": "cross-env STORYBOOK_THEME=dark vitest run",
         "typecheck": "tsgo",
         "doctor": "storybook doctor"
     },

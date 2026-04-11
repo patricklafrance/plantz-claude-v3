@@ -1,13 +1,9 @@
-import { defineConfig } from "./src/config.js";
+import { defineConfig } from "@patlaf/adlc";
 
 export default defineConfig({
-    ports: {
-        storybook: 6006,
-        hostApp: 8080,
-    },
     agents: {
         coder: {
-            skills: ["accessibility", "frontend-design", "workleap-react-best-practices"],
-        },
-    },
+            skills: ["accessibility", "frontend-design", "workleap-react-best-practices"]
+        }
+    }
 });

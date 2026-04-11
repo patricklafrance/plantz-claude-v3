@@ -63,7 +63,8 @@
         {
             "files": ["*.test.mjs", "*.test.ts", "*.test.tsx"],
             "rules": {
-                "jest/no-conditional-expect": "off"
+                "jest/no-conditional-expect": "off",
+                "typescript/no-explicit-any": "off"
             }
         }
     ]

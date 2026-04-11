@@ -1,0 +1,63 @@
+{
+    "name": "@patlaf/adlc",
+    "version": "0.0.1",
+    "description": "A headless CLI that plans, implements, and ships features using a multi-agent pipeline.",
+    "license": "Apache-2.0",
+    "author": "Patrick Lafrance",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/patricklafrance/plantz-claude-v3.git",
+        "directory": "adlc"
+    },
+    "files": [
+        "agents",
+        "skills",
+        "src",
+        "dist",
+        "CHANGELOG.md"
+    ],
+    "type": "module",
+    "sideEffects": false,
+    "bin": {
+        "adlc": "./src/cli.ts"
+    },
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "publishConfig": {
+        "access": "public",
+        "bin": {
+            "adlc": "./dist/cli.js"
+        },
+        "exports": {
+            ".": {
+                "types": "./dist/index.d.ts",
+                "import": "./dist/index.js",
+                "default": "./dist/index.js"
+            }
+        },
+        "provenance": true
+    },
+    "scripts": {
+        "build": "rslib build --config ./rslib.build.ts",
+        "typecheck": "tsgo",
+        "test-adlc": "vitest --config vitest.config.ts --no-watch"
+    },
+    "dependencies": {
+        "@anthropic-ai/claude-agent-sdk": "0.2.101",
+        "yaml": "^2.7.1"
+    },
+    "devDependencies": {
+        "@rsbuild/core": "1.7.5",
+        "@rslib/core": "0.21.0",
+        "@types/node": "25.6.0",
+        "@typescript/native-preview": "7.0.0-dev.20260410.1",
+        "@workleap/rslib-configs": "1.1.12",
+        "@workleap/typescript-configs": "4.0.0",
+        "typescript": "6.0.2",
+        "vitest": "4.1.4"
+    },
+    "engines": {
+        "node": ">=23.6"
+    }
+}

@@ -7,7 +7,9 @@
     "author": "Patrick Lafrance",
     "type": "module",
     "scripts": {
-        "build": "turbo run build",
+        "run-adlc": "adlc --dry-run",
+        "build-adlc": "turbo run build --filter=@patlaf/adlc",
+        "test-adlc": "turbo run test-adlc",
         "dev-app": "turbo run dev --filter=@apps/host",
         "dev-management": "cross-env MODULES=management pnpm dev-app",
         "dev-watering": "cross-env MODULES=watering pnpm dev-app",
@@ -20,8 +22,7 @@
         "serve-host": "turbo run serve-build --filter=@apps/host",
         "serve-storybook": "turbo run serve-storybook --filter=@apps/storybook",
         "install-playwright": "tsx scripts/install-playwright.ts",
-        "test": "turbo run test",
-        "test-harness": "vitest run --config agent-hooks/vitest.config.ts",
+        "test-app": "turbo run test-app",
         "lint": "turbo run lint --continue",
         "typecheck": "tsgo",
         "lint-check": "oxlint --deny-warnings --react-plugin --import-plugin --jsx-a11y-plugin --react-perf-plugin --promise-plugin --vitest-plugin",
@@ -40,6 +41,7 @@
         "update-outdated-deps:update-peers": "syncpack fix"
     },
     "devDependencies": {
+        "@patlaf/adlc": "workspace:*",
         "@types/node": "25.6.0",
         "@typescript/native-preview": "7.0.0-dev.20260410.1",
         "@workleap/typescript-configs": "4.0.0",

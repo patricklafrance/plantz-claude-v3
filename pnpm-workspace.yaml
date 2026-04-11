@@ -1,4 +1,5 @@
 packages:
+    - adlc
     - apps/**
     - modules/**
     - packages/**
