@@ -257,11 +257,10 @@ The orchestrator assumes and leverages these tools:
 
 | Tool | Purpose |
 |------|---------|
-| [pnpm](https://pnpm.io) | Package manager — enforced by guards (npm/npx blocked) |
-| [Squide](https://github.com/gsoft-inc/wl-squide) | Modular application shell — module isolation, host registration |
-| [Storybook](https://storybook.js.org) | Component development + a11y testing via Playwright |
-| [Chromatic](https://www.chromatic.com) | Visual regression testing — per-module tokens |
-| [agent-browser](https://www.npmjs.com/package/agent-browser) | Browser automation for reviewer agent screenshots and interactions |
+| [pnpm](https://pnpm.io) | Package manager |
+| [Squide](https://github.com/gsoft-inc/wl-squide) | Modular application shell |
+| [Storybook](https://storybook.js.org) + [chromatic](https://www.chromatic.com) | Visual regression testing |
+| [agent-browser](https://www.npmjs.com/package/agent-browser) | Browser automation |
 
 ## Installation
 
@@ -284,9 +283,7 @@ The Agent SDK requires the experimental agent teams flag. Add this to your `.cla
 ### Install the package
 
 ```bash
-cd v3
-pnpm install
-pnpm build
+pnpm add @patlaf/adlc
 ```
 
 ### Initialize a target repo
@@ -368,12 +365,4 @@ export default defineConfig({
         }
     }
 });
-```
-
-## Development
-
-```bash
-pnpm test              # Run all tests
-pnpm test -- --watch   # Watch mode
-pnpm build             # Compile TypeScript to dist/
 ```
