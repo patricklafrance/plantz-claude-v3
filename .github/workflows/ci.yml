@@ -1,0 +1,117 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+
+env:
+    CI: true
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        env:
+            TURBO_TELEMETRY_DISABLED: "1"
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+
+              # PNPM setup based on https://github.com/pnpm/action-setup#use-cache-to-reduce-installation-time
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  run_install: false
+
+            - name: Install Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: ">=24.0.0"
+                  check-latest: true
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
+
+            - name: Secret scan
+              uses: gitleaks/gitleaks-action@v2
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITLEAKS_CONFIG: .gitleaks.toml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Restore Turborepo cache
+              id: cache-turborepo-restore
+              uses: actions/cache/restore@v5
+              with:
+                  key: ${{ runner.os }}-turbo-ci-${{ github.sha }}
+                  restore-keys: |
+                      ${{ runner.os }}-turbo-ci-
+                      ${{ runner.os }}-turbo-
+                  path: .turbo
+
+            - name: Build host
+              # For a PR, only build the host if it's diverging from the pull request original baseline.
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                      pnpm turbo run build --filter=@apps/host...[${{ github.event.pull_request.base.sha }}]
+                  else
+                      pnpm build-host
+                  fi
+
+            - name: Oxfmt
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                      pnpm turbo run oxfmt --continue --filter=...[${{ github.event.pull_request.base.sha }}]
+                  else
+                      pnpm turbo run oxfmt
+                  fi
+
+            - name: Oxlint
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                      pnpm turbo run oxlint --continue --filter=...[${{ github.event.pull_request.base.sha }}]
+                  else
+                      pnpm turbo run oxlint
+                  fi
+
+            - name: Typecheck
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                      pnpm turbo run typecheck --continue --filter=...[${{ github.event.pull_request.base.sha }}]
+                  else
+                      pnpm turbo run typecheck
+                  fi
+
+            - name: Syncpack
+              run: pnpm turbo run syncpack
+
+            - name: Test harness
+              run: pnpm test-harness
+
+            - name: Test app
+              # For a PR, only test the projects that are diverging from the pull request original baseline.
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                      pnpm turbo run test --continue --filter=...[${{ github.event.pull_request.base.sha }}]
+                  else
+                      pnpm test
+                  fi
+
+            - name: Save Turborepo cache
+              id: cache-turborepo-save
+              if: always() && steps.cache-turborepo-restore.outputs.cache-hit != 'true'
+              uses: actions/cache/save@v5
+              with:
+                  key: ${{ steps.cache-turborepo-restore.outputs.cache-primary-key }}
+                  path: .turbo

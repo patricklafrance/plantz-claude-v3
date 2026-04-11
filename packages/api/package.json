@@ -1,0 +1,26 @@
+{
+    "name": "@packages/api",
+    "version": "0.0.0",
+    "private": true,
+    "description": "API layer — entity types, MSW handlers, and test factories.",
+    "license": "Apache-2.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./entities/plants": "./src/entities/plants/index.ts",
+        "./seed": "./src/seed.ts",
+        "./handlers/management": "./src/handlers/management/index.ts",
+        "./handlers/today": "./src/handlers/today/index.ts",
+        "./handlers/auth": "./src/handlers/auth/index.ts",
+        "./test-utils": "./src/test-utils/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsgo"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "7.0.0-dev.20260401.1",
+        "@workleap/typescript-configs": "4.0.0",
+        "msw": "2.12.14",
+        "typescript": "6.0.2"
+    }
+}

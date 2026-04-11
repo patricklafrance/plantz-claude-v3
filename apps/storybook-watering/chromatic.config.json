@@ -1,0 +1,6 @@
+{
+    "$schema": "https://www.chromatic.com/config-file.schema.json",
+    "projectId": "Project:69a88fb4bccbc98a21e5038e",
+    "storybookBaseDir": "apps/storybook-watering",
+    "zip": true
+}

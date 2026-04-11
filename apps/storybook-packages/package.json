@@ -1,0 +1,54 @@
+{
+    "name": "@apps/storybook-packages",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Packages-layer Storybook for shared component stories.",
+    "author": "Patrick Lafrance",
+    "type": "module",
+    "scripts": {
+        "dev": "storybook dev -p 6006 --no-open --disable-telemetry",
+        "build-storybook": "storybook build --disable-telemetry",
+        "serve-storybook": "pnpm http-server storybook-static -p 8080 -P http://localhost:8080? -c-1",
+        "test": "pnpm run --sequential \"/^test:.*/\"",
+        "test:light": "vitest run",
+        "test:dark": "cross-env STORYBOOK_THEME=dark vitest run",
+        "typecheck": "tsgo",
+        "doctor": "storybook doctor"
+    },
+    "dependencies": {
+        "@packages/api": "workspace:*",
+        "@packages/components": "workspace:*",
+        "@packages/core-module": "workspace:*",
+        "@squide/firefly": "16.2.2",
+        "@squide/firefly-storybook": "1.0.1",
+        "@storybook/addon-a11y": "10.3.4",
+        "@storybook/addon-themes": "10.3.4",
+        "@storybook/addon-vitest": "10.3.4",
+        "@storybook/react-vite": "10.3.4",
+        "@tanstack/react-query": "5.96.1",
+        "@workleap/logging": "1.3.7",
+        "msw": "2.12.14",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "react-router": "7.14.0",
+        "storybook": "10.3.4"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "4.2.2",
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+        "@typescript/native-preview": "7.0.0-dev.20260401.1",
+        "@vitest/browser": "4.1.2",
+        "@vitest/browser-playwright": "4.1.2",
+        "@vitest/runner": "4.1.2",
+        "@workleap/typescript-configs": "4.0.0",
+        "http-server": "14.1.1",
+        "playwright": "1.59.1",
+        "typescript": "6.0.2",
+        "vite": "8.0.3",
+        "vitest": "4.1.2"
+    },
+    "msw": {
+        "workerDirectory": ".storybook/public"
+    }
+}

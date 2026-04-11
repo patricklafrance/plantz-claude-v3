@@ -1,0 +1,19 @@
+{
+    "name": "@packages/core",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Cross-cutting foundation — shared utilities, types, and constants that any package can import.",
+    "license": "Apache-2.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsgo"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "7.0.0-dev.20260401.1",
+        "@workleap/typescript-configs": "4.0.0",
+        "typescript": "6.0.2"
+    }
+}

@@ -1,0 +1,159 @@
+# The strategy is to run on both "push" and "pull_request" events targeting the main branch.
+# For PRs, the base SHA is the base of the PR, so only changes relative to main are considered.
+# For pushes to main, the base SHA is the before SHA of the push event.
+# This ensures that Chromatic only considers changes relative to main, avoiding ephemeral merge commits.
+# For additional information, refer to: https://www.chromatic.com/docs/github-actions/#recommended-configuration-for-build-events.
+# The reason why "pull_request" events are included is to easily get access to the PR labels.
+
+name: Chromatic
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+        types:
+            - opened
+            # To conditionally execute the workflow based on a PR label.
+            - labeled
+            - synchronize
+
+env:
+    CI: true
+
+concurrency:
+    group: chromatic-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    chromatic:
+        runs-on: ubuntu-latest
+
+        permissions:
+            pull-requests: write
+
+        env:
+            TURBO_TELEMETRY_DISABLED: "1"
+
+        steps:
+            - name: Early exit if "run chromatic" label is not present
+              if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'run chromatic')
+              run: |
+                  echo "No \"run chromatic\" label present. Skipping Chromatic workflow."
+                  exit 1
+
+            - name: Checkout
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+                  # Refer to: https://www.chromatic.com/docs/github-actions/#recommended-configuration-for-build-events.
+                  ref: ${{ github.event.pull_request.head.ref }}
+              env:
+                  # Refer to: https://www.chromatic.com/docs/github-actions/#recommended-configuration-for-build-events.
+                  CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+                  CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.ref }}
+                  CHROMATIC_SLUG: ${{ github.repository }}
+
+              # PNPM setup based on https://github.com/pnpm/action-setup#use-cache-to-reduce-installation-time.
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  run_install: false
+
+            - name: Install Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: ">=24.0.0"
+                  check-latest: true
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Restore Turborepo cache
+              id: cache-turborepo-restore
+              uses: actions/cache/restore@v5
+              with:
+                  key: ${{ runner.os }}-turbo-chromatic-${{ github.sha }}
+                  restore-keys: |
+                      ${{ runner.os }}-turbo-chromatic-
+                      ${{ runner.os }}-turbo-
+                  path: .turbo
+
+            - name: Get base SHA
+              id: get-base-sha
+              shell: bash
+              # For PRs, it's the base SHA of the PR.
+              # For pushes to main, the base SHA is the before SHA of the push event.
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                    echo "VALUE=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "VALUE=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Get affected Storybooks
+              id: affected-storybooks
+              working-directory: ${{ github.workspace }}
+              run: pnpm tsx scripts/get-affected-storybooks.ts
+              env:
+                  BASE_SHA: ${{ steps.get-base-sha.outputs.VALUE }}
+
+            - name: Chromatic - Management
+              id: chromatic-management
+              uses: chromaui/action@latest
+              with:
+                  projectToken: ${{ secrets.MANAGEMENT_CHROMATIC_PROJECT_TOKEN }}
+                  workingDir: apps/storybook-management
+                  onlyChanged: true
+                  exitOnceUploaded: true
+                  autoAcceptChanges: main
+                  skip: ${{ steps.affected-storybooks.outputs['@apps/storybook-management'] == 'false' }}
+                  debug: true
+
+            - name: Chromatic - Watering
+              id: chromatic-watering
+              uses: chromaui/action@latest
+              with:
+                  projectToken: ${{ secrets.WATERING_CHROMATIC_PROJECT_TOKEN }}
+                  workingDir: apps/storybook-watering
+                  onlyChanged: true
+                  exitOnceUploaded: true
+                  autoAcceptChanges: main
+                  skip: ${{ steps.affected-storybooks.outputs['@apps/storybook-watering'] == 'false' }}
+                  debug: true
+
+            - name: Chromatic - Packages
+              id: chromatic-packages
+              uses: chromaui/action@latest
+              with:
+                  projectToken: ${{ secrets.PACKAGES_CHROMATIC_PROJECT_TOKEN }}
+                  workingDir: apps/storybook-packages
+                  onlyChanged: true
+                  exitOnceUploaded: true
+                  autoAcceptChanges: main
+                  skip: ${{ steps.affected-storybooks.outputs['@apps/storybook-packages'] == 'false' }}
+                  debug: true
+
+            - name: Remove "run chromatic" label after Chromatic completion
+              if: github.event_name == 'pull_request'
+              uses: actions/github-script@v8
+              with:
+                  script: |
+                      github.rest.issues.removeLabel({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: context.issue.number,
+                          name: 'run chromatic'
+                      });
+
+            - name: Save Turborepo cache
+              id: cache-turborepo-save
+              if: always() && steps.cache-turborepo-restore.outputs.cache-hit != 'true'
+              uses: actions/cache/save@v5
+              with:
+                  key: ${{ steps.cache-turborepo-restore.outputs.cache-primary-key }}
+                  path: .turbo

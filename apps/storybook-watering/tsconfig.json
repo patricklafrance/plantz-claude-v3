@@ -1,0 +1,10 @@
+{
+    "extends": "@workleap/typescript-configs/web-application.json",
+    "compilerOptions": {
+        "incremental": true,
+        "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+        "types": ["node", "vite/client", "../storybook-packages/types/parameters.d.ts", "../storybook-packages/types/css.d.ts"]
+    },
+    "include": ["**/*", ".storybook/**/*"],
+    "exclude": ["dist", "node_modules", "storybook-static"]
+}

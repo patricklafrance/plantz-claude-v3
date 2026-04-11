@@ -1,0 +1,457 @@
+# Squide Hooks API Reference
+
+## Table of Contents
+- [Routing Hooks](#routing-hooks) — useNavigationItems, useRenderedNavigationItems, useRoutes, useIsBootstrapping, useIsRouteProtected, useRouteMatch
+- [Data Fetching Hooks](#data-fetching-hooks) — usePublicDataQueries, useProtectedDataQueries, usePublicDataHandler, useProtectedDataHandler
+- [Registration Hooks](#registration-hooks) — useDeferredRegistrations
+- [Messaging Hooks](#messaging-hooks) — useEventBusListener, useEventBusDispatcher
+- [Environment & Configuration Hooks](#environment--configuration-hooks) — useEnvironmentVariable, useEnvironmentVariables, useFeatureFlag, useFeatureFlags, useLaunchDarklyClient
+- [Logging Hooks](#logging-hooks) — useLogger
+- [Runtime Hooks](#runtime-hooks) — useRuntime, useRuntimeMode
+- [Plugin Hooks](#plugin-hooks) — usePlugin
+- [i18next Hooks](#i18next-hooks-from-squidei18next) — useI18nextInstance, useCurrentLanguage, useChangeLanguage
+
+## Routing Hooks
+
+### useNavigationItems(options?)
+Retrieve registered navigation items.
+
+```ts
+import { useNavigationItems } from "@squide/firefly";
+
+// Root menu items
+const items = useNavigationItems();
+
+// Specific menu items
+const customItems = useNavigationItems({ menuId: "custom-menu" });
+```
+
+**Returns:** `Array<NavigationLink | NavigationSection>`
+
+### useRenderedNavigationItems(items, renderItem, renderSection)
+Transform navigation items into React elements.
+
+**Function Signatures (fixed, no custom parameters):**
+- `RenderItemFunction`: `(item: NavigationItemRenderProps, key: string, index: number, level: number) => ReactNode`
+- `RenderSectionFunction`: `(elements: ReactNode[], key: string, index: number, level: number) => ReactNode`
+
+**Note:** `useRenderedNavigationItems` invokes these callbacks with the arguments shown above, but your implementation may declare fewer parameters and ignore the rest (for example, `(item, key) => ...`). You cannot supply extra custom context parameters via `useRenderedNavigationItems`; instead, access external values (like route params or location) through closures or React hooks within the component that calls `useRenderedNavigationItems`.
+
+```ts
+import {
+    useRenderedNavigationItems,
+    isNavigationLink,
+    type RenderItemFunction,
+    type RenderSectionFunction
+} from "@squide/firefly";
+
+const renderItem: RenderItemFunction = (item, key, index, level) => {
+    if (!isNavigationLink(item)) return null;
+    const { label, linkProps, additionalProps } = item;
+    return (
+        <li key={key}>
+            <Link {...linkProps} {...additionalProps}>{label}</Link>
+        </li>
+    );
+};
+
+const renderSection: RenderSectionFunction = (elements, key, index, level) => (
+    <ul key={key}>{elements}</ul>
+);
+
+const elements = useRenderedNavigationItems(items, renderItem, renderSection);
+```
+
+### useRoutes()
+Retrieve registered routes (prefer using `AppRouter` instead).
+
+```ts
+import { useRoutes } from "@squide/firefly";
+const routes = useRoutes();
+```
+
+### useIsBootstrapping()
+Check if application is still bootstrapping.
+
+```ts
+import { useIsBootstrapping } from "@squide/firefly";
+
+if (useIsBootstrapping()) {
+    return <LoadingSpinner />;
+}
+```
+
+### useIsRouteProtected(route)
+Check if the given route is protected.
+
+```ts
+import { useLocation } from "react-router/dom";
+import { useIsRouteProtected, useRouteMatch } from "@squide/firefly";
+
+const location = useLocation();
+const route = useRouteMatch(location);
+
+const isActiveRouteProtected = useIsRouteProtected(route);
+```
+
+### useRouteMatch(locationArg, options?)
+Match a location against registered routes using React Router's matching algorithm.
+
+```ts
+import { useRouteMatch } from "@squide/firefly";
+import { useLocation } from "react-router/dom";
+
+// Using useLocation
+const location = useLocation();
+const activeRoute = useRouteMatch(location);
+
+// Using window.location
+const activeRoute = useRouteMatch(window.location);
+
+// Opting out of the default throw behavior
+const activeRoute = useRouteMatch(location, { throwWhenThereIsNoMatch: false });
+// activeRoute is Route | undefined
+```
+
+**Parameters:**
+- `locationArg`: The location to match against routes
+- `options.throwWhenThereIsNoMatch`: If true, throws an Error when no route matches (default: true)
+
+**Returns:** A `Route` object if there's a match. Throws by default when no route matches; returns `undefined` instead if `throwWhenThereIsNoMatch` is set to `false`.
+
+## Data Fetching Hooks
+
+### usePublicDataQueries(queries)
+Fetch global public data. Used for data needed on all pages.
+
+```ts
+import { usePublicDataQueries } from "@squide/firefly";
+
+const [data1, data2] = usePublicDataQueries([
+    {
+        queryKey: ["/api/config"],
+        queryFn: async () => {
+            const response = await fetch("/api/config");
+            return response.json();
+        }
+    },
+    {
+        queryKey: ["/api/translations"],
+        queryFn: async () => {
+            const response = await fetch("/api/translations");
+            return response.json();
+        }
+    }
+]);
+```
+
+**Note:** Requires `<AppRouter waitForPublicData>` to delay rendering.
+
+### useProtectedDataQueries(queries, isUnauthorizedError)
+Fetch global protected data. Only fetched for protected routes.
+
+```ts
+import { useProtectedDataQueries } from "@squide/firefly";
+
+const [session] = useProtectedDataQueries([
+    {
+        queryKey: ["/api/session"],
+        queryFn: async () => {
+            const response = await fetch("/api/session");
+            if (!response.ok) throw new ApiError(response.status);
+            return response.json();
+        }
+    }
+], error => isApiError(error) && error.status === 401);
+```
+
+**Parameters:**
+- `queries`: Array of TanStack Query configurations
+- `isUnauthorizedError`: Function to detect 401 errors (triggers redirect to login)
+
+**Note:** Requires `<AppRouter waitForProtectedData>` to delay rendering.
+
+### usePublicDataHandler(handler)
+Execute the specified handler once the modules are ready and, when applicable, MSW is also ready.
+
+```ts
+import { usePublicDataHandler } from "@squide/firefly";
+
+usePublicDataHandler(() => {
+    console.log("The modules are ready!");
+});
+```
+
+### useProtectedDataHandler(handler)
+Execute the specified handler once the modules are ready, the active route is protected and, when applicable, MSW is also ready.
+
+```ts
+import { useProtectedDataHandler } from "@squide/firefly";
+
+useProtectedDataHandler(() => {
+    console.log("The modules are ready and the active route is protected!");
+});
+```
+
+## Registration Hooks
+
+### useDeferredRegistrations(data?, options?)
+Execute deferred registration functions.
+
+```ts
+import { useDeferredRegistrations } from "@squide/firefly";
+
+// With data for conditional registrations
+const data = useMemo(() => ({ userData }), [userData]);
+useDeferredRegistrations(data);
+
+// Without data (for feature flags only)
+useDeferredRegistrations();
+
+// With error handling
+useDeferredRegistrations(undefined, {
+    onError: errors => errors.forEach(x => console.error(x))
+});
+```
+
+**Parameters:**
+- `data`: An optional object that will be passed to deferred registration functions.
+- `options.onError`: An optional callback receiving an array of `ModuleRegistrationError` instances.
+
+**Important:** Use `useMemo` to prevent unnecessary re-executions.
+
+#### DeferredRegistrationFunction signature
+
+Module registration functions return a `DeferredRegistrationFunction` with signature:
+`(deferredRuntime, data, operation: "register" | "update") => Promise<void> | void`
+
+- `operation === "register"`: Initial execution after modules are ready.
+- `operation === "update"`: Re-execution when data or feature flags change.
+
+```ts
+export const register: ModuleRegisterFunction<FireflyRuntime, unknown, DeferredData> = runtime => {
+    return (deferredRuntime, { userData }, operation) => {
+        if (userData.isAdmin) {
+            deferredRuntime.registerNavigationItem({
+                $id: "admin",
+                $label: operation === "register" ? "Admin" : "Admin (updated)",
+                to: "/admin"
+            });
+        }
+    };
+};
+```
+
+## Messaging Hooks
+
+The event bus is type-safe via module augmentation of the `EventMap` interface (same pattern as `EnvironmentVariables` and `FeatureFlags`). Events must be declared in `EventMap` before they can be dispatched or listened to.
+
+### TypeScript Augmentation (EventMap Interface)
+
+```ts
+// types/event-map.d.ts
+import "@squide/firefly";
+
+declare module "@squide/firefly" {
+    interface EventMap {
+        "tenant-changed": { tenantId: string };
+        "theme-updated": { mode: "light" | "dark" };
+    }
+}
+```
+
+All Squide native events (bootstrapping lifecycle, data fetching, AppRouter state) are pre-augmented and already type-safe.
+
+### useEventBusListener(eventName, handler, options?)
+Listen to events from the event bus. The handler payload type is inferred from `EventMap`.
+
+```ts
+import { useEventBusListener } from "@squide/firefly";
+import { useCallback } from "react";
+
+// Payload inferred as { tenantId: string }
+const handleTenantChanged = useCallback(data => {
+    console.log("Tenant:", data?.tenantId);
+}, []);
+useEventBusListener("tenant-changed", handleTenantChanged);
+
+// Listen once
+useEventBusListener("tenant-changed", handleTenantChanged, { once: true });
+```
+
+### useEventBusDispatcher()
+Get a function to dispatch events. The payload type is enforced by `EventMap`.
+
+```ts
+import { useEventBusDispatcher } from "@squide/firefly";
+
+const dispatch = useEventBusDispatcher();
+
+// Payload must match EventMap["tenant-changed"]
+dispatch("tenant-changed", { tenantId: "abc" });
+```
+
+## Environment & Configuration Hooks
+
+### TypeScript Augmentation (EnvironmentVariables Interface)
+
+Before registering or accessing environment variables, modules must augment the `EnvironmentVariables` interface to get type safety and autocompletion:
+
+```ts
+// types/env-vars.d.ts
+import "@squide/firefly";
+
+declare module "@squide/firefly" {
+    interface EnvironmentVariables {
+        apiBaseUrl: string;
+        cdnUrl: string;
+    }
+}
+```
+
+Reference the file in `tsconfig.json`:
+
+```json
+{
+    "compilerOptions": {
+        "types": ["./types/env-vars.d.ts"]
+    }
+}
+```
+
+### useEnvironmentVariable(key)
+Get a single environment variable.
+
+```ts
+import { useEnvironmentVariable } from "@squide/firefly";
+const apiUrl = useEnvironmentVariable("apiBaseUrl");
+```
+
+### useEnvironmentVariables()
+Get all environment variables.
+
+```ts
+import { useEnvironmentVariables } from "@squide/firefly";
+const variables = useEnvironmentVariables();
+```
+
+### useFeatureFlag(key, defaultValue)
+Get a LaunchDarkly feature flag value.
+
+```ts
+import { useFeatureFlag } from "@squide/firefly";
+
+// Returns the flag value, or defaultValue if not available
+const isEnabled = useFeatureFlag("new-feature", false);
+```
+
+### useFeatureFlags()
+Get all feature flags. Returns a memoized object that only changes when a flag value updates.
+
+```ts
+import { useFeatureFlags } from "@squide/firefly";
+
+// Stable reference - only changes when flags actually change
+const flags = useFeatureFlags();
+```
+
+**Note:** Unlike the LaunchDarkly SDK client which returns a new object on every invocation, this hook returns a memoized object.
+
+### useLaunchDarklyClient()
+Get the LaunchDarkly client instance.
+
+```ts
+import { useLaunchDarklyClient } from "@squide/firefly";
+const client = useLaunchDarklyClient();
+
+// Check if client supports runtime modification
+import { isEditableLaunchDarklyClient } from "@squide/firefly";
+if (isEditableLaunchDarklyClient(client)) {
+    client.setFeatureFlags({ "my-flag": true });
+}
+```
+
+## Logging Hooks
+
+### useLogger()
+Get the runtime logger instance.
+
+```ts
+import { useLogger } from "@squide/firefly";
+
+const logger = useLogger();
+logger.debug("Debug message");
+logger.information("Info message");
+logger.warn("Warning");
+logger.error("Error");
+logger.critical("Critical");
+```
+
+**Warning:** Never log Personally Identifiable Information (PII).
+
+## Runtime Hooks
+
+### useRuntime()
+Get the FireflyRuntime instance.
+
+```ts
+import { useRuntime } from "@squide/firefly";
+const runtime = useRuntime();
+```
+
+### useRuntimeMode()
+Get the current runtime mode.
+
+```ts
+import { useRuntimeMode } from "@squide/firefly";
+const mode = useRuntimeMode(); // "development" | "production"
+```
+
+## Plugin Hooks
+
+### usePlugin(name)
+Get a registered plugin by name.
+
+```ts
+import { usePlugin } from "@squide/firefly";
+import { MyPlugin } from "@sample/my-plugin";
+
+const plugin = usePlugin(MyPlugin.name) as MyPlugin;
+```
+
+## i18next Hooks (from `@squide/i18next`)
+
+### useI18nextInstance(key)
+Get a registered i18next instance by key.
+
+```ts
+import { useI18nextInstance } from "@squide/i18next";
+const i18n = useI18nextInstance("an-instance-key");
+```
+
+Use with the `useTranslation` hook:
+
+```ts
+import { useI18nextInstance } from "@squide/i18next";
+import { useTranslation } from "react-i18next";
+
+const instance = useI18nextInstance("an-instance-key");
+const { t } = useTranslation("a-namespace", { i18n: instance });
+```
+
+### useCurrentLanguage()
+Get the current language.
+
+```ts
+import { useCurrentLanguage } from "@squide/i18next";
+const language = useCurrentLanguage();
+```
+
+### useChangeLanguage()
+Get function to change language.
+
+```ts
+import { useChangeLanguage } from "@squide/i18next";
+const changeLanguage = useChangeLanguage();
+changeLanguage("fr-CA");
+```

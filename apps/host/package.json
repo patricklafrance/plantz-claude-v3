@@ -1,0 +1,42 @@
+{
+    "name": "@apps/host",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Squide host application for the plantz application.",
+    "type": "module",
+    "scripts": {
+        "dev": "rsbuild dev --config rsbuild.dev.ts",
+        "build": "rsbuild build --config rsbuild.build.ts",
+        "serve-build": "pnpm http-server dist -p 8080 -P http://localhost:8080? -c-1",
+        "typecheck": "tsgo"
+    },
+    "dependencies": {
+        "@modules/management": "workspace:*",
+        "@modules/watering": "workspace:*",
+        "@packages/api": "workspace:*",
+        "@packages/components": "workspace:*",
+        "@packages/core-module": "workspace:*",
+        "@squide/firefly": "16.2.2",
+        "@tanstack/react-query": "5.96.1",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "react-router": "7.14.0"
+    },
+    "devDependencies": {
+        "@rsbuild/core": "1.7.5",
+        "@tailwindcss/postcss": "4.2.2",
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+        "@typescript/native-preview": "7.0.0-dev.20260401.1",
+        "@workleap/browserslist-config": "2.1.8",
+        "@workleap/rsbuild-configs": "3.2.6",
+        "@workleap/typescript-configs": "4.0.0",
+        "http-server": "14.1.1",
+        "msw": "2.12.14",
+        "tailwindcss": "4.2.2",
+        "typescript": "6.0.2"
+    },
+    "msw": {
+        "workerDirectory": "public"
+    }
+}

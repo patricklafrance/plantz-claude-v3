@@ -1,0 +1,9 @@
+@import "@packages/components/globals.css";
+
+@source "../../../../packages/components/src/**/*.{ts,tsx}";
+@source "../../../../packages/core-module/src/shell/**/*.{ts,tsx}";
+@source "../../../../packages/core-plants/src/**/*.{ts,tsx}";
+@source "../../../../modules/management/src/inventory/**/*.{ts,tsx}";
+@source "../../../../modules/management/src/account/**/*.{ts,tsx}";
+@source "../../../../modules/watering/src/today/**/*.{ts,tsx}";
+@source "../../../../modules/watering/src/vacation-planner/**/*.{ts,tsx}";

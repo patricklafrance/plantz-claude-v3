@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#2d5a3d"/>
+  <g transform="translate(16,16)">
+    <!-- Stem -->
+    <path d="M0 12 C0 6 -1 2 0 -4" stroke="#a8d5a0" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+    <!-- Left leaf -->
+    <path d="M0 -4 C-3 -7 -9 -9 -10 -12 C-7 -10 -3 -10 0 -8" fill="#a8d5a0"/>
+    <!-- Right leaf -->
+    <path d="M0 -1 C4 -4 9 -5 11 -8 C8 -5 4 -5 0 -4" fill="#7dba72"/>
+    <!-- Small leaf -->
+    <path d="M0 3 C-2 1 -6 0 -7 -2 C-5 0 -2 0 0 1" fill="#5a9e50" opacity="0.8"/>
+  </g>
+</svg>

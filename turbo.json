@@ -1,0 +1,68 @@
+{
+    "$schema": "./node_modules/turbo/schema.json",
+    "ui": "tui",
+    "tasks": {
+        "transit": {
+            "dependsOn": ["^transit"],
+            "outputs": []
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "build": {
+            "dependsOn": ["^build"],
+            "inputs": ["$TURBO_DEFAULT$", "!**/README.md", "!**/CLAUDE.md"],
+            "env": ["MODULES"],
+            "outputs": ["dist/**"]
+        },
+        "build-storybook": {
+            "cache": false
+        },
+        "serve-build": {
+            "dependsOn": ["build"],
+            "cache": false,
+            "persistent": true
+        },
+        "serve-storybook": {
+            "dependsOn": ["build-storybook"],
+            "cache": false,
+            "persistent": true
+        },
+        "lint": {
+            "dependsOn": ["//#lint-check", "//#format-check", "typecheck", "//#typecheck", "//#syncpack", "//#knip"]
+        },
+        "//#knip": {
+            "inputs": ["$TURBO_DEFAULT$", "knip.json", "!agent-docs", "!**/README.md", "!**/CLAUDE.md"],
+            "outputs": []
+        },
+        "//#lint-check": {
+            "inputs": ["$TURBO_DEFAULT$", "!agent-docs", "!**/README.md", "!**/CLAUDE.md"],
+            "outputs": []
+        },
+        "//#format-check": {
+            "inputs": ["$TURBO_DEFAULT$", "!agent-docs", "!**/README.md", "!**/CLAUDE.md"],
+            "outputs": []
+        },
+        "//#typecheck": {
+            "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx", "tsconfig.json", "!apps", "!packages", "!agent-docs"],
+            "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+        },
+        "typecheck": {
+            "dependsOn": ["transit"],
+            "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx", "tsconfig.json", "tsconfig.build.json"],
+            "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+        },
+        "//#syncpack": {
+            "inputs": [".syncpackrc.js", "package.json", "packages/**/package.json", "apps/**/package.json", "modules/**/package.json"]
+        },
+        "//#install-playwright": {
+            "outputs": []
+        },
+        "test": {
+            "dependsOn": ["//#install-playwright"],
+            "inputs": ["$TURBO_DEFAULT$", "!**/README.md", "!**/CLAUDE.md"],
+            "outputs": ["node_modules/.cache/vitest/**", "node_modules/.cache/storybook/**"]
+        }
+    }
+}

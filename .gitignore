@@ -1,0 +1,29 @@
+node_modules
+dist
+.env
+*.env.local
+
+# Third parties & tools
+storybook-static
+build-storybook.log
+chromatic.log
+chromatic-diagnostics.json
+.pnpm-debug.log*
+.turbo
+.rslib
+.netlify
+
+# Claude
+.claude/worktrees
+
+# ADLC run artifacts
+.adlc/
+.adlc-metrics/
+
+# CI artifacts
+*.sarif
+
+# Ephemeral scratch / context backups
+tmp/
+
+

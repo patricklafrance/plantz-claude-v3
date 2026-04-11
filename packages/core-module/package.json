@@ -1,0 +1,39 @@
+{
+    "name": "@packages/core-module",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Cross-module infrastructure: session, auth, shell, and shared module utilities.",
+    "license": "Apache-2.0",
+    "author": "Patrick Lafrance",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./shell": "./src/shell/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsgo"
+    },
+    "dependencies": {
+        "@packages/api": "workspace:*",
+        "@packages/components": "workspace:*",
+        "lucide-react": "^1.7.0"
+    },
+    "devDependencies": {
+        "@squide/firefly-storybook": "1.0.1",
+        "@storybook/react-vite": "10.3.4",
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+        "@typescript/native-preview": "7.0.0-dev.20260401.1",
+        "@workleap/logging": "1.3.7",
+        "@workleap/typescript-configs": "4.0.0",
+        "storybook": "10.3.4",
+        "typescript": "6.0.2"
+    },
+    "peerDependencies": {
+        "@squide/firefly": "^16.2.2",
+        "@tanstack/react-query": "^5.96.1",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "react-router": "^7.14.0"
+    }
+}

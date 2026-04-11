@@ -1,0 +1,82 @@
+{
+    "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+    "workspaces": {
+        ".": {
+            "entry": [
+                "scripts/*.ts",
+                "agent-hooks/src/adlc-verification/subagent-stop.mjs",
+                "agent-hooks/src/adlc-verification/task-completed.mjs",
+                "agent-hooks/src/preflight/pre-tool-use.mjs",
+                "agent-hooks/src/pre-commit/pre-tool-use-bash.mjs",
+                "agent-hooks/src/safe-compact/post-compact.mjs",
+                ".claude/agents/scripts/generate-package-map.mjs",
+                ".claude/agents/scripts/wait-for-dev-server.mjs",
+                "agent-hooks/src/adlc-supervisor/post-tool-use.mjs",
+                "agent-hooks/src/adlc-supervisor/pre-tool-use.mjs",
+                "agent-hooks/src/adlc-supervisor/subagent-stop.mjs"
+            ],
+            "ignoreDependencies": ["netlify-cli", "agent-browser"]
+        },
+        "apps/host": {
+            "entry": ["src/index.tsx", "rsbuild.build.ts", "rsbuild.dev.ts"],
+            "ignoreDependencies": ["@tailwindcss/postcss", "@workleap/browserslist-config", "tailwindcss"]
+        },
+        "apps/storybook": {
+            "ignoreDependencies": [
+                "@packages/components",
+                "@packages/api",
+                "@squide/firefly",
+                "@squide/firefly-storybook",
+                "@tanstack/react-query",
+                "@workleap/logging",
+                "react-router",
+                "playwright"
+            ]
+        },
+        "apps/storybook-management": {
+            "ignoreDependencies": [
+                "@packages/components",
+                "@packages/api",
+                "@squide/firefly",
+                "@squide/firefly-storybook",
+                "@tanstack/react-query",
+                "@workleap/logging",
+                "react-router"
+            ]
+        },
+        "apps/storybook-watering": {
+            "ignoreDependencies": [
+                "@packages/components",
+                "@packages/api",
+                "@squide/firefly",
+                "@squide/firefly-storybook",
+                "@tanstack/react-query",
+                "@workleap/logging",
+                "react-router"
+            ]
+        },
+        "modules/management": {
+            "entry": ["src/inventory/index.ts", "src/account/index.ts"]
+        },
+        "modules/watering": {
+            "entry": ["src/today/index.ts"]
+        },
+        "packages/components": {
+            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs", "src/index.ts"],
+            "ignoreDependencies": ["@tailwindcss/postcss"]
+        },
+        "apps/storybook-packages": {
+            "ignoreDependencies": [
+                "@packages/components",
+                "@packages/core-module",
+                "@packages/api",
+                "@squide/firefly",
+                "@squide/firefly-storybook",
+                "@tanstack/react-query",
+                "@workleap/logging",
+                "msw",
+                "react-router"
+            ]
+        }
+    }
+}

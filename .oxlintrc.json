@@ -1,0 +1,70 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "suspicious": "warn",
+        "perf": "warn"
+    },
+    "rules": {
+        "oxc/no-barrel-file": ["error", { "threshold": 1 }],
+
+        "eslint/array-callback-return": "error",
+        "eslint/curly": "warn",
+        "eslint/eqeqeq": ["warn", "smart"],
+        "eslint/no-caller": "warn",
+        "eslint/no-console": "warn",
+        "eslint/no-eval": "warn",
+        "eslint/no-extend-native": "warn",
+        "eslint/no-extra-bind": "warn",
+        "eslint/no-lone-blocks": "warn",
+        "eslint/no-loop-func": "warn",
+
+        "eslint/no-new-wrappers": "warn",
+        "eslint/no-param-reassign": "warn",
+        "eslint/no-script-url": "warn",
+        "eslint/no-self-compare": "error",
+        "eslint/no-sequences": "warn",
+        "eslint/no-template-curly-in-string": "error",
+        "eslint/no-throw-literal": "warn",
+        "eslint/no-unneeded-ternary": "warn",
+        "eslint/no-useless-computed-key": "warn",
+        "eslint/no-useless-concat": "warn",
+        "eslint/no-useless-constructor": "warn",
+        "eslint/no-useless-rename": "warn",
+        "eslint/no-var": "warn",
+        "eslint/prefer-const": "warn",
+
+        "import/no-cycle": "error",
+        "import/no-duplicates": "warn",
+        "import/no-self-import": "error",
+        "import/no-unassigned-import": "off",
+
+        "react/button-has-type": "warn",
+        "react/jsx-key": "error",
+        "react/jsx-no-duplicate-props": "warn",
+        "react/no-array-index-key": "warn",
+        "react/react-in-jsx-scope": "off",
+        "react/rules-of-hooks": "error",
+
+        "react-perf/jsx-no-new-function-as-prop": "off",
+
+        "typescript/consistent-type-imports": "warn",
+        "typescript/no-explicit-any": "warn",
+
+        "jsx-a11y/no-autofocus": "off"
+    },
+    "overrides": [
+        {
+            "files": ["*.stories.tsx", "**/storybook.setup.tsx"],
+            "rules": {
+                "react-perf/jsx-no-jsx-as-prop": "off",
+                "react-perf/jsx-no-new-object-as-prop": "off"
+            }
+        },
+        {
+            "files": ["*.test.mjs", "*.test.ts", "*.test.tsx"],
+            "rules": {
+                "jest/no-conditional-expect": "off"
+            }
+        }
+    ]
+}

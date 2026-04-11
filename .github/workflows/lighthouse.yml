@@ -1,0 +1,72 @@
+name: Lighthouse CI
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+
+concurrency:
+    group: lighthouse-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    lighthouse:
+        runs-on: ubuntu-latest
+        env:
+            TURBO_TELEMETRY_DISABLED: "1"
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  run_install: false
+
+            - name: Install Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: ">=24.0.0"
+                  check-latest: true
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Restore Turborepo cache
+              id: cache-turborepo-restore
+              uses: actions/cache/restore@v5
+              with:
+                  key: ${{ runner.os }}-turbo-lighthouse-${{ github.sha }}
+                  restore-keys: |
+                      ${{ runner.os }}-turbo-lighthouse-
+                      ${{ runner.os }}-turbo-
+                  path: .turbo
+
+            - name: Build host
+              run: pnpm build-host
+
+            - name: Lighthouse CI
+              uses: treosh/lighthouse-ci-action@v12
+              with:
+                  configPath: lighthouserc.json
+                  uploadArtifacts: true
+                  temporaryPublicStorage: true
+                  runs: 3
+              env:
+                  LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+            - name: Save Turborepo cache
+              id: cache-turborepo-save
+              if: always() && steps.cache-turborepo-restore.outputs.cache-hit != 'true'
+              uses: actions/cache/save@v5
+              with:
+                  key: ${{ steps.cache-turborepo-restore.outputs.cache-primary-key }}
+                  path: .turbo
