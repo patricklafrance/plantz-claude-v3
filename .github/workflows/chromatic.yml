@@ -107,9 +107,10 @@ jobs:
               shell: bash
               run: |
                   # Secrets are passed via env vars so the shell can safely test emptiness.
-                  [ -n "$MANAGEMENT_TOKEN" ] && echo "management=true" >> "$GITHUB_OUTPUT"
-                  [ -n "$WATERING_TOKEN" ] && echo "watering=true" >> "$GITHUB_OUTPUT"
-                  [ -n "$PACKAGES_TOKEN" ] && echo "packages=true" >> "$GITHUB_OUTPUT"
+                  # The "|| true" ensures a false test never yields a non-zero exit code under "set -e".
+                  [ -n "$MANAGEMENT_TOKEN" ] && echo "management=true" >> "$GITHUB_OUTPUT" || true
+                  [ -n "$WATERING_TOKEN" ] && echo "watering=true" >> "$GITHUB_OUTPUT" || true
+                  [ -n "$PACKAGES_TOKEN" ] && echo "packages=true" >> "$GITHUB_OUTPUT" || true
               env:
                   MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_CHROMATIC_PROJECT_TOKEN }}
                   WATERING_TOKEN: ${{ secrets.WATERING_CHROMATIC_PROJECT_TOKEN }}
