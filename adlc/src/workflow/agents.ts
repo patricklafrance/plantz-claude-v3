@@ -171,8 +171,7 @@ const SUB_STREAM_PREFIX = `    ${pc.dim("│")}   ${pc.dim("│")} `;
 const SUB_TOOL_PREFIX = `    ${pc.dim("│")}   ${pc.dim("│")} ${pc.dim("→")} `;
 
 /** Write a prefixed, dimmed line to stdout. Handles multi-line text and tracks newline state. */
-function writeStreamLine(text: string, state: { needsPrefix: boolean }): void {
-    const prefix = STREAM_PREFIX;
+function writeStreamLine(text: string, state: { needsPrefix: boolean }, prefix = STREAM_PREFIX): void {
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i++) {
         if (i > 0) {
@@ -315,7 +314,11 @@ export async function runAgent(
     for await (const message of conversation) {
         const parentId = (message as { parent_tool_use_id?: string | null }).parent_tool_use_id;
 
-        if (message.type === "stream_event" && !parentId) {
+        if (message.type === "stream_event") {
+            // Choose prefix based on whether this is a sub-agent message
+            const sp = parentId ? SUB_STREAM_PREFIX : STREAM_PREFIX;
+            const tp = parentId ? SUB_TOOL_PREFIX : TOOL_PREFIX;
+
             const event = message.event as {
                 type: string;
                 content_block?: { type: string; id?: string; name?: string };
@@ -323,7 +326,10 @@ export async function runAgent(
             };
 
             if (event.type === "message_start") {
-                flushAgentToolSummaries(activeAgentTools, progress, hasOutput, lineState);
+                // Only flush sub-agent summaries on main agent turn boundaries
+                if (!parentId) {
+                    flushAgentToolSummaries(activeAgentTools, progress, hasOutput, lineState);
+                }
             } else if (event.type === "content_block_start") {
                 const blockType = event.content_block?.type;
                 activeBlockType = blockType ?? null;
@@ -332,7 +338,8 @@ export async function runAgent(
                     activeToolName = event.content_block?.name ?? null;
                     activeToolInput = "";
 
-                    if (activeToolName === "Agent" && event.content_block?.id) {
+                    // Track Agent sub-agent spawns (main agent only)
+                    if (!parentId && activeToolName === "Agent" && event.content_block?.id) {
                         activeAgentTools.set(event.content_block.id, {
                             startTime: Date.now(),
                             toolCount: 0,
@@ -349,7 +356,7 @@ export async function runAgent(
             } else if (event.type === "content_block_delta") {
                 if (event.delta?.type === "text_delta" && event.delta.text) {
                     progress?.clearSpinner();
-                    writeStreamLine(event.delta.text, lineState);
+                    writeStreamLine(event.delta.text, lineState, sp);
                     hasOutput = true;
                 } else if (event.delta?.type === "input_json_delta" && event.delta.partial_json) {
                     // Cap buffer to avoid unbounded accumulation for large inputs
@@ -361,10 +368,17 @@ export async function runAgent(
                 if (activeBlockType === "tool_use" && activeToolName) {
                     progress?.clearSpinner();
                     ensureNewLine(hasOutput, lineState);
-                    writeToolLine(formatToolCall(activeToolName, activeToolInput));
+                    writeToolLine(formatToolCall(activeToolName, activeToolInput), tp);
                     lineState.needsPrefix = true;
                     hasOutput = true;
-                    toolUseCount++;
+                    if (!parentId) {
+                        toolUseCount++;
+                    } else {
+                        const tracker = activeAgentTools.get(parentId);
+                        if (tracker) {
+                            tracker.toolCount++;
+                        }
+                    }
                     progress?.resumeSpinner();
                 }
                 activeToolName = null;
@@ -372,10 +386,10 @@ export async function runAgent(
                 activeBlockType = null;
             }
         } else if (message.type === "assistant" && parentId) {
+            // Sub-agent completed turn — track token usage (display handled via stream_event)
             const betaMsg = (
                 message as {
                     message?: {
-                        content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }>;
                         usage?: { input_tokens?: number; output_tokens?: number };
                     };
                 }
@@ -385,28 +399,8 @@ export async function runAgent(
             }
 
             const tracker = activeAgentTools.get(parentId);
-
-            // Accumulate token usage from each sub-agent turn
             if (tracker && betaMsg.usage) {
                 tracker.tokenCount += (betaMsg.usage.input_tokens ?? 0) + (betaMsg.usage.output_tokens ?? 0);
-            }
-
-            if (!betaMsg.content) {
-                continue;
-            }
-
-            for (const block of betaMsg.content) {
-                if (block.type === "tool_use" && block.name) {
-                    progress?.clearSpinner();
-                    ensureNewLine(hasOutput, lineState);
-                    writeToolLine(formatToolArgs(block.name, block.input), SUB_TOOL_PREFIX);
-                    lineState.needsPrefix = true;
-                    hasOutput = true;
-                    if (tracker) {
-                        tracker.toolCount++;
-                    }
-                    progress?.resumeSpinner();
-                }
             }
         } else if (message.type === "tool_use_summary") {
             const msg = message as { summary?: string };

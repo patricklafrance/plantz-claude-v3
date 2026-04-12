@@ -214,9 +214,8 @@ export class Progress {
     agent(name: string, event: "spawn" | "resume", prompt: string): void {
         const tag = event === "spawn" ? pc.cyan("spawn") : pc.yellow("resume");
         const firstLine = prompt.split("\n")[0];
-        const summary = firstLine.length > 80 ? `${firstLine.slice(0, 77)}...` : firstLine;
 
-        this.output(`    ${pc.dim(S.arrow)} ${tag} ${pc.bold(name)} ${pc.dim(summary)}`);
+        this.output(`    ${pc.dim(S.arrow)} ${tag} ${pc.bold(name)} ${pc.dim(firstLine)}`);
         this.startSpinner();
     }
 
