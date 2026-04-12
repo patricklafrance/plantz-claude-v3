@@ -1,5 +1,8 @@
 /** Step 1: Domain mapping with placement gate loop. */
 
+import { mkdirSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { DEFAULTS } from "../../config.ts";
 import type { Progress } from "../../progress.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
@@ -10,6 +13,12 @@ export async function runPlacement(
     agents: Record<string, AgentDefinition>,
     progress?: Progress
 ): Promise<void> {
+    // Ensure the .adlc directory structure exists before agents run
+    const adlcRoot = resolve(cwd, ".adlc");
+    mkdirSync(resolve(adlcRoot, "slices"), { recursive: true });
+    mkdirSync(resolve(adlcRoot, "implementation-notes"), { recursive: true });
+    mkdirSync(resolve(adlcRoot, "verification-results"), { recursive: true });
+
     for (let attempt = 0; attempt < DEFAULTS.maxDomainMappingAttempts; attempt++) {
         progress?.log("plan", `Domain mapping attempt ${attempt + 1}/${DEFAULTS.maxDomainMappingAttempts}`);
 

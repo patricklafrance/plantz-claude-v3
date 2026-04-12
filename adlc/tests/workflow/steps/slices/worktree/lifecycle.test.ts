@@ -18,6 +18,8 @@ describe("worktree/lifecycle", () => {
         execSync("git config user.email test@test.com", { cwd: repoDir });
         execSync("git config user.name Test", { cwd: repoDir });
         execSync("git commit --allow-empty -m init", { cwd: repoDir });
+        // Ensure the default branch is named "main" regardless of git config
+        execSync("git branch -M main", { cwd: repoDir });
     });
 
     afterEach(() => {
