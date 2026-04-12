@@ -4,6 +4,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { DEFAULTS } from "../../config.ts";
+import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
 
@@ -11,7 +12,8 @@ export async function runPlacement(
     featureDescription: string,
     cwd: string,
     agents: Record<string, AgentDefinition>,
-    progress?: Progress
+    progress?: Progress,
+    hooks?: SDKHooks
 ): Promise<void> {
     // Ensure the .adlc directory structure exists before agents run
     const adlcRoot = resolve(cwd, ".adlc");
@@ -23,10 +25,10 @@ export async function runPlacement(
         progress?.log("plan", `Domain mapping attempt ${attempt + 1}/${DEFAULTS.maxDomainMappingAttempts}`);
 
         // eslint-disable-next-line no-await-in-loop
-        await runAgent("domain-mapper", `Map modules for feature: ${featureDescription}`, cwd, agents, progress);
+        await runAgent("domain-mapper", `Map modules for feature: ${featureDescription}`, cwd, agents, progress, hooks);
 
         // eslint-disable-next-line no-await-in-loop
-        const gateResult = await runAgent("placement-gate", "Validate the domain mapping.", cwd, agents, progress);
+        const gateResult = await runAgent("placement-gate", "Validate the domain mapping.", cwd, agents, progress, hooks);
 
         if (!gateResult.toLowerCase().includes("issue")) {
             progress?.log("plan", "Placement gate passed");
@@ -36,6 +38,6 @@ export async function runPlacement(
         // Evidence gaps -- resolve and re-map
         progress?.log("plan", "Placement gate found issues, running evidence researcher...");
         // eslint-disable-next-line no-await-in-loop
-        await runAgent("evidence-researcher", "Resolve evidence gaps identified by the placement gate.", cwd, agents, progress);
+        await runAgent("evidence-researcher", "Resolve evidence gaps identified by the placement gate.", cwd, agents, progress, hooks);
     }
 }

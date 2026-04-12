@@ -99,7 +99,7 @@ interface Metrics {
 
 /**
  * Resolve the persistent metrics directory for this run.
- * On first call, bootstraps `.adlc-metrics/{timestamp}_{branch}/` and
+ * On first call, bootstraps `.adlc-logs/{timestamp}_{branch}/` and
  * writes a pointer to `.adlc/metrics-dir`. Subsequent calls read the pointer.
  */
 function resolveMetricsDir(cwd: string): string {
@@ -120,7 +120,7 @@ function resolveMetricsDir(cwd: string): string {
         .replace(/:/g, "-")
         .replace(/\.\d+Z$/, "");
     const folderName = `${timestamp}_${branch.replace(/\//g, "-")}`;
-    const metricsDir = resolve(cwd, ".adlc-metrics", folderName);
+    const metricsDir = resolve(cwd, ".adlc-logs", folderName);
 
     for (const sub of ["run-details", "slices", "challenges", "verification-results"]) {
         mkdirSync(resolve(metricsDir, sub), { recursive: true });

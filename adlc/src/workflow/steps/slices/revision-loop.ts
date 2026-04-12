@@ -6,13 +6,10 @@ import { resolve } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
 import { DEFAULTS, type ResolvedConfig } from "../../../config.ts";
-import { createHooks } from "../../../hooks/create-hooks.ts";
+import { createHooks, type SDKHooks } from "../../../hooks/create-hooks.ts";
 import type { Ports } from "../../../ports.ts";
 import type { Progress } from "../../../progress.ts";
 import { throwAgentError, loadAllAgents, type AgentDefinition } from "../../agents.ts";
-
-/** Hooks record shape returned by createHooks. */
-type SDKHooks = ReturnType<typeof createHooks>["hooks"];
 
 /** Run an agent in a worktree with hooks. Returns the session ID. */
 async function runAgentInWorktree(

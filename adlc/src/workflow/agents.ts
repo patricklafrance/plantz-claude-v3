@@ -8,7 +8,8 @@ import { parse } from "yaml";
 
 import { resolveModel, type ResolvedConfig } from "../config.ts";
 import type { DocCandidate } from "../context.ts";
-import { truncate, type Progress } from "../progress.ts";
+import type { SDKHooks } from "../hooks/create-hooks.ts";
+import { formatDuration, truncate, type Progress } from "../progress.ts";
 
 /** SDK-compatible agent definition. */
 export type AgentDefinition = {
@@ -165,8 +166,12 @@ export function loadAllAgents(preamble?: string, config?: ResolvedConfig, cwd?: 
 const STREAM_PREFIX = `    ${pc.dim("│")} `;
 const TOOL_PREFIX = `    ${pc.dim("│")} ${pc.dim("→")} `;
 
+// Sub-agent output is indented one level deeper for visual distinction.
+const SUB_STREAM_PREFIX = `    ${pc.dim("│")}   ${pc.dim("│")} `;
+const SUB_TOOL_PREFIX = `    ${pc.dim("│")}   ${pc.dim("│")} ${pc.dim("→")} `;
+
 /** Write a prefixed, dimmed line to stdout. Handles multi-line text and tracks newline state. */
-function writeStreamLine(text: string, state: { needsPrefix: boolean }): void {
+function writeStreamLine(text: string, state: { needsPrefix: boolean }, prefix = STREAM_PREFIX): void {
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i++) {
         if (i > 0) {
@@ -175,7 +180,7 @@ function writeStreamLine(text: string, state: { needsPrefix: boolean }): void {
         }
         if (lines[i].length > 0) {
             if (state.needsPrefix) {
-                process.stdout.write(STREAM_PREFIX);
+                process.stdout.write(prefix);
                 state.needsPrefix = false;
             }
             process.stdout.write(pc.dim(lines[i]));
@@ -183,16 +188,11 @@ function writeStreamLine(text: string, state: { needsPrefix: boolean }): void {
     }
 }
 
-/** Write a tool activity line to stdout, preserving the spinner if active. */
-function writeToolLine(text: string, progress?: Progress): void {
+/** Write a tool activity line to stdout. */
+function writeToolLine(text: string, prefix = TOOL_PREFIX): void {
     for (const line of text.split("\n")) {
         if (line.trim().length > 0) {
-            const formatted = `${TOOL_PREFIX}${pc.dim(line)}`;
-            if (progress) {
-                progress.toolLine(formatted);
-            } else {
-                process.stdout.write(`${formatted}\n`);
-            }
+            process.stdout.write(`${prefix}${pc.dim(line)}\n`);
         }
     }
 }
@@ -204,7 +204,8 @@ const TOOL_DISPLAY_KEYS: ReadonlyArray<{ key: string; maxLen?: number; firstLine
     { key: "pattern" },
     { key: "query", maxLen: 60 },
     { key: "url" },
-    { key: "description", maxLen: 60 }
+    { key: "description", maxLen: 60 },
+    { key: "prompt", maxLen: 60, firstLineOnly: true }
 ];
 
 /** Extract the most meaningful argument from a tool call for display. */
@@ -238,7 +239,8 @@ export async function runAgent(
     prompt: string,
     cwd: string,
     agents: Record<string, AgentDefinition>,
-    progress?: Progress
+    progress?: Progress,
+    hooks?: SDKHooks
 ): Promise<string> {
     progress?.agent(agentName, "spawn", prompt);
 
@@ -252,19 +254,27 @@ export async function runAgent(
             permissionMode: "bypassPermissions",
             allowDangerouslySkipPermissions: true,
             persistSession: false,
-            includePartialMessages: true
+            includePartialMessages: true,
+            ...(hooks ? { hooks } : {})
         }
     });
 
     let result = "";
     let hasOutput = false;
     const lineState = { needsPrefix: true };
+    const agentStartTime = Date.now();
+    let toolUseCount = 0;
 
     let activeToolName: string | null = null;
     let activeToolInput = "";
     let activeBlockType: string | null = null;
 
     for await (const message of conversation) {
+        // Detect sub-agent messages via parent_tool_use_id (null = main agent, string = sub-agent)
+        const isSubAgent = (message as { parent_tool_use_id?: string | null }).parent_tool_use_id != null;
+        const sp = isSubAgent ? SUB_STREAM_PREFIX : STREAM_PREFIX;
+        const tp = isSubAgent ? SUB_TOOL_PREFIX : TOOL_PREFIX;
+
         if (message.type === "stream_event") {
             const event = message.event as {
                 type: string;
@@ -281,38 +291,36 @@ export async function runAgent(
                     activeToolInput = "";
                 } else if (blockType === "text" && hasOutput && !lineState.needsPrefix) {
                     // New text block — separate from previous streaming output
+                    progress?.clearSpinner();
                     process.stdout.write("\n");
                     lineState.needsPrefix = true;
                 } else if (blockType === "thinking") {
-                    if (hasOutput && !lineState.needsPrefix) {
-                        process.stdout.write("\n");
-                    }
-                    writeToolLine("thinking...", progress);
-                    lineState.needsPrefix = true;
-                    hasOutput = true;
+                    // Thinking blocks produce no visible output — keep spinner alive
+                    progress?.resumeSpinner();
                 }
             } else if (event.type === "content_block_delta") {
                 if (event.delta?.type === "text_delta" && event.delta.text) {
-                    // Clear spinner on first text output so streaming begins cleanly
-                    if (!hasOutput) {
-                        progress?.clearSpinner();
-                    }
-                    writeStreamLine(event.delta.text, lineState);
+                    progress?.clearSpinner();
+                    writeStreamLine(event.delta.text, lineState, sp);
                     hasOutput = true;
                 } else if (event.delta?.type === "input_json_delta" && event.delta.partial_json) {
                     // Cap buffer — formatToolCall only reads the first ~80 chars of each field
-                    if (activeToolInput.length < 512) {
+                    if (activeToolInput.length < 4096) {
                         activeToolInput += event.delta.partial_json;
                     }
                 }
             } else if (event.type === "content_block_stop") {
                 if (activeBlockType === "tool_use" && activeToolName) {
+                    progress?.clearSpinner();
                     if (hasOutput && !lineState.needsPrefix) {
                         process.stdout.write("\n");
                     }
-                    writeToolLine(formatToolCall(activeToolName, activeToolInput), progress);
+                    writeToolLine(formatToolCall(activeToolName, activeToolInput), tp);
                     lineState.needsPrefix = true;
                     hasOutput = true;
+                    toolUseCount++;
+                    // Tool about to execute — spinner shows activity during the wait
+                    progress?.resumeSpinner();
                 }
                 activeToolName = null;
                 activeToolInput = "";
@@ -322,10 +330,11 @@ export async function runAgent(
             // Supplementary summaries from the SDK (emitted after tool execution)
             const msg = message as { summary?: string };
             if (msg.summary) {
+                progress?.clearSpinner();
                 if (hasOutput && !lineState.needsPrefix) {
                     process.stdout.write("\n");
                 }
-                writeToolLine(msg.summary, progress);
+                writeToolLine(msg.summary);
                 lineState.needsPrefix = true;
                 hasOutput = true;
             }
@@ -340,6 +349,16 @@ export async function runAgent(
             }
         }
     }
+
+    // Print agent summary line
+    progress?.clearSpinner();
+    if (hasOutput && !lineState.needsPrefix) {
+        process.stdout.write("\n");
+    }
+    const agentElapsed = formatDuration(Date.now() - agentStartTime);
+    const stats = toolUseCount > 0 ? `${toolUseCount} tool uses \u00b7 ${agentElapsed}` : agentElapsed;
+    process.stdout.write(`${STREAM_PREFIX}${pc.dim(`\u21b3 Done (${stats})`)}\n`);
+
     return result;
 }
 

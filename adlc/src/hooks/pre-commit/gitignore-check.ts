@@ -1,8 +1,8 @@
-/** Block commits that un-ignore .adlc/ or .adlc-metrics/ paths — all ADLC artifacts are ephemeral. */
+/** Block commits that un-ignore .adlc/ or .adlc-logs/ paths — all ADLC artifacts are ephemeral. */
 
 import { run } from "../post-agent-validation/utils.ts";
 
-const EPHEMERAL_PREFIXES = ["!.adlc/", "!.adlc-metrics/"];
+const EPHEMERAL_PREFIXES = ["!.adlc/", "!.adlc-logs/"];
 
 export async function gitignoreCheck(cwd: string): Promise<string[]> {
     const result = await run(cwd, "git diff --cached -- .gitignore");
@@ -19,7 +19,7 @@ export async function gitignoreCheck(cwd: string): Promise<string[]> {
 
     if (violations.length > 0) {
         return [
-            `[gitignore-check] .gitignore must not un-ignore .adlc/ or .adlc-metrics/ paths (all ADLC artifacts are ephemeral):\n${violations.map(v => `  ${v}`).join("\n")}`
+            `[gitignore-check] .gitignore must not un-ignore .adlc/ or .adlc-logs/ paths (all ADLC artifacts are ephemeral):\n${violations.map(v => `  ${v}`).join("\n")}`
         ];
     }
 

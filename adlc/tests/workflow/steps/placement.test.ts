@@ -137,4 +137,16 @@ describe("runPlacement", () => {
         const domainMapperCall = queryCallLog.find(c => (c.options.agent as string) === "domain-mapper");
         expect(domainMapperCall?.prompt).toContain("Add plant watering schedule");
     });
+
+    it("forwards hooks to every agent call", async () => {
+        agentResultMap["placement-gate"] = "All placements look correct.";
+        const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
+
+        await runPlacement("Add watering", tmpDir, mockAgents, undefined, fakeHooks);
+
+        expect(queryCallLog.length).toBeGreaterThan(0);
+        for (const call of queryCallLog) {
+            expect(call.options.hooks).toBe(fakeHooks);
+        }
+    });
 });

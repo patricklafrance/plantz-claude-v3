@@ -166,7 +166,7 @@ Pipeline:
 - draft vs. revision mode detection
 - rework stats (revision cycles, affected slices, rework cost)
 
-Metrics are written to `.adlc-metrics/{timestamp}_{branch}/run-metrics.json` with per-run detail files in `run-details/`.
+Metrics are written to `.adlc-logs/{timestamp}_{branch}/run-metrics.json` with per-run detail files in `run-details/`.
 
 Artifact archival happens on successful (problem-free) runs:
 

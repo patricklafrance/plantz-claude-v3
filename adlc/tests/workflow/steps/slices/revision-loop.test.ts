@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type MockMessage = { type: "result"; subtype: "success"; result: string; session_id: string };
 
-let queryCallLog: { prompt: string; agentName: string }[] = [];
+let queryCallLog: { prompt: string; agentName: string; options: Record<string, unknown> }[] = [];
 let sessionCounter = 0;
 
 function createMockConversation(sessionId: string): AsyncGenerator<MockMessage, void> {
@@ -25,7 +25,7 @@ function createMockConversation(sessionId: string): AsyncGenerator<MockMessage, 
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
     query: vi.fn<any>((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
         const agentName = (params.options?.agent as string) ?? "unknown";
-        queryCallLog.push({ prompt: params.prompt as string, agentName });
+        queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
         sessionCounter++;
         return createMockConversation(`session-${sessionCounter}`);
     })
@@ -39,9 +39,11 @@ vi.mock("../../../../src/workflow/agents.js", () => ({
     }))
 }));
 
+const mockHooksSentinel = { SubagentStop: [{ hooks: ["mock-hook-sentinel"] }] };
+
 vi.mock("../../../../src/hooks/create-hooks.js", () => ({
     createHooks: vi.fn<any>(() => ({
-        hooks: {}
+        hooks: mockHooksSentinel
     }))
 }));
 
@@ -129,7 +131,7 @@ describe("runSlicePipeline", () => {
         const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
             const agentName = (params.options?.agent as string) ?? "unknown";
-            queryCallLog.push({ prompt: params.prompt as string, agentName });
+            queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
             sessionCounter++;
 
             if (agentName === "reviewer") {
@@ -161,7 +163,7 @@ describe("runSlicePipeline", () => {
         const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
             const agentName = (params.options?.agent as string) ?? "unknown";
-            queryCallLog.push({ prompt: params.prompt as string, agentName });
+            queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
             sessionCounter++;
 
             if (agentName === "reviewer") {
@@ -198,7 +200,7 @@ describe("runSlicePipeline", () => {
         const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
             const agentName = (params.options?.agent as string) ?? "unknown";
-            queryCallLog.push({ prompt: params.prompt as string, agentName });
+            queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
             sessionCounter++;
 
             if (agentName === "reviewer") {
@@ -221,5 +223,17 @@ describe("runSlicePipeline", () => {
         expect(coderCalls).toHaveLength(2);
         expect(coderCalls[0].prompt).toContain("Implement slice");
         expect(coderCalls[1].prompt).toContain("Apply the reviewer feedback");
+    });
+
+    it("forwards hooks from createHooks to every SDK query call", async () => {
+        mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
+        writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [x] Passed: all good\n");
+
+        await runSlicePipeline("plant-list", tmpDir, defaultPorts, defaultPreamble, defaultConfig, tmpDir);
+
+        expect(queryCallLog.length).toBeGreaterThan(0);
+        for (const call of queryCallLog) {
+            expect(call.options.hooks).toBe(mockHooksSentinel);
+        }
     });
 });

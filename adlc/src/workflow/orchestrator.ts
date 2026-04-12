@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { loadConfig, resolveConfig } from "../config.ts";
 import { buildProjectContext, contextToPreamble } from "../context.ts";
+import { createHooks } from "../hooks/create-hooks.ts";
 import { validateRepository } from "../preflight.ts";
-import { Progress, formatDuration } from "../progress.ts";
+import { Progress } from "../progress.ts";
 import { classifyReferenceDocs, loadAllAgents } from "./agents.ts";
 import { runDocument } from "./steps/document.ts";
 import { runMonitor } from "./steps/monitor.ts";
@@ -28,7 +29,6 @@ export interface OrchestratorOptions {
 export async function run(featureDescription: string, options: OrchestratorOptions): Promise<void> {
     const { cwd } = options;
     const progress = new Progress();
-    const startTime = Date.now();
 
     progress.banner(featureDescription, PKG.version);
 
@@ -49,7 +49,7 @@ export async function run(featureDescription: string, options: OrchestratorOptio
         mkdirSync(resolve(adlcRoot, "slices"), { recursive: true });
         mkdirSync(resolve(adlcRoot, "implementation-notes"), { recursive: true });
         mkdirSync(resolve(adlcRoot, "verification-results"), { recursive: true });
-        mkdirSync(resolve(cwd, ".adlc-metrics"), { recursive: true });
+        mkdirSync(resolve(cwd, ".adlc-logs"), { recursive: true });
         doneDirs();
 
         const doneScan = progress.start("init", "Scanning project files");
@@ -69,43 +69,45 @@ export async function run(featureDescription: string, options: OrchestratorOptio
 
         doneInit();
 
+        // Fresh hooks per step — supervisor state (browser thrash counters,
+        // wall-clock timers, install bypass tokens) must not leak across steps.
+
         // Step 1: Domain mapping + placement gate
         const donePlacement = progress.step(1, "Placement");
-        await runPlacement(featureDescription, cwd, agents, progress);
+        await runPlacement(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
         donePlacement();
 
         // Step 2: Plan + adversarial challenge
         const donePlan = progress.step(2, "Plan");
-        await runPlan(featureDescription, cwd, agents, progress);
+        await runPlan(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
         donePlan();
 
-        // Step 3: Slice execution
+        // Step 3: Slice execution (creates its own hooks per slice pipeline)
         const doneExecution = progress.step(3, "Execution");
         await runSlices(cwd, config, preamble, options, progress);
         doneExecution();
 
         // Step 4: Simplify
         const doneSimplify = progress.step(4, "Simplify");
-        await runSimplify(cwd, agents, progress);
+        await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
         doneSimplify();
 
         // Step 5: Document
         const doneDocument = progress.step(5, "Document");
-        await runDocument(cwd, agents, progress);
+        await runDocument(cwd, agents, progress, createHooks({ cwd }).hooks);
         doneDocument();
 
         // Step 6: Pull Request
         const donePR = progress.step(6, "Pull Request");
-        await runPr(featureDescription, cwd, agents, progress);
+        await runPr(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
         donePR();
 
         // Step 7: Monitor CI
         const doneMonitor = progress.step(7, "Monitor CI");
-        await runMonitor(cwd, agents, progress);
+        await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks);
         doneMonitor();
 
-        const elapsed = formatDuration(Date.now() - startTime);
-        progress.done(elapsed);
+        progress.done();
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         progress.fatal(message);

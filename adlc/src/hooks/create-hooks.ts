@@ -18,7 +18,7 @@ interface HookCallbackMatcher {
     timeout?: number;
 }
 
-type SDKHooks = Partial<Record<string, HookCallbackMatcher[]>>;
+export type SDKHooks = Partial<Record<string, HookCallbackMatcher[]>>;
 
 // ── Adapter: wrap our typed callbacks into the generic SDK callback shape ──
 

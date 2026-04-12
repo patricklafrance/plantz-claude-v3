@@ -51,6 +51,7 @@ const TOTAL_STEPS = 7;
 
 export class Progress {
     private readonly isTTY = process.stdout.isTTY ?? false;
+    private readonly startTime = Date.now();
     private spinning = false;
     private spinnerTimer: ReturnType<typeof setInterval> | null = null;
     private spinnerFrame = 0;
@@ -69,8 +70,14 @@ export class Progress {
     }
 
     private drawSpinner(): void {
-        process.stdout.write(`\r\x1b[2K    ${pc.cyan(SPINNER_FRAMES[this.spinnerFrame])}`);
+        const elapsed = pc.dim(`(total duration: ${formatDuration(Date.now() - this.startTime)})`);
+        process.stdout.write(`\r\x1b[2K    ${pc.cyan(SPINNER_FRAMES[this.spinnerFrame])}  ${elapsed}`);
         this.spinnerFrame = (this.spinnerFrame + 1) % SPINNER_FRAMES.length;
+    }
+
+    /** Resume the spinner after writing a status line during a wait (e.g. "thinking..."). */
+    resumeSpinner(): void {
+        this.startSpinner();
     }
 
     /** Stop the spinner and erase its line. */
@@ -99,11 +106,6 @@ export class Progress {
         } else {
             console.log(text);
         }
-    }
-
-    /** Write a tool activity line, preserving the spinner if active. */
-    toolLine(text: string): void {
-        this.output(text);
     }
 
     // ── Output methods ───────────────────────────────────
@@ -217,8 +219,9 @@ export class Progress {
     }
 
     /** Final success message with total elapsed time. */
-    done(elapsed: string): void {
+    done(): void {
         this.clearSpinner();
+        const elapsed = formatDuration(Date.now() - this.startTime);
         console.log(`\n  ${pc.green(S.check)} ${pc.bold(pc.green("Feature complete"))} ${pc.dim(`in ${elapsed}`)}\n`);
     }
 

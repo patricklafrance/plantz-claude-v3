@@ -127,4 +127,16 @@ describe("runPlan", () => {
         const plannerCall = queryCallLog.find(c => (c.options.agent as string) === "planner");
         expect(plannerCall?.prompt).toContain("Add plant watering schedule");
     });
+
+    it("forwards hooks to every agent call", async () => {
+        agentResultMap["challenge-arbiter"] = "Plan approved.";
+        const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
+
+        await runPlan("Add watering", "/tmp/test", mockAgents, undefined, fakeHooks);
+
+        expect(queryCallLog.length).toBeGreaterThan(0);
+        for (const call of queryCallLog) {
+            expect(call.options.hooks).toBe(fakeHooks);
+        }
+    });
 });

@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import type { ResolvedConfig } from "../../../config.ts";
+import { createHooks } from "../../../hooks/create-hooks.ts";
 import { allocatePorts } from "../../../ports.ts";
 import type { Progress } from "../../../progress.ts";
 import { runAgent, loadAllAgents } from "../../agents.ts";
@@ -42,6 +43,7 @@ export async function runSlices(
     }
 
     const featureBranch = options.featureBranch ?? execSync("git branch --show-current", { cwd, encoding: "utf8" }).trim();
+    const { hooks } = createHooks({ cwd });
     progress?.log("execution", `Feature branch: ${featureBranch}`);
 
     for (const wave of dag.waves) {
@@ -104,7 +106,7 @@ export async function runSlices(
                         progress?.slice(slice.name, "merge", `conflict in ${conflictFiles.join(", ")} — resolving`);
 
                         // eslint-disable-next-line no-await-in-loop
-                        const resolved = await resolveConflicts(slice.name, conflictFiles, preamble, config, cwd, progress);
+                        const resolved = await resolveConflicts(slice.name, conflictFiles, preamble, config, cwd, progress, hooks);
                         if (resolved) {
                             completeMerge(cwd, `merge: resolve conflicts for ${slice.name}`);
                             // eslint-disable-next-line no-await-in-loop
@@ -139,7 +141,8 @@ async function resolveConflicts(
     preamble: string,
     config: ResolvedConfig,
     cwd: string,
-    progress?: Progress
+    progress?: Progress,
+    hooks?: ReturnType<typeof createHooks>["hooks"]
 ): Promise<boolean> {
     try {
         const agents = loadAllAgents(preamble, config, cwd);
@@ -153,7 +156,7 @@ async function resolveConflicts(
             "Do NOT commit — just stage the resolved files."
         ].join("\n");
 
-        await runAgent("coder", prompt, cwd, agents, progress);
+        await runAgent("coder", prompt, cwd, agents, progress, hooks);
 
         return true;
     } catch {
