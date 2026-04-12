@@ -14,7 +14,17 @@ const S = {
     line: "─"
 } as const;
 
+// ── Spinner frames ───────────────────────────────────────
+
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const SPINNER_INTERVAL_MS = 80;
+
 // ── Helpers ──────────────────────────────────────────────
+
+/** Truncate a string to maxLen characters, appending "..." if trimmed. */
+export function truncate(value: string, maxLen: number): string {
+    return value.length > maxLen ? `${value.slice(0, maxLen - 3)}...` : value;
+}
 
 export function formatDuration(ms: number): string {
     if (ms < 1000) {
@@ -31,10 +41,73 @@ export function formatDuration(ms: number): string {
 }
 
 // ── Progress reporter ────────────────────────────────────
+//
+// The spinner lives on its own line at the bottom of the output.
+// When other output needs to be written, the spinner line is erased,
+// the output is printed, and the spinner redraws below it.
+// This allows log/agent/tool lines to appear without killing the spinner.
 
 const TOTAL_STEPS = 7;
 
 export class Progress {
+    private readonly isTTY = process.stdout.isTTY ?? false;
+    private spinning = false;
+    private spinnerTimer: ReturnType<typeof setInterval> | null = null;
+    private spinnerFrame = 0;
+
+    // ── Spinner ──────────────────────────────────────────
+
+    /** Start the persistent spinner on its own line. Idempotent if already spinning. */
+    private startSpinner(): void {
+        if (this.spinning || !this.isTTY) {
+            return;
+        }
+        this.spinning = true;
+        this.spinnerFrame = 0;
+        this.drawSpinner();
+        this.spinnerTimer = setInterval(() => this.drawSpinner(), SPINNER_INTERVAL_MS);
+    }
+
+    private drawSpinner(): void {
+        process.stdout.write(`\r\x1b[2K    ${pc.cyan(SPINNER_FRAMES[this.spinnerFrame])}`);
+        this.spinnerFrame = (this.spinnerFrame + 1) % SPINNER_FRAMES.length;
+    }
+
+    /** Stop the spinner and erase its line. */
+    clearSpinner(): void {
+        if (!this.spinning) {
+            return;
+        }
+        this.spinning = false;
+        if (this.spinnerTimer) {
+            clearInterval(this.spinnerTimer);
+            this.spinnerTimer = null;
+        }
+        if (this.isTTY) {
+            process.stdout.write("\r\x1b[2K");
+        }
+    }
+
+    /**
+     * Write a line of output, preserving the spinner if active.
+     * Erases the spinner, writes the line, then redraws the spinner below.
+     */
+    private output(text: string): void {
+        if (this.spinning && this.isTTY) {
+            process.stdout.write(`\r\x1b[2K${text}\n`);
+            this.drawSpinner();
+        } else {
+            console.log(text);
+        }
+    }
+
+    /** Write a tool activity line, preserving the spinner if active. */
+    toolLine(text: string): void {
+        this.output(text);
+    }
+
+    // ── Output methods ───────────────────────────────────
+
     /** Print startup banner with feature description and version. */
     banner(feature: string, version: string): void {
         const title = `${pc.bold(pc.cyan("adlc"))} ${pc.dim(`v${version}`)}`;
@@ -53,6 +126,7 @@ export class Progress {
         console.log(`  ${pc.cyan(S.bullet)} ${pc.bold("Initializing")}`);
 
         return () => {
+            this.clearSpinner();
             const elapsed = formatDuration(Date.now() - startTime);
             console.log(`  ${pc.green(S.check)} Ready ${pc.dim(`(${elapsed})`)}`);
         };
@@ -60,30 +134,35 @@ export class Progress {
 
     /**
      * Start a major pipeline step.
+     * Starts a persistent spinner that animates until agent streaming begins.
      * Returns a `done()` callback that prints the completion line with elapsed time.
      */
     step(number: number, name: string): () => void {
         const startTime = Date.now();
 
         console.log(`\n  ${pc.cyan(S.bullet)} ${pc.bold(`Step ${number}/${TOTAL_STEPS}`)} ${pc.dim("—")} ${name}`);
+        this.startSpinner();
 
         return () => {
+            this.clearSpinner();
             const elapsed = formatDuration(Date.now() - startTime);
             console.log(`  ${pc.green(S.check)} ${name} ${pc.dim(`(${elapsed})`)}`);
         };
     }
 
-    /** Log a status line within the current phase. */
+    /** Log a status line within the current phase. Preserves spinner. */
     log(_phase: string, message: string): void {
-        console.log(`    ${pc.dim(S.hook)} ${message}`);
+        this.output(`    ${pc.dim(S.hook)} ${message}`);
     }
 
-    /** Start a timed sub-operation. Returns a `done()` callback that prints completion with elapsed time. */
+    /** Start a timed sub-operation with spinner. Returns a `done()` callback. */
     start(_phase: string, message: string): () => void {
         const startTime = Date.now();
-        console.log(`    ${pc.dim(S.hook)} ${message}${pc.dim("...")}`);
+        this.output(`    ${pc.dim(S.hook)} ${message}`);
+        this.startSpinner();
 
         return () => {
+            this.clearSpinner();
             const elapsed = formatDuration(Date.now() - startTime);
             console.log(`    ${pc.green(S.check)} ${message} ${pc.dim(`(${elapsed})`)}`);
         };
@@ -93,7 +172,7 @@ export class Progress {
     wave(index: number, sliceCount: number, parallel: number): void {
         const label = sliceCount === 1 ? "1 slice" : `${sliceCount} slices ${pc.dim(`(parallel: ${parallel})`)}`;
 
-        console.log(`\n    ${pc.bold(pc.blue(`Wave ${index}`))} ${pc.dim("—")} ${label}`);
+        this.output(`\n    ${pc.bold(pc.blue(`Wave ${index}`))} ${pc.dim("—")} ${label}`);
     }
 
     /** Slice-level event within wave execution. */
@@ -120,21 +199,32 @@ export class Progress {
             formatted = message;
         }
 
-        console.log(`      ${name} ${agentTag} ${formatted}`);
+        this.output(`      ${name} ${agentTag} ${formatted}`);
+    }
+
+    /** Log an agent lifecycle event and keep spinner alive for the wait. */
+    agent(name: string, event: "spawn" | "resume", prompt: string): void {
+        const tag = event === "spawn" ? pc.cyan("spawn") : pc.yellow("resume");
+
+        this.output(`    ${pc.dim(S.arrow)} ${tag} ${pc.bold(name)} ${pc.dim(truncate(prompt, 80))}`);
+        this.startSpinner();
     }
 
     /** Log an error within a phase. */
     error(_phase: string, message: string): void {
+        this.clearSpinner();
         console.error(`\n  ${pc.red(S.cross)} ${pc.bold(pc.red("Error:"))} ${message}`);
     }
 
     /** Final success message with total elapsed time. */
     done(elapsed: string): void {
+        this.clearSpinner();
         console.log(`\n  ${pc.green(S.check)} ${pc.bold(pc.green("Feature complete"))} ${pc.dim(`in ${elapsed}`)}\n`);
     }
 
     /** Final failure message. */
     fatal(message: string): void {
+        this.clearSpinner();
         console.error(`\n  ${pc.red(S.cross)} ${pc.bold(pc.red("Pipeline failed:"))} ${message}\n`);
     }
 }

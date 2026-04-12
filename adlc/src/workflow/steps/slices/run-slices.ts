@@ -42,77 +42,88 @@ export async function runSlices(
     }
 
     const featureBranch = options.featureBranch ?? execSync("git branch --show-current", { cwd, encoding: "utf8" }).trim();
+    progress?.log("execution", `Feature branch: ${featureBranch}`);
 
     for (const wave of dag.waves) {
         progress?.wave(wave.index, wave.slices.length, wave.slices.length);
 
-        // Create worktrees
-        const worktrees = wave.slices.map(slice => createWorktree(slice.name, featureBranch, cwd));
+        // Create worktrees and zip with their slice metadata for unified access
+        const waveItems = wave.slices.map(slice => {
+            const wt = createWorktree(slice.name, featureBranch, cwd);
+            progress?.slice(slice.name, "worktree", `created at ${wt.path}`);
+
+            return { slice, wt };
+        });
 
         try {
-            // Seed .adlc/ in each worktree
+            // Seed .adlc/ and install deps in each worktree
+            const priorNotes = getCompletedNotes(cwd);
             // eslint-disable-next-line no-await-in-loop
             await Promise.all(
-                worktrees.map((wt, i) =>
-                    seedAdlc(wt.path, {
+                waveItems.map(async ({ slice, wt }) => {
+                    const doneSetup = progress?.start("execution", `${slice.name}: seeding and installing deps`);
+
+                    await seedAdlc(wt.path, {
                         planHeaderPath: resolve(cwd, ".adlc/plan-header.md"),
                         domainMappingPath: resolve(cwd, ".adlc/domain-mapping.md"),
                         slicesDir: resolve(cwd, ".adlc/slices"),
-                        sliceFilename: wave.slices[i].filename,
-                        priorImplementationNotes: getCompletedNotes(cwd)
-                    })
-                )
+                        sliceFilename: slice.filename,
+                        priorImplementationNotes: priorNotes
+                    });
+
+                    await execAsync("pnpm install", { cwd: wt.path });
+
+                    doneSetup?.();
+                })
             );
 
-            // Install deps in each worktree
-            // eslint-disable-next-line no-await-in-loop
-            await Promise.all(worktrees.map(wt => execAsync("pnpm install", { cwd: wt.path })));
-
             // Run slices in parallel
-            const ports = worktrees.map((_, i) => allocatePorts(i, config.ports));
+            const ports = waveItems.map((_, i) => allocatePorts(i, config.ports));
             // eslint-disable-next-line no-await-in-loop
             const results = await Promise.allSettled(
-                worktrees.map((wt, i) => {
-                    progress?.slice(wave.slices[i].name, "pipeline", "starting");
-                    return runSlicePipeline(wave.slices[i].name, wt.path, ports[i], preamble, config, cwd, progress);
+                waveItems.map(({ slice, wt }, i) => {
+                    progress?.slice(slice.name, "pipeline", "starting");
+                    return runSlicePipeline(slice.name, wt.path, ports[i], preamble, config, cwd, progress);
                 })
             );
 
             // Merge sequentially — resolve conflicts with coder agent
-            for (let i = 0; i < worktrees.length; i++) {
+            for (const [i, { slice, wt }] of waveItems.entries()) {
                 const result = results[i];
                 if (result.status === "fulfilled" && result.value.success) {
-                    progress?.slice(wave.slices[i].name, "merge", "merging to feature branch");
-                    const mergeResult = attemptMerge(worktrees[i].branch, featureBranch, cwd);
+                    progress?.slice(slice.name, "merge", "merging to feature branch");
+                    const mergeResult = attemptMerge(wt.branch, featureBranch, cwd);
 
                     if (mergeResult.success) {
                         // eslint-disable-next-line no-await-in-loop
-                        await collectResults(worktrees[i].path, resolve(cwd, ".adlc"), wave.slices[i].name);
+                        await collectResults(wt.path, resolve(cwd, ".adlc"), slice.name);
+                        progress?.slice(slice.name, "merge", "merged cleanly");
                     } else {
                         // Conflict — attempt agent-assisted resolution
                         const conflictFiles = mergeResult.conflictFiles ?? [];
-                        progress?.slice(wave.slices[i].name, "merge", `conflict in ${conflictFiles.join(", ")} — resolving`);
+                        progress?.slice(slice.name, "merge", `conflict in ${conflictFiles.join(", ")} — resolving`);
 
                         // eslint-disable-next-line no-await-in-loop
-                        const resolved = await resolveConflicts(wave.slices[i].name, conflictFiles, preamble, config, cwd);
+                        const resolved = await resolveConflicts(slice.name, conflictFiles, preamble, config, cwd, progress);
                         if (resolved) {
-                            completeMerge(cwd, `merge: resolve conflicts for ${wave.slices[i].name}`);
+                            completeMerge(cwd, `merge: resolve conflicts for ${slice.name}`);
                             // eslint-disable-next-line no-await-in-loop
-                            await collectResults(worktrees[i].path, resolve(cwd, ".adlc"), wave.slices[i].name);
-                            progress?.slice(wave.slices[i].name, "merge", "conflicts resolved");
+                            await collectResults(wt.path, resolve(cwd, ".adlc"), slice.name);
+                            progress?.slice(slice.name, "merge", "conflicts resolved");
                         } else {
                             abortMerge(cwd);
-                            progress?.slice(wave.slices[i].name, "merge", `conflict unresolved: ${conflictFiles.join(", ")}`);
+                            progress?.slice(slice.name, "merge", `conflict unresolved: ${conflictFiles.join(", ")}`);
                         }
                     }
                 } else {
                     const reason = result.status === "fulfilled" ? result.value.reason : String((result as PromiseRejectedResult).reason);
-                    progress?.slice(wave.slices[i].name, "merge", `skipped: ${reason}`);
+                    progress?.slice(slice.name, "merge", `skipped: ${reason}`);
                 }
             }
         } finally {
-            for (const wt of worktrees) {
+            for (const { slice, wt } of waveItems) {
                 removeWorktree(wt.path, cwd);
+                progress?.slice(slice.name, "worktree", "removed");
             }
         }
     }
@@ -122,7 +133,14 @@ export async function runSlices(
  * Spawn the coder agent to resolve merge conflict markers in the working tree.
  * Returns true if the agent succeeds (files staged, ready for commit).
  */
-async function resolveConflicts(sliceName: string, conflictFiles: string[], preamble: string, config: ResolvedConfig, cwd: string): Promise<boolean> {
+async function resolveConflicts(
+    sliceName: string,
+    conflictFiles: string[],
+    preamble: string,
+    config: ResolvedConfig,
+    cwd: string,
+    progress?: Progress
+): Promise<boolean> {
     try {
         const agents = loadAllAgents(preamble, config, cwd);
         const prompt = [
@@ -135,7 +153,7 @@ async function resolveConflicts(sliceName: string, conflictFiles: string[], prea
             "Do NOT commit — just stage the resolved files."
         ].join("\n");
 
-        await runAgent("coder", prompt, cwd, agents);
+        await runAgent("coder", prompt, cwd, agents, progress);
 
         return true;
     } catch {

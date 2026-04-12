@@ -6,8 +6,9 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import pc from "picocolors";
 import { parse } from "yaml";
 
-import { resolveModel, MODEL_IDS, type ResolvedConfig } from "../config.ts";
+import { resolveModel, type ResolvedConfig } from "../config.ts";
 import type { DocCandidate } from "../context.ts";
+import { truncate, type Progress } from "../progress.ts";
 
 /** SDK-compatible agent definition. */
 export type AgentDefinition = {
@@ -162,6 +163,7 @@ export function loadAllAgents(preamble?: string, config?: ResolvedConfig, cwd?: 
 }
 
 const STREAM_PREFIX = `    ${pc.dim("│")} `;
+const TOOL_PREFIX = `    ${pc.dim("│")} ${pc.dim("→")} `;
 
 /** Write a prefixed, dimmed line to stdout. Handles multi-line text and tracks newline state. */
 function writeStreamLine(text: string, state: { needsPrefix: boolean }): void {
@@ -181,8 +183,65 @@ function writeStreamLine(text: string, state: { needsPrefix: boolean }): void {
     }
 }
 
+/** Write a tool activity line to stdout, preserving the spinner if active. */
+function writeToolLine(text: string, progress?: Progress): void {
+    for (const line of text.split("\n")) {
+        if (line.trim().length > 0) {
+            const formatted = `${TOOL_PREFIX}${pc.dim(line)}`;
+            if (progress) {
+                progress.toolLine(formatted);
+            } else {
+                process.stdout.write(`${formatted}\n`);
+            }
+        }
+    }
+}
+
+// Priority-ordered display keys for tool call arguments.
+const TOOL_DISPLAY_KEYS: ReadonlyArray<{ key: string; maxLen?: number; firstLineOnly?: boolean }> = [
+    { key: "file_path" },
+    { key: "command", firstLineOnly: true },
+    { key: "pattern" },
+    { key: "query", maxLen: 60 },
+    { key: "url" },
+    { key: "description", maxLen: 60 }
+];
+
+/** Extract the most meaningful argument from a tool call for display. */
+function formatToolCall(toolName: string, rawInput: string): string {
+    try {
+        const input = JSON.parse(rawInput) as Record<string, unknown>;
+        for (const { key, maxLen = 80, firstLineOnly } of TOOL_DISPLAY_KEYS) {
+            const raw = input[key];
+            if (typeof raw !== "string") {
+                continue;
+            }
+            const val = firstLineOnly ? raw.split("\n")[0] : raw;
+            return `${toolName} ${truncate(val, maxLen)}`;
+        }
+    } catch {
+        // JSON parse failed — just use tool name
+    }
+
+    return toolName;
+}
+
+/** Throw a standardized agent failure error. */
+export function throwAgentError(agentName: string, msg: Record<string, unknown>): never {
+    const errors = Array.isArray(msg.errors) ? (msg.errors as string[]).join("; ") : String(msg.subtype);
+    throw new Error(`Agent "${agentName}" failed (${msg.subtype}): ${errors}`);
+}
+
 /** Run a single agent to completion via the SDK, forwarding output to stdout. */
-export async function runAgent(agentName: string, prompt: string, cwd: string, agents: Record<string, AgentDefinition>): Promise<string> {
+export async function runAgent(
+    agentName: string,
+    prompt: string,
+    cwd: string,
+    agents: Record<string, AgentDefinition>,
+    progress?: Progress
+): Promise<string> {
+    progress?.agent(agentName, "spawn", prompt);
+
     const conversation = query({
         prompt,
         options: {
@@ -201,32 +260,73 @@ export async function runAgent(agentName: string, prompt: string, cwd: string, a
     let hasOutput = false;
     const lineState = { needsPrefix: true };
 
+    let activeToolName: string | null = null;
+    let activeToolInput = "";
+    let activeBlockType: string | null = null;
+
     for await (const message of conversation) {
         if (message.type === "stream_event") {
             const event = message.event as {
                 type: string;
-                content_block?: { type: string };
-                delta?: { type: string; text?: string };
+                content_block?: { type: string; name?: string };
+                delta?: { type: string; text?: string; partial_json?: string };
             };
-            // New text block starting — insert line break to separate from previous output
-            if (event.type === "content_block_start" && event.content_block?.type === "text" && hasOutput && !lineState.needsPrefix) {
-                process.stdout.write("\n");
-                lineState.needsPrefix = true;
-            }
-            // Streaming text deltas
-            if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && event.delta.text) {
-                writeStreamLine(event.delta.text, lineState);
-                hasOutput = true;
+
+            if (event.type === "content_block_start") {
+                const blockType = event.content_block?.type;
+                activeBlockType = blockType ?? null;
+
+                if (blockType === "tool_use") {
+                    activeToolName = event.content_block?.name ?? null;
+                    activeToolInput = "";
+                } else if (blockType === "text" && hasOutput && !lineState.needsPrefix) {
+                    // New text block — separate from previous streaming output
+                    process.stdout.write("\n");
+                    lineState.needsPrefix = true;
+                } else if (blockType === "thinking") {
+                    if (hasOutput && !lineState.needsPrefix) {
+                        process.stdout.write("\n");
+                    }
+                    writeToolLine("thinking...", progress);
+                    lineState.needsPrefix = true;
+                    hasOutput = true;
+                }
+            } else if (event.type === "content_block_delta") {
+                if (event.delta?.type === "text_delta" && event.delta.text) {
+                    // Clear spinner on first text output so streaming begins cleanly
+                    if (!hasOutput) {
+                        progress?.clearSpinner();
+                    }
+                    writeStreamLine(event.delta.text, lineState);
+                    hasOutput = true;
+                } else if (event.delta?.type === "input_json_delta" && event.delta.partial_json) {
+                    // Cap buffer — formatToolCall only reads the first ~80 chars of each field
+                    if (activeToolInput.length < 512) {
+                        activeToolInput += event.delta.partial_json;
+                    }
+                }
+            } else if (event.type === "content_block_stop") {
+                if (activeBlockType === "tool_use" && activeToolName) {
+                    if (hasOutput && !lineState.needsPrefix) {
+                        process.stdout.write("\n");
+                    }
+                    writeToolLine(formatToolCall(activeToolName, activeToolInput), progress);
+                    lineState.needsPrefix = true;
+                    hasOutput = true;
+                }
+                activeToolName = null;
+                activeToolInput = "";
+                activeBlockType = null;
             }
         } else if (message.type === "tool_use_summary") {
-            // Tool execution summaries — always emitted, shows what agent is doing
+            // Supplementary summaries from the SDK (emitted after tool execution)
             const msg = message as { summary?: string };
             if (msg.summary) {
                 if (hasOutput && !lineState.needsPrefix) {
                     process.stdout.write("\n");
-                    lineState.needsPrefix = true;
                 }
-                writeStreamLine(msg.summary, lineState);
+                writeToolLine(msg.summary, progress);
+                lineState.needsPrefix = true;
                 hasOutput = true;
             }
         } else if (message.type === "result") {
@@ -236,9 +336,7 @@ export async function runAgent(agentName: string, prompt: string, cwd: string, a
             if (message.subtype === "success") {
                 result = message.result;
             } else {
-                const msg = message as Record<string, unknown>;
-                const errors = Array.isArray(msg.errors) ? (msg.errors as string[]).join("; ") : String(msg.subtype);
-                throw new Error(`Agent "${agentName}" failed (${msg.subtype}): ${errors}`);
+                throwAgentError(agentName, message as Record<string, unknown>);
             }
         }
     }
@@ -249,8 +347,7 @@ export async function runAgent(agentName: string, prompt: string, cwd: string, a
 
 const DOC_CATEGORIES = [
     "architecture — repo structure, overall architecture",
-    "adr — architectural decisions, decision logs",
-    "operations — operational decisions, CI/CD operations",
+    "decisions — architectural and operational decisions, decision logs",
     "placement — code placement rules, module responsibilities",
     "api — data layer, API patterns, MSW, TanStack Query",
     "storybook — Storybook conventions, story patterns",
@@ -264,7 +361,7 @@ const DOC_CATEGORIES = [
  * Use a lightweight agent to classify reference docs into semantic categories.
  * Returns a mapping of category → relative file paths.
  */
-export async function classifyReferenceDocs(candidates: DocCandidate[], cwd: string): Promise<Record<string, string[]>> {
+export async function classifyReferenceDocs(candidates: DocCandidate[], cwd: string, progress?: Progress): Promise<Record<string, string[]>> {
     if (candidates.length === 0) {
         return {};
     }
@@ -290,17 +387,10 @@ export async function classifyReferenceDocs(candidates: DocCandidate[], cwd: str
         'Example: {"architecture": ["docs/ARCHITECTURE.md"], "styling": ["docs/references/tailwind.md", "docs/references/color-mode.md"]}'
     ].join("\n");
 
-    const agents: Record<string, AgentDefinition> = {
-        "_doc-classifier": {
-            description: "Classify reference docs into semantic categories",
-            prompt: "You classify documentation files. Respond with only JSON.",
-            model: MODEL_IDS.haiku,
-            maxTurns: 1,
-            permissionMode: "bypassPermissions"
-        }
-    };
+    const { name, definition } = loadAgent("doc-classifier");
+    const agents: Record<string, AgentDefinition> = { [name]: definition };
 
-    const result = await runAgent("_doc-classifier", prompt, cwd, agents);
+    const result = await runAgent(name, prompt, cwd, agents, progress);
 
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
