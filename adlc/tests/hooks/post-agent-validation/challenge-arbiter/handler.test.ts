@@ -19,10 +19,7 @@ describe("challenge-arbiter handler", () => {
     });
 
     it("passes when verdict contains Approved status", () => {
-        writeFileSync(
-            join(tmp, ".adlc/current-challenge-verdict.md"),
-            "# Challenge Verdict\n\nSome content.\n\n## Status\n\nApproved"
-        );
+        writeFileSync(join(tmp, ".adlc/current-challenge-verdict.md"), "# Challenge Verdict\n\nSome content.\n\n## Status\n\nApproved");
         expect(handleChallengeArbiter(tmp)).toEqual([]);
     });
 
@@ -47,20 +44,14 @@ describe("challenge-arbiter handler", () => {
     });
 
     it("fails when verdict has no Status section", () => {
-        writeFileSync(
-            join(tmp, ".adlc/current-challenge-verdict.md"),
-            "# Challenge Verdict\n\nContent but no status."
-        );
+        writeFileSync(join(tmp, ".adlc/current-challenge-verdict.md"), "# Challenge Verdict\n\nContent but no status.");
         const problems = handleChallengeArbiter(tmp);
         expect(problems).toHaveLength(1);
         expect(problems[0]).toContain("## Status");
     });
 
     it("fails when Status value is not Approved or Revision required", () => {
-        writeFileSync(
-            join(tmp, ".adlc/current-challenge-verdict.md"),
-            "# Challenge Verdict\n\n## Status\n\nUnresolved"
-        );
+        writeFileSync(join(tmp, ".adlc/current-challenge-verdict.md"), "# Challenge Verdict\n\n## Status\n\nUnresolved");
         const problems = handleChallengeArbiter(tmp);
         expect(problems).toHaveLength(1);
         expect(problems[0]).toContain("Unresolved");

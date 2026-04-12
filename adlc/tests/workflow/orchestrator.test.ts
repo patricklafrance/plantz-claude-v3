@@ -46,6 +46,7 @@ describe("cleanAdlcState", () => {
         cleanAdlcState(adlcRoot);
 
         for (const name of staleFiles) {
+            // eslint-disable-next-line vitest/valid-expect -- custom failure message
             expect(existsSync(resolve(adlcRoot, name)), `${name} should be removed`).toBe(false);
         }
     });
@@ -79,8 +80,7 @@ describe("cleanAdlcState", () => {
     });
 
     it("is a no-op when .adlc/ does not exist", () => {
-        // Should not throw.
-        cleanAdlcState(resolve(TEST_BASE, ".adlc"));
+        expect(() => cleanAdlcState(resolve(TEST_BASE, ".adlc"))).not.toThrow();
     });
 
     it("handles missing subdirectories gracefully", () => {

@@ -21,12 +21,9 @@ function statusCheck(cwd: string): string[] {
         return []; // file-existence check already covers this
     }
 
-    const statusMatch = content.match(/^##\s+Status\s*\n+(.+)/mi);
+    const statusMatch = content.match(/^##\s+Status\s*\n+(.+)/im);
     if (!statusMatch) {
-        return [
-            "Missing `## Status` section in verdict. " +
-                "The verdict must end with `## Status` followed by **Approved** or **Revision required**."
-        ];
+        return ["Missing `## Status` section in verdict. The verdict must end with `## Status` followed by **Approved** or **Revision required**."];
     }
 
     const status = statusMatch[1].trim().toLowerCase();
@@ -34,17 +31,13 @@ function statusCheck(cwd: string): string[] {
         return [];
     }
 
-    return [
-        `Invalid status "${statusMatch[1].trim()}" in verdict. ` +
-            "Must be **Approved** or **Revision required** (followed by a one-line summary)."
-    ];
+    return [`Invalid status "${statusMatch[1].trim()}" in verdict. Must be **Approved** or **Revision required** (followed by a one-line summary).`];
 }
 
 export function handleChallengeArbiter(cwd: string): string[] {
     if (!hasFile(cwd, VERDICT_FILE)) {
         return [
-            "Missing deliverable: `.adlc/current-challenge-verdict.md` was not created. " +
-                "The arbiter must synthesize the challenger debate into a unified verdict."
+            "Missing deliverable: `.adlc/current-challenge-verdict.md` was not created. The arbiter must synthesize the challenger debate into a unified verdict."
         ];
     }
 

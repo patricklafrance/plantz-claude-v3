@@ -70,7 +70,7 @@ describe("Progress", () => {
 
         it("should log elapsed time when the returned function is called", () => {
             vi.spyOn(Date, "now")
-                .mockReturnValueOnce(0)    // constructor startTime
+                .mockReturnValueOnce(0) // constructor startTime
                 .mockReturnValueOnce(1000) // start() startTime
                 .mockReturnValueOnce(3500); // done() elapsed
 
@@ -86,7 +86,7 @@ describe("Progress", () => {
 
         it("should measure sub-second durations in milliseconds", () => {
             vi.spyOn(Date, "now")
-                .mockReturnValueOnce(0)    // constructor startTime
+                .mockReturnValueOnce(0) // constructor startTime
                 .mockReturnValueOnce(1000) // start() startTime
                 .mockReturnValueOnce(1250); // done() elapsed
 
