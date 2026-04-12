@@ -43,10 +43,10 @@ interface ToolPayload {
     };
 }
 
-// Bypass token expires after 3 pre-tool events. Long enough for the agent to follow
-// up with pnpm install immediately after the evidence is recorded; short enough that
-// an unrelated later install attempt cannot reuse the token.
-export const INSTALL_BYPASS_EVENT_TTL = 3;
+// Bypass token expires after 5 pre-tool events. Long enough for the agent to do a
+// few Read/Grep calls between seeing the evidence and attempting pnpm install; short
+// enough that an unrelated later install attempt cannot reuse the token.
+export const INSTALL_BYPASS_EVENT_TTL = 5;
 const ALLOW_INSTALL_OVERRIDE_PATH = ".adlc/allow-install";
 const INSTALL_COMMAND_PATTERN = /^pnpm\s+(?:install|i)(?:\s|$)/;
 const MANIFEST_PATHSPEC = [".", ":(glob)**/package.json", "pnpm-lock.yaml"];
@@ -125,12 +125,16 @@ export function findInstallBypassData(
     }
 
     const command = String(toolInput.command ?? "");
-    if (isInstallCommand(command)) {
-        return null;
-    }
 
     const evidence = findInstallEvidence(payload);
     if (!evidence) {
+        return null;
+    }
+
+    // Block self-granting from install commands for most errors (prevents blind
+    // retry loops), but allow it for lockfile staleness — ERR_PNPM_OUTDATED_LOCKFILE
+    // is a deterministic error where re-running pnpm install is the only fix.
+    if (isInstallCommand(command) && evidence.source !== "lockfile") {
         return null;
     }
 

@@ -12,6 +12,8 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import type { HookJSONOutput, StopHookInput } from "../types.ts";
+
 // ── Types ─────────────────────────────────────────────────
 
 interface ToolStats {
@@ -95,22 +97,19 @@ interface Metrics {
     totals: Totals | null;
 }
 
-// ── Metrics directory ──────────────────────────────────────
+// ── Logs directory ────────────────────────────────────────
+
+/** In-memory cache — set once per pipeline run by `initLogsDir`. */
+let _logsDir: string | null = null;
 
 /**
- * Resolve the persistent metrics directory for this run.
- * On first call, bootstraps `.adlc-logs/{timestamp}_{branch}/` and
- * writes a pointer to `.adlc/metrics-dir`. Subsequent calls read the pointer.
+ * Bootstrap the logs directory for this pipeline run.
+ * Call once from the orchestrator before any agents execute.
+ * Returns the absolute path to the run folder.
  */
-function resolveMetricsDir(cwd: string): string {
-    const pointerPath = resolve(cwd, ".adlc", "metrics-dir");
-    try {
-        const dir = readFileSync(pointerPath, "utf8").trim();
-        if (existsSync(dir)) {
-            return dir;
-        }
-    } catch {
-        // Missing pointer — bootstrap below.
+export function initLogsDir(cwd: string): string {
+    if (_logsDir) {
+        return _logsDir;
     }
 
     const head = readFileSync(resolve(cwd, ".git", "HEAD"), "utf8").trim();
@@ -120,47 +119,51 @@ function resolveMetricsDir(cwd: string): string {
         .replace(/:/g, "-")
         .replace(/\.\d+Z$/, "");
     const folderName = `${timestamp}_${branch.replace(/\//g, "-")}`;
-    const metricsDir = resolve(cwd, ".adlc-logs", folderName);
+    _logsDir = resolve(cwd, ".adlc-logs", folderName);
 
     for (const sub of ["run-details", "slices", "challenges", "verification-results"]) {
-        mkdirSync(resolve(metricsDir, sub), { recursive: true });
+        mkdirSync(resolve(_logsDir, sub), { recursive: true });
     }
 
-    try {
-        writeFileSync(pointerPath, metricsDir);
-    } catch {
-        // .adlc/ may not exist yet — metrics dir still works.
-    }
+    return _logsDir;
+}
 
-    return metricsDir;
+/** Reset in-memory state. Exposed for tests only. */
+export function resetLogsDir(): void {
+    _logsDir = null;
+}
+
+/** Return the current run's logs directory, bootstrapping if needed. */
+function resolveLogsDir(cwd: string): string {
+    return _logsDir ?? initLogsDir(cwd);
 }
 
 // ── Artifact archival ──────────────────────────────────────
 
 /**
- * Copy workflow artifacts to the persistent metrics folder when a gate passes.
+ * Copy workflow artifacts to the persistent logs folder when a gate passes.
  * Called from subagent-stop after a successful (problems-free) agent run.
  */
 export function archiveArtifacts(agentType: string, cwd: string): void {
-    const metricsDir = resolveMetricsDir(cwd);
+    const logsDir = resolveLogsDir(cwd);
 
     switch (agentType) {
         case "placement-gate":
             if (!existsSync(resolve(cwd, ".adlc", "placement-gate-revision.md"))) {
-                copyIfExists(resolve(cwd, ".adlc", "domain-mapping.md"), resolve(metricsDir, "domain-mapping.md"));
-                copyDirContents(resolve(cwd, ".adlc", "challenges"), resolve(metricsDir, "challenges"));
+                copyIfExists(resolve(cwd, ".adlc", "domain-mapping.md"), resolve(logsDir, "domain-mapping.md"));
+                copyDirContents(resolve(cwd, ".adlc", "challenges"), resolve(logsDir, "challenges"));
             }
             break;
         case "plan-gate":
             if (!existsSync(resolve(cwd, ".adlc", "plan-gate-revision.md"))) {
-                copyIfExists(resolve(cwd, ".adlc", "plan-header.md"), resolve(metricsDir, "plan-header.md"));
-                copyDirContents(resolve(cwd, ".adlc", "slices"), resolve(metricsDir, "slices"));
+                copyIfExists(resolve(cwd, ".adlc", "plan-header.md"), resolve(logsDir, "plan-header.md"));
+                copyDirContents(resolve(cwd, ".adlc", "slices"), resolve(logsDir, "slices"));
             }
             break;
         case "reviewer": {
             const sliceId = detectSlice(cwd);
             if (sliceId) {
-                copyIfExists(resolve(cwd, ".adlc", "verification-results.md"), resolve(metricsDir, "verification-results", `${sliceId}.md`));
+                copyIfExists(resolve(cwd, ".adlc", "verification-results.md"), resolve(logsDir, "verification-results", `${sliceId}.md`));
             }
             break;
         }
@@ -206,8 +209,8 @@ export function recordMetrics(transcriptPath: string | null, agentType: string, 
         return;
     }
 
-    const metricsDir = resolveMetricsDir(cwd);
-    const metricsPath = resolve(metricsDir, "run-metrics.json");
+    const logsDir = resolveLogsDir(cwd);
+    const metricsPath = resolve(logsDir, "run-metrics.json");
 
     let metrics: Metrics;
     try {
@@ -222,12 +225,7 @@ export function recordMetrics(transcriptPath: string | null, agentType: string, 
     // Write detail file
     const runIndex = metrics.runs.length + 1;
     const detailsFile = `run-details/${String(runIndex).padStart(3, "0")}-${agentType}.json`;
-    const detailsPath = resolve(metricsDir, detailsFile);
-
-    const detailsDir = resolve(metricsDir, "run-details");
-    if (!existsSync(detailsDir)) {
-        mkdirSync(detailsDir, { recursive: true });
-    }
+    const detailsPath = resolve(logsDir, detailsFile);
 
     writeFileSync(
         detailsPath,
@@ -581,6 +579,9 @@ function computeBillable(input: number, output: number, cacheRead: number, cache
 
 // ── Formatting ──────────────────────────────────────────────
 
+// Intentionally distinct from progress.ts formatDuration: omits the millisecond
+// range and uses "—" for zero/negative — appropriate for stored JSON summaries,
+// not interactive display.
 function formatDuration(ms: number): string {
     if (ms <= 0) {
         return "—";
@@ -589,4 +590,19 @@ function formatDuration(ms: number): string {
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
     return min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+}
+
+// ── Stop hook ────────────────────────────────────────────────
+
+/**
+ * Stop hook — records metrics for the top-level agent when it completes.
+ *
+ * SubagentStop only fires for nested agents spawned via the Agent tool.
+ * The top-level agent in a `query()` call fires `Stop` instead.
+ */
+export async function handleStopMetrics(input: StopHookInput): Promise<HookJSONOutput> {
+    if (input.agent_type) {
+        recordMetrics(input.transcript_path, input.agent_type, input.cwd);
+    }
+    return { continue: true };
 }

@@ -21,11 +21,6 @@ const SPINNER_INTERVAL_MS = 80;
 
 // ── Helpers ──────────────────────────────────────────────
 
-/** Truncate a string to maxLen characters, appending "..." if trimmed. */
-export function truncate(value: string, maxLen: number): string {
-    return value.length > maxLen ? `${value.slice(0, maxLen - 3)}...` : value;
-}
-
 export function formatDuration(ms: number): string {
     if (ms < 1000) {
         return `${ms}ms`;
@@ -38,6 +33,17 @@ export function formatDuration(ms: number): string {
     const remainingSeconds = seconds % 60;
 
     return `${minutes}m ${String(remainingSeconds).padStart(2, "0")}s`;
+}
+
+export function formatTokens(count: number): string {
+    if (count < 1000) {
+        return String(count);
+    }
+    if (count < 1_000_000) {
+        return `${(count / 1000).toFixed(1)}k`;
+    }
+
+    return `${(count / 1_000_000).toFixed(1)}m`;
 }
 
 // ── Progress reporter ────────────────────────────────────
@@ -207,7 +213,8 @@ export class Progress {
     /** Log an agent lifecycle event and keep spinner alive for the wait. */
     agent(name: string, event: "spawn" | "resume", prompt: string): void {
         const tag = event === "spawn" ? pc.cyan("spawn") : pc.yellow("resume");
-        const summary = truncate(prompt.split("\n")[0], 80);
+        const firstLine = prompt.split("\n")[0];
+        const summary = firstLine.length > 80 ? `${firstLine.slice(0, 77)}...` : firstLine;
 
         this.output(`    ${pc.dim(S.arrow)} ${tag} ${pc.bold(name)} ${pc.dim(summary)}`);
         this.startSpinner();

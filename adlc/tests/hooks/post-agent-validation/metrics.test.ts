@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
-import { recordMetrics } from "../../../src/hooks/post-agent-validation/metrics.js";
+import { initLogsDir, recordMetrics, resetLogsDir } from "../../../src/hooks/post-agent-validation/metrics.js";
 
 function makeTmpDir(): string {
     const dir = mkdtempSync(join(tmpdir(), "metrics-test-"));
@@ -21,23 +21,23 @@ function makeTranscript(lines: Record<string, unknown>[]): { path: string; clean
     return { path, cleanup: () => rmSync(tmp, { recursive: true, force: true }) };
 }
 
-function resolveMetricsDir(cwd: string): string {
-    const pointer = readFileSync(join(cwd, ".adlc", "metrics-dir"), "utf8").trim();
-    return pointer;
+function resolveLogsDirForTest(cwd: string): string {
+    return initLogsDir(cwd);
 }
 
 function readMetrics(cwd: string): Record<string, unknown> {
-    return JSON.parse(readFileSync(join(resolveMetricsDir(cwd), "run-metrics.json"), "utf8"));
+    return JSON.parse(readFileSync(join(resolveLogsDirForTest(cwd), "run-metrics.json"), "utf8"));
 }
 
 function readDetails(cwd: string, file: string): Record<string, unknown> {
-    return JSON.parse(readFileSync(join(resolveMetricsDir(cwd), file), "utf8"));
+    return JSON.parse(readFileSync(join(resolveLogsDirForTest(cwd), file), "utf8"));
 }
 
 describe("run-metrics", () => {
     let cwd: string;
 
     beforeEach(() => {
+        resetLogsDir();
         cwd = makeTmpDir();
     });
 
@@ -191,7 +191,7 @@ describe("run-metrics", () => {
         expect((metrics.runs[1] as Record<string, unknown>).model).toBe("claude-opus-4-6");
 
         // Both detail files exist
-        const mDir = resolveMetricsDir(cwd);
+        const mDir = resolveLogsDirForTest(cwd);
         expect(existsSync(join(mDir, "run-details", "001-planner.json"))).toBe(true);
         expect(existsSync(join(mDir, "run-details", "002-coder.json"))).toBe(true);
 

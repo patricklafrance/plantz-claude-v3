@@ -5,7 +5,13 @@ import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
 
-export async function runPlan(featureDescription: string, cwd: string, agents: Record<string, AgentDefinition>, progress?: Progress, hooks?: SDKHooks): Promise<void> {
+export async function runPlan(
+    featureDescription: string,
+    cwd: string,
+    agents: Record<string, AgentDefinition>,
+    progress?: Progress,
+    hooks?: SDKHooks
+): Promise<void> {
     for (let attempt = 0; attempt < DEFAULTS.maxPlanAttempts; attempt++) {
         const mode = attempt === 0 ? "draft" : "revision";
         progress?.log("plan", `Plan ${mode} attempt ${attempt + 1}/${DEFAULTS.maxPlanAttempts}`);
@@ -34,11 +40,12 @@ export async function runPlan(featureDescription: string, cwd: string, agents: R
         // eslint-disable-next-line no-await-in-loop
         const verdict = await runAgent("challenge-arbiter", "Synthesize challenger debate into unified verdict.", cwd, agents, progress, hooks);
 
-        if (verdict.toLowerCase().includes("approved")) {
+        const lower = verdict.toLowerCase();
+        if (lower.includes("approved") && !lower.includes("revision required")) {
             progress?.log("plan", "Plan approved by arbiter");
             break;
         }
 
-        progress?.log("plan", "Plan not approved, starting revision...");
+        progress?.log("plan", "Plan requires revision, restarting loop...");
     }
 }

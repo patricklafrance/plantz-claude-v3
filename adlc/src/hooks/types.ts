@@ -28,16 +28,25 @@ export interface PostToolUseHookInput {
     tool_use_id: string;
 }
 
-export interface SubagentStopHookInput {
-    hook_event_name: "SubagentStop";
+interface BaseStopHookInput {
     session_id: string;
     transcript_path: string;
     cwd: string;
+    stop_hook_active: boolean;
+    last_assistant_message?: string;
+}
+
+export interface SubagentStopHookInput extends BaseStopHookInput {
+    hook_event_name: "SubagentStop";
     agent_id: string;
     agent_type: string;
     agent_transcript_path: string;
-    stop_hook_active: boolean;
-    last_assistant_message?: string;
+}
+
+export interface StopHookInput extends BaseStopHookInput {
+    hook_event_name: "Stop";
+    agent_id?: string;
+    agent_type?: string;
 }
 
 export interface HookSpecificPreToolUse {

@@ -9,8 +9,9 @@ import checkBlockEnvWrite from "./block-env-write.ts";
 import checkBlockNodeModulesRead from "./block-node-modules-read.ts";
 import checkBlockNpm from "./block-npm.ts";
 import checkBlockWindowsCmd from "./block-windows-cmd.ts";
+import checkBlockWorkflowWrite from "./block-workflow-write.ts";
 
-const guards = [checkBlockNpm, checkBlockWindowsCmd, checkBlockNodeModulesRead, checkBlockEnvWrite];
+const guards = [checkBlockNpm, checkBlockWindowsCmd, checkBlockNodeModulesRead, checkBlockEnvWrite, checkBlockWorkflowWrite];
 
 export function createGuardsHook() {
     return async (input: PreToolUseHookInput): Promise<HookJSONOutput> => {

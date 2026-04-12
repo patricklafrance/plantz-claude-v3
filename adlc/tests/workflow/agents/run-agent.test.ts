@@ -34,9 +34,8 @@ const mockAgents: Record<string, AgentDefinition> = {
     coder: { description: "mock", prompt: "mock" }
 };
 
-const fakeHooks = {
-    SubagentStop: [{ hooks: [vi.fn()] }]
-};
+// eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
+const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 

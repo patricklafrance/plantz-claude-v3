@@ -66,6 +66,13 @@ Write `.adlc/current-challenge-verdict.md`.
 ## Uncontested Decisions
 
 {Mapper decisions that neither challenger disputed — listed for completeness}
+
+## Status
+
+{Approved | Revision required}
+
+If every concern is resolved (no "contested" verdicts remaining) write **Approved**.
+Otherwise write **Revision required** followed by a one-line summary of what must change.
 ```
 
 </challenge-verdict-template>

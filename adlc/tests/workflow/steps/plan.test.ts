@@ -130,6 +130,7 @@ describe("runPlan", () => {
 
     it("forwards hooks to every agent call", async () => {
         agentResultMap["challenge-arbiter"] = "Plan approved.";
+        // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
         await runPlan("Add watering", "/tmp/test", mockAgents, undefined, fakeHooks);

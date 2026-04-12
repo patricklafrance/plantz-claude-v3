@@ -224,7 +224,23 @@ describe("createSupervisorPostToolHook", () => {
         expect(state.installBypass!.reason).toBe("missing-dependency-evidence");
     });
 
-    it("does not record bypass for install commands themselves", async () => {
+    it("does not record bypass for install commands with non-lockfile errors", async () => {
+        const state = createDefaultState();
+        const hook = createSupervisorPostToolHook(state);
+
+        await hook(
+            makePostToolInput({
+                tool_input: { command: "pnpm install" },
+                tool_response: {
+                    stderr: "Cannot find package 'some-pkg'"
+                }
+            })
+        );
+
+        expect(state.installBypass).toBeNull();
+    });
+
+    it("records bypass for install commands with ERR_PNPM_OUTDATED_LOCKFILE", async () => {
         const state = createDefaultState();
         const hook = createSupervisorPostToolHook(state);
 
@@ -237,6 +253,7 @@ describe("createSupervisorPostToolHook", () => {
             })
         );
 
-        expect(state.installBypass).toBeNull();
+        expect(state.installBypass).not.toBeNull();
+        expect(state.installBypass!.active).toBe(true);
     });
 });

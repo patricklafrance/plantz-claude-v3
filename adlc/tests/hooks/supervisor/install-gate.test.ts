@@ -143,8 +143,21 @@ describe("install-gate policy", () => {
             expect(result).toBeNull();
         });
 
-        it("returns null when the command is an install command", () => {
+        it("returns null when the command is an install command with non-lockfile error", () => {
             const state = makeState();
+            const result = findInstallBypassData(
+                state,
+                "Bash",
+                { command: "pnpm install" },
+                {
+                    error: { message: "Cannot find package 'some-pkg'" }
+                }
+            );
+            expect(result).toBeNull();
+        });
+
+        it("allows self-healing when install fails with ERR_PNPM_OUTDATED_LOCKFILE", () => {
+            const state = makeState({ eventCount: 5 });
             const result = findInstallBypassData(
                 state,
                 "Bash",
@@ -153,7 +166,9 @@ describe("install-gate policy", () => {
                     error: { message: "ERR_PNPM_OUTDATED_LOCKFILE" }
                 }
             );
-            expect(result).toBeNull();
+            expect(result).not.toBeNull();
+            expect(result!.bypass.active).toBe(true);
+            expect(result!.evidence.source).toBe("lockfile");
         });
 
         it("detects lockfile evidence from stderr", () => {

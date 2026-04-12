@@ -42,11 +42,11 @@ describe("loadAllAgents", () => {
 
         expect(Object.keys(agents).length).toBeGreaterThan(0);
 
-        for (const [name, def] of Object.entries(agents)) {
-            expect(def.prompt, `${name} should have a prompt`).toBeTruthy();
-            expect(def.prompt.length, `${name} prompt should be non-empty`).toBeGreaterThan(0);
-            expect(def.description, `${name} should have a description`).toBeTruthy();
-            expect(def.model, `${name} should have a model`).toBeTruthy();
+        for (const [_name, def] of Object.entries(agents)) {
+            expect(def.prompt).toBeTruthy();
+            expect(def.prompt.length).toBeGreaterThan(0);
+            expect(def.description).toBeTruthy();
+            expect(def.model).toBeTruthy();
         }
     });
 
@@ -54,9 +54,9 @@ describe("loadAllAgents", () => {
         const preamble = "## Project context\n\nTest preamble";
         const agents = loadAllAgents(preamble);
 
-        for (const [name, def] of Object.entries(agents)) {
-            expect(def.prompt, `${name} should start with preamble`).toMatch(/^## Project context/);
-            expect(def.prompt, `${name} should contain separator`).toContain("---");
+        for (const [_name, def] of Object.entries(agents)) {
+            expect(def.prompt).toMatch(/^## Project context/);
+            expect(def.prompt).toContain("---");
         }
     });
 

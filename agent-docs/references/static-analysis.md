@@ -4,8 +4,8 @@ Five tools run on every `pnpm lint` and in CI. All are root-level Turborepo task
 
 | Tool     | Task                         | What it checks                                                |
 | -------- | ---------------------------- | ------------------------------------------------------------- |
-| oxlint   | `//#oxlint`                  | JS/TS bugs, accessibility, perf anti-patterns                 |
-| oxfmt    | `//#oxfmt`                   | Code formatting (Prettier-compatible, Tailwind class sorting) |
+| oxlint   | `//#lint-check`              | JS/TS bugs, accessibility, perf anti-patterns                 |
+| oxfmt    | `//#format-check`            | Code formatting (Prettier-compatible, Tailwind class sorting) |
 | tsgo     | `typecheck` + `//#typecheck` | Type safety across all packages                               |
 | syncpack | `//#syncpack`                | Dependency version consistency (apps pin, packages use `^`)   |
 | knip     | `//#knip`                    | Unused files, dependencies, and exports                       |
