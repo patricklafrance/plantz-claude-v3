@@ -207,8 +207,9 @@ export class Progress {
     /** Log an agent lifecycle event and keep spinner alive for the wait. */
     agent(name: string, event: "spawn" | "resume", prompt: string): void {
         const tag = event === "spawn" ? pc.cyan("spawn") : pc.yellow("resume");
+        const summary = truncate(prompt.split("\n")[0], 80);
 
-        this.output(`    ${pc.dim(S.arrow)} ${tag} ${pc.bold(name)} ${pc.dim(truncate(prompt, 80))}`);
+        this.output(`    ${pc.dim(S.arrow)} ${tag} ${pc.bold(name)} ${pc.dim(summary)}`);
         this.startSpinner();
     }
 
