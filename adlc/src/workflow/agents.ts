@@ -386,10 +386,12 @@ export async function runAgent(
                 activeBlockType = null;
             }
         } else if (message.type === "assistant" && parentId) {
-            // Sub-agent completed turn — track token usage (display handled via stream_event)
+            // Sub-agent completed turn — display tools and track usage.
+            // The SDK sends sub-agent output as batched assistant messages, not stream_events.
             const betaMsg = (
                 message as {
                     message?: {
+                        content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }>;
                         usage?: { input_tokens?: number; output_tokens?: number };
                     };
                 }
@@ -399,8 +401,25 @@ export async function runAgent(
             }
 
             const tracker = activeAgentTools.get(parentId);
+
             if (tracker && betaMsg.usage) {
                 tracker.tokenCount += (betaMsg.usage.input_tokens ?? 0) + (betaMsg.usage.output_tokens ?? 0);
+            }
+
+            if (betaMsg.content) {
+                for (const block of betaMsg.content) {
+                    if (block.type === "tool_use" && block.name) {
+                        progress?.clearSpinner();
+                        ensureNewLine(hasOutput, lineState);
+                        writeToolLine(formatToolArgs(block.name, block.input), SUB_TOOL_PREFIX);
+                        lineState.needsPrefix = true;
+                        hasOutput = true;
+                        if (tracker) {
+                            tracker.toolCount++;
+                        }
+                        progress?.resumeSpinner();
+                    }
+                }
             }
         } else if (message.type === "tool_use_summary") {
             const msg = message as { summary?: string };
