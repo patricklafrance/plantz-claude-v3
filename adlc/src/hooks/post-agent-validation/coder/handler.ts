@@ -23,7 +23,7 @@ import { killPorts } from "./kill-ports.ts";
 import { noSecretsCheck } from "./no-secrets-check.ts";
 import { storyCoverageCheck } from "./story-coverage-check.ts";
 
-export async function handleCoder(cwd: string): Promise<string[]> {
+export async function handleCoder(cwd: string, markers: Record<string, boolean>): Promise<string[]> {
     const changedFiles = getChangedFiles(cwd);
 
     // Phase 1: autofix — format first, then lint-fix (sequential to avoid conflicts)
@@ -40,7 +40,7 @@ export async function handleCoder(cwd: string): Promise<string[]> {
         Promise.resolve(crossBoundaryImportsCheck(cwd, changedFiles)),
         Promise.resolve(implementationNotesCheck(changedFiles)),
         Promise.resolve(storyCoverageCheck(cwd, changedFiles)),
-        Promise.resolve(contextRefreshCheck(cwd))
+        Promise.resolve(contextRefreshCheck(cwd, markers))
     ]);
 
     // Phase 3: kill dev server ports from config

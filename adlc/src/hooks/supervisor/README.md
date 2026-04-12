@@ -54,9 +54,11 @@ The main rule is:
 - policy steps return decisions
 - the first policy that returns a block wins
 
-## Key difference from the root repo
+## State model
 
-In v3, supervisor state is **entirely in-memory** — no disk I/O, no `.adlc/` state files, no event JSONL logs. State is created fresh per `createSupervisorHooks()` call and lives for the duration of the agent run. This simplifies the implementation at the cost of losing cross-process audit trails.
+Core supervisor state (browser-thrash counters, test-thrash counters, wall-clock timestamps, install bypass tokens) is **in-memory** — created fresh per `createSupervisorHooks()` call and lives for the duration of the agent run. No event JSONL logs or persistent state files.
+
+The install-gate is the exception: it reads `.adlc/allow-install` from disk and runs `git diff` to check manifest changes on every install attempt.
 
 ## Files
 
@@ -160,6 +162,7 @@ Evidence bypass:
 - the PostToolUse hook scans Bash output for high-signal dependency-sync failures (e.g. `ERR_PNPM_OUTDATED_LOCKFILE`, missing package imports)
 - bypass is one-shot and expires after a short event window if unused
 - intentionally narrow: rejects relative imports, alias-style imports, generic type errors
+
 
 ## Public hook contract
 

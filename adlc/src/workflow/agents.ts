@@ -3,6 +3,7 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import pc from "picocolors";
 import { parse } from "yaml";
 
 import { resolveModel, MODEL_IDS, type ResolvedConfig } from "../config.ts";
@@ -160,7 +161,9 @@ export function loadAllAgents(preamble?: string, config?: ResolvedConfig, cwd?: 
     return agents;
 }
 
-/** Run a single agent to completion via the SDK. */
+const STREAM_PREFIX = `    ${pc.dim("│")} `;
+
+/** Run a single agent to completion via the SDK, streaming text output to stdout. */
 export async function runAgent(agentName: string, prompt: string, cwd: string, agents: Record<string, AgentDefinition>): Promise<string> {
     const conversation = query({
         prompt,
@@ -171,13 +174,39 @@ export async function runAgent(agentName: string, prompt: string, cwd: string, a
             settingSources: ["project"],
             permissionMode: "bypassPermissions",
             allowDangerouslySkipPermissions: true,
-            persistSession: false
+            persistSession: false,
+            includePartialMessages: true
         }
     });
 
     let result = "";
+    let hasStreamedOutput = false;
+    let needsPrefix = true;
+
     for await (const message of conversation) {
-        if (message.type === "result") {
+        if (message.type === "stream_event") {
+            const event = message.event as { type: string; delta?: { type: string; text?: string } };
+            if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && event.delta.text) {
+                const lines = event.delta.text.split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    if (i > 0) {
+                        process.stdout.write("\n");
+                        needsPrefix = true;
+                    }
+                    if (lines[i].length > 0) {
+                        if (needsPrefix) {
+                            process.stdout.write(STREAM_PREFIX);
+                            needsPrefix = false;
+                        }
+                        process.stdout.write(pc.dim(lines[i]));
+                    }
+                }
+                hasStreamedOutput = true;
+            }
+        } else if (message.type === "result") {
+            if (hasStreamedOutput && !needsPrefix) {
+                process.stdout.write("\n");
+            }
             if (message.subtype === "success") {
                 result = message.result;
             } else {

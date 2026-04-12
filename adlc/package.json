@@ -9,6 +9,9 @@
         "url": "git+https://github.com/patricklafrance/plantz-claude-v3.git",
         "directory": "adlc"
     },
+    "bin": {
+        "adlc": "./src/cli.ts"
+    },
     "files": [
         "agents",
         "skills",
@@ -18,9 +21,6 @@
     ],
     "type": "module",
     "sideEffects": false,
-    "bin": {
-        "adlc": "./src/cli.ts"
-    },
     "exports": {
         ".": "./src/index.ts"
     },
@@ -45,6 +45,7 @@
     },
     "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "0.2.101",
+        "picocolors": "^1.1.1",
         "yaml": "^2.7.1"
     },
     "devDependencies": {

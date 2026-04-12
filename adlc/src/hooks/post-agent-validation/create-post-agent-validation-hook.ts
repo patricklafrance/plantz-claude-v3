@@ -25,7 +25,6 @@ type HandlerFn = (cwd: string) => string[] | Promise<string[]>;
 
 const handlers: Record<string, HandlerFn> = {
     "challenge-arbiter": handleChallengeArbiter,
-    coder: handleCoder,
     document: handleDocument,
     "domain-mapper": handleModuleMapper,
     "evidence-researcher": handleEvidenceResearcher,
@@ -37,6 +36,9 @@ const handlers: Record<string, HandlerFn> = {
 };
 
 export function createPostAgentValidationHook() {
+    /** In-memory markers shared across agent runs within the same pipeline. */
+    const markers: Record<string, boolean> = {};
+
     return async (input: SubagentStopHookInput): Promise<HookJSONOutput> => {
         const { agent_type: agentType, agent_transcript_path: transcriptPath, cwd } = input;
 
@@ -46,7 +48,10 @@ export function createPostAgentValidationHook() {
             return { continue: true };
         }
 
-        const handler = handlers[agentType];
+        const handler = agentType === "coder"
+            ? (cwd: string) => handleCoder(cwd, markers)
+            : handlers[agentType];
+
         if (!handler) {
             recordMetrics(transcriptPath, agentType, cwd);
             return { continue: true };

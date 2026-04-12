@@ -6,14 +6,14 @@
  * under thousands of tokens. This hook forces a pause that gets full
  * recency-bias attention.
  *
- * Uses `.adlc/markers.json` keyed by slice name so the checklist is only
- * shown once per slice (preventing infinite block loops).
+ * Markers are kept in an in-memory map (created once per pipeline in
+ * `createPostAgentValidationHook`) so the checklist is only shown once per
+ * slice without disk I/O.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const MARKERS_FILE = "markers.json";
 const MARKER_KEY_PREFIX = "context-refresh:";
 
 // -- Slice key -----------------------------------------------------------
@@ -33,24 +33,6 @@ export function extractSliceId(content: string): string | null {
     return idMatch ? idMatch[1].trim() : null;
 }
 
-// -- Markers -------------------------------------------------------------
-
-function readMarkers(cwd: string): Record<string, boolean> {
-    const markersPath = resolve(cwd, ".adlc", MARKERS_FILE);
-    try {
-        return JSON.parse(readFileSync(markersPath, "utf8"));
-    } catch {
-        return {};
-    }
-}
-
-function writeMarker(cwd: string, key: string): void {
-    const markersPath = resolve(cwd, ".adlc", MARKERS_FILE);
-    const markers = readMarkers(cwd);
-    markers[key] = true;
-    writeFileSync(markersPath, JSON.stringify(markers, null, 4) + "\n");
-}
-
 // -- Check ---------------------------------------------------------------
 
 const CONTEXT_REFRESH_MESSAGE = [
@@ -63,7 +45,7 @@ const CONTEXT_REFRESH_MESSAGE = [
     "Fix anything missing before stopping."
 ].join("\n");
 
-export function contextRefreshCheck(cwd: string): string[] {
+export function contextRefreshCheck(cwd: string, markers: Record<string, boolean>): string[] {
     const slicePath = resolve(cwd, ".adlc", "current-slice.md");
 
     if (!existsSync(slicePath)) {
@@ -83,14 +65,13 @@ export function contextRefreshCheck(cwd: string): string[] {
     }
 
     const markerKey = `${MARKER_KEY_PREFIX}${sliceKey}`;
-    const markers = readMarkers(cwd);
 
     if (markers[markerKey]) {
         return [];
     }
 
-    // First stop for this slice -- write marker and block.
-    writeMarker(cwd, markerKey);
+    // First stop for this slice -- set marker and block.
+    markers[markerKey] = true;
 
     return [CONTEXT_REFRESH_MESSAGE];
 }

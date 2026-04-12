@@ -65,7 +65,7 @@ describe("createPostAgentValidationHook", () => {
         const hook = createPostAgentValidationHook();
         const result = await hook(makeStopInput({ agent_type: "coder" }));
 
-        expect(handleCoder).toHaveBeenCalledWith("/tmp/test-project");
+        expect(handleCoder).toHaveBeenCalledWith("/tmp/test-project", expect.any(Object));
         expect(result).toEqual({ continue: true });
     });
 

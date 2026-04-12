@@ -231,7 +231,7 @@ The orchestrator validates these scripts at startup: `build`, `lint`, `test`, `t
 
 ### Required tools
 
-[pnpm](https://pnpm.io), [Squide](https://github.com/gsoft-inc/wl-squide), [Storybook](https://storybook.js.org) + [Chromatic](https://www.chromatic.com), [agent-browser](https://www.npmjs.com/package/agent-browser) (devDependency — invoked via `pnpm exec`).
+[pnpm](https://pnpm.io), [GitHub CLI](https://cli.github.com) (`gh`), [Squide](https://github.com/gsoft-inc/wl-squide), [Storybook](https://storybook.js.org) + [Chromatic](https://www.chromatic.com), [agent-browser](https://www.npmjs.com/package/agent-browser) (devDependency — invoked via `pnpm exec`).
 
 ## Installation
 
