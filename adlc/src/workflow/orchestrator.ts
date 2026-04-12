@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,19 +35,37 @@ export async function run(featureDescription: string, options: OrchestratorOptio
     try {
         const doneInit = progress.init();
 
-        progress.log("init", "Loading configuration");
+        const doneConfig = progress.start("init", "Loading configuration");
         const rawConfig = await loadConfig(cwd);
         const config = resolveConfig(rawConfig);
+        doneConfig();
 
-        progress.log("init", "Validating repository");
+        const doneValidate = progress.start("init", "Validating repository");
         validateRepository(cwd);
+        doneValidate();
 
-        progress.log("init", "Building project context");
-        const projectContext = await buildProjectContext(cwd, config, candidates => classifyReferenceDocs(candidates, cwd));
+        const doneDirs = progress.start("init", "Preparing workspace");
+        const adlcRoot = resolve(cwd, ".adlc");
+        mkdirSync(resolve(adlcRoot, "slices"), { recursive: true });
+        mkdirSync(resolve(adlcRoot, "implementation-notes"), { recursive: true });
+        mkdirSync(resolve(adlcRoot, "verification-results"), { recursive: true });
+        mkdirSync(resolve(cwd, ".adlc-metrics"), { recursive: true });
+        doneDirs();
+
+        const doneScan = progress.start("init", "Scanning project files");
+        const projectContext = await buildProjectContext(cwd, config, async candidates => {
+            doneScan();
+            const doneClassify = progress.start("init", "Classifying reference docs");
+            const result = await classifyReferenceDocs(candidates, cwd);
+            doneClassify();
+
+            return result;
+        });
         const preamble = contextToPreamble(projectContext);
 
-        progress.log("init", "Loading agent definitions");
+        const doneAgents = progress.start("init", "Loading agent definitions");
         const agents = loadAllAgents(preamble, config, cwd);
+        doneAgents();
 
         doneInit();
 

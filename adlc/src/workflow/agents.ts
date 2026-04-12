@@ -163,7 +163,25 @@ export function loadAllAgents(preamble?: string, config?: ResolvedConfig, cwd?: 
 
 const STREAM_PREFIX = `    ${pc.dim("│")} `;
 
-/** Run a single agent to completion via the SDK, streaming text output to stdout. */
+/** Write a prefixed, dimmed line to stdout. Handles multi-line text and tracks newline state. */
+function writeStreamLine(text: string, state: { needsPrefix: boolean }): void {
+    const lines = text.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        if (i > 0) {
+            process.stdout.write("\n");
+            state.needsPrefix = true;
+        }
+        if (lines[i].length > 0) {
+            if (state.needsPrefix) {
+                process.stdout.write(STREAM_PREFIX);
+                state.needsPrefix = false;
+            }
+            process.stdout.write(pc.dim(lines[i]));
+        }
+    }
+}
+
+/** Run a single agent to completion via the SDK, forwarding output to stdout. */
 export async function runAgent(agentName: string, prompt: string, cwd: string, agents: Record<string, AgentDefinition>): Promise<string> {
     const conversation = query({
         prompt,
@@ -180,31 +198,39 @@ export async function runAgent(agentName: string, prompt: string, cwd: string, a
     });
 
     let result = "";
-    let hasStreamedOutput = false;
-    let needsPrefix = true;
+    let hasOutput = false;
+    const lineState = { needsPrefix: true };
 
     for await (const message of conversation) {
         if (message.type === "stream_event") {
-            const event = message.event as { type: string; delta?: { type: string; text?: string } };
+            const event = message.event as {
+                type: string;
+                content_block?: { type: string };
+                delta?: { type: string; text?: string };
+            };
+            // New text block starting — insert line break to separate from previous output
+            if (event.type === "content_block_start" && event.content_block?.type === "text" && hasOutput && !lineState.needsPrefix) {
+                process.stdout.write("\n");
+                lineState.needsPrefix = true;
+            }
+            // Streaming text deltas
             if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && event.delta.text) {
-                const lines = event.delta.text.split("\n");
-                for (let i = 0; i < lines.length; i++) {
-                    if (i > 0) {
-                        process.stdout.write("\n");
-                        needsPrefix = true;
-                    }
-                    if (lines[i].length > 0) {
-                        if (needsPrefix) {
-                            process.stdout.write(STREAM_PREFIX);
-                            needsPrefix = false;
-                        }
-                        process.stdout.write(pc.dim(lines[i]));
-                    }
+                writeStreamLine(event.delta.text, lineState);
+                hasOutput = true;
+            }
+        } else if (message.type === "tool_use_summary") {
+            // Tool execution summaries — always emitted, shows what agent is doing
+            const msg = message as { summary?: string };
+            if (msg.summary) {
+                if (hasOutput && !lineState.needsPrefix) {
+                    process.stdout.write("\n");
+                    lineState.needsPrefix = true;
                 }
-                hasStreamedOutput = true;
+                writeStreamLine(msg.summary, lineState);
+                hasOutput = true;
             }
         } else if (message.type === "result") {
-            if (hasStreamedOutput && !needsPrefix) {
+            if (hasOutput && !lineState.needsPrefix) {
                 process.stdout.write("\n");
             }
             if (message.subtype === "success") {
