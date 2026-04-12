@@ -102,9 +102,23 @@ jobs:
               env:
                   BASE_SHA: ${{ steps.get-base-sha.outputs.VALUE }}
 
+            - name: Check Chromatic project tokens
+              id: check-tokens
+              shell: bash
+              run: |
+                  # Detect which Chromatic project tokens are configured.
+                  # Secrets are passed via env vars so the shell can safely test emptiness.
+                  [ -n "$MANAGEMENT_TOKEN" ] && echo "management=true" >> "$GITHUB_OUTPUT" || echo "management=false" >> "$GITHUB_OUTPUT"
+                  [ -n "$WATERING_TOKEN" ]   && echo "watering=true"   >> "$GITHUB_OUTPUT" || echo "watering=false"   >> "$GITHUB_OUTPUT"
+                  [ -n "$PACKAGES_TOKEN" ]   && echo "packages=true"   >> "$GITHUB_OUTPUT" || echo "packages=false"   >> "$GITHUB_OUTPUT"
+              env:
+                  MANAGEMENT_TOKEN: ${{ secrets.MANAGEMENT_CHROMATIC_PROJECT_TOKEN }}
+                  WATERING_TOKEN: ${{ secrets.WATERING_CHROMATIC_PROJECT_TOKEN }}
+                  PACKAGES_TOKEN: ${{ secrets.PACKAGES_CHROMATIC_PROJECT_TOKEN }}
+
             - name: Chromatic - Management
               id: chromatic-management
-              if: secrets.MANAGEMENT_CHROMATIC_PROJECT_TOKEN != ''
+              if: steps.check-tokens.outputs.management == 'true'
               uses: chromaui/action@latest
               with:
                   projectToken: ${{ secrets.MANAGEMENT_CHROMATIC_PROJECT_TOKEN }}
@@ -117,7 +131,7 @@ jobs:
 
             - name: Chromatic - Watering
               id: chromatic-watering
-              if: secrets.WATERING_CHROMATIC_PROJECT_TOKEN != ''
+              if: steps.check-tokens.outputs.watering == 'true'
               uses: chromaui/action@latest
               with:
                   projectToken: ${{ secrets.WATERING_CHROMATIC_PROJECT_TOKEN }}
@@ -130,7 +144,7 @@ jobs:
 
             - name: Chromatic - Packages
               id: chromatic-packages
-              if: secrets.PACKAGES_CHROMATIC_PROJECT_TOKEN != ''
+              if: steps.check-tokens.outputs.packages == 'true'
               uses: chromaui/action@latest
               with:
                   projectToken: ${{ secrets.PACKAGES_CHROMATIC_PROJECT_TOKEN }}
