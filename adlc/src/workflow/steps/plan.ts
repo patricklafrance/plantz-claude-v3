@@ -5,7 +5,13 @@ import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
 
-export async function runPlan(featureDescription: string, cwd: string, agents: Record<string, AgentDefinition>, progress?: Progress, hooks?: SDKHooks): Promise<void> {
+export async function runPlan(
+    featureDescription: string,
+    cwd: string,
+    agents: Record<string, AgentDefinition>,
+    progress?: Progress,
+    hooks?: SDKHooks
+): Promise<void> {
     for (let attempt = 0; attempt < DEFAULTS.maxPlanAttempts; attempt++) {
         const mode = attempt === 0 ? "draft" : "revision";
         progress?.log("plan", `Plan ${mode} attempt ${attempt + 1}/${DEFAULTS.maxPlanAttempts}`);

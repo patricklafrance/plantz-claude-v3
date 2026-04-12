@@ -86,7 +86,7 @@ When heuristics diverge, check the feature's purpose against the module mental m
 
 ### 5. Write output
 
-Write `.adlc/domain-mapping.md` using the template below.
+Write `.adlc/domain-mapping.md` using the template below. The directory already exists — do not create it.
 
 ## Output
 

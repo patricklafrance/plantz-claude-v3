@@ -36,7 +36,7 @@ Never modify plan files.
 ### 3. Report
 
 - **Pass:** Write nothing. Done.
-- **Fail:** Write `.adlc/plan-gate-revision.md` with all problems found.
+- **Fail:** Write `.adlc/plan-gate-revision.md` with all problems found. The directory already exists — do not create it.
 
 ## Output Format
 

@@ -12,6 +12,8 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import type { HookJSONOutput, StopHookInput } from "../types.ts";
+
 // ── Types ─────────────────────────────────────────────────
 
 interface ToolStats {
@@ -223,11 +225,6 @@ export function recordMetrics(transcriptPath: string | null, agentType: string, 
     const runIndex = metrics.runs.length + 1;
     const detailsFile = `run-details/${String(runIndex).padStart(3, "0")}-${agentType}.json`;
     const detailsPath = resolve(metricsDir, detailsFile);
-
-    const detailsDir = resolve(metricsDir, "run-details");
-    if (!existsSync(detailsDir)) {
-        mkdirSync(detailsDir, { recursive: true });
-    }
 
     writeFileSync(
         detailsPath,
@@ -581,6 +578,9 @@ function computeBillable(input: number, output: number, cacheRead: number, cache
 
 // ── Formatting ──────────────────────────────────────────────
 
+// Intentionally distinct from progress.ts formatDuration: omits the millisecond
+// range and uses "—" for zero/negative — appropriate for stored JSON summaries,
+// not interactive display.
 function formatDuration(ms: number): string {
     if (ms <= 0) {
         return "—";
@@ -589,4 +589,21 @@ function formatDuration(ms: number): string {
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
     return min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+}
+
+// ── Stop hook ────────────────────────────────────────────────
+
+/**
+ * Stop hook — records metrics for the top-level agent when it completes.
+ *
+ * SubagentStop only fires for nested agents spawned via the Agent tool.
+ * The top-level agent in a `query()` call fires `Stop` instead.
+ */
+export function createStopMetricsHook(): (input: StopHookInput) => Promise<HookJSONOutput> {
+    return async (input: StopHookInput) => {
+        if (input.agent_type) {
+            recordMetrics(input.transcript_path, input.agent_type, input.cwd);
+        }
+        return { continue: true };
+    };
 }

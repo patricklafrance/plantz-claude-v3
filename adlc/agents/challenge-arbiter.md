@@ -32,7 +32,7 @@ After both challengers rest their case, write the verdict.
 
 ## Output
 
-Write `.adlc/current-challenge-verdict.md`.
+Write `.adlc/current-challenge-verdict.md`. The directory already exists — do not create it.
 
 <challenge-verdict-template>
 

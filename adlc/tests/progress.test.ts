@@ -69,7 +69,8 @@ describe("Progress", () => {
         });
 
         it("should log elapsed time when the returned function is called", () => {
-            vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(3500);
+            // 1st call: Progress constructor (startTime), 2nd: start() timer, 3rd: done() timer
+            vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(1000).mockReturnValueOnce(3500);
 
             const progress = new Progress();
             const done = progress.start("plan", "Analyzing codebase");
@@ -82,7 +83,8 @@ describe("Progress", () => {
         });
 
         it("should measure sub-second durations in milliseconds", () => {
-            vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(1250);
+            // 1st call: Progress constructor (startTime), 2nd: start() timer, 3rd: done() timer
+            vi.spyOn(Date, "now").mockReturnValueOnce(1000).mockReturnValueOnce(1000).mockReturnValueOnce(1250);
 
             const progress = new Progress();
             const done = progress.start("exec", "Quick task");

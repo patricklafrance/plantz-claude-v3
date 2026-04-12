@@ -57,7 +57,7 @@ Scope describes what at the module/component level — no file paths, function n
 
 ## Output Format
 
-All files written to `.adlc/`.
+All files written to `.adlc/`. The directory structure already exists — do not create it.
 
 ### plan-header.md (under 40 lines)
 

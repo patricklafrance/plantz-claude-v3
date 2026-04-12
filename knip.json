@@ -53,7 +53,7 @@
             "ignoreDependencies": ["@tailwindcss/postcss"]
         },
         "adlc": {
-            "entry": ["src/cli.ts", "rslib.build.ts", "agents/generate-package-map.mjs"],
+            "entry": ["rslib.build.ts", "agents/generate-package-map.mjs"],
             "ignoreDependencies": ["@rsbuild/core"]
         },
         "apps/storybook-packages": {

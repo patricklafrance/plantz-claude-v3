@@ -40,7 +40,7 @@ For each gap, return observations and inferences. Do not produce a placement rec
 
 ## Output
 
-Write `.adlc/current-evidence-findings.md`.
+Write `.adlc/current-evidence-findings.md`. The directory already exists — do not create it.
 
 <evidence-findings-template>
 

@@ -85,20 +85,10 @@ jobs:
                   fi
 
             - name: Oxfmt
-              run: |
-                  if [ "${{ github.event_name }}" == "pull_request" ]; then
-                      pnpm turbo run oxfmt --continue --filter=...[${{ github.event.pull_request.base.sha }}]
-                  else
-                      pnpm turbo run oxfmt
-                  fi
+              run: pnpm format-check
 
             - name: Oxlint
-              run: |
-                  if [ "${{ github.event_name }}" == "pull_request" ]; then
-                      pnpm turbo run oxlint --continue --filter=...[${{ github.event.pull_request.base.sha }}]
-                  else
-                      pnpm turbo run oxlint
-                  fi
+              run: pnpm lint-check
 
             - name: Typecheck
               run: |

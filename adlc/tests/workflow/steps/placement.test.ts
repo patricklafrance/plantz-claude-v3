@@ -140,6 +140,7 @@ describe("runPlacement", () => {
 
     it("forwards hooks to every agent call", async () => {
         agentResultMap["placement-gate"] = "All placements look correct.";
+        // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
         await runPlacement("Add watering", tmpDir, mockAgents, undefined, fakeHooks);

@@ -32,7 +32,7 @@ Check for issues that concern-level analysis can miss:
 ## Output
 
 - **Pass:** Write nothing. Done.
-- **Fail:** Write `.adlc/placement-gate-revision.md` with all issues found.
+- **Fail:** Write `.adlc/placement-gate-revision.md` with all issues found. The directory already exists — do not create it.
 
 <revision-template>
 

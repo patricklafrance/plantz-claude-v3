@@ -31,7 +31,7 @@ Delete `.adlc/current-package-map.md` when done.
 
 ### 3. Write the summary
 
-Synthesize findings and write the result to `.adlc/current-explorer-summary.md`. Use the template below.
+Synthesize findings and write the result to `.adlc/current-explorer-summary.md`. The directory already exists — do not create it. Use the template below.
 
 - **Target ~150 lines.** The coder will READ source files before editing — the summary orients, it does not replace.
 - Do NOT include verbatim code blocks. Instead, write "**Read before editing:** `{path}`" directives.

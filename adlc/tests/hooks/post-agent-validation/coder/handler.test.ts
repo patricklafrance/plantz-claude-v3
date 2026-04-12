@@ -11,7 +11,7 @@ vi.mock("../../../../src/hooks/post-agent-validation/utils.js", () => ({
 
 describe("coder handler (full pipeline)", () => {
     it("should return an array of problems", async () => {
-        const problems = await handleCoder(process.cwd());
+        const problems = await handleCoder(process.cwd(), {});
         expect(Array.isArray(problems)).toBe(true);
         // On a clean repo without .adlc/implementation-notes.md, we expect at least that check to fail
         expect(problems.some(p => p.includes("implementation-notes"))).toBe(true);

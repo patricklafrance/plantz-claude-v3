@@ -7,7 +7,7 @@ import type { Ports } from "./ports.ts";
 // ── Model resolution ─────────────────────────────────────
 
 /** Model aliases → full model IDs. */
-export const MODEL_IDS = {
+const MODEL_IDS = {
     sonnet: "claude-sonnet-4-6",
     opus: "claude-opus-4-6",
     haiku: "claude-haiku-4-5-20251001"

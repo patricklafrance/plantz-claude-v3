@@ -54,7 +54,7 @@ Skip this step when all criteria pass.
 
 ### 5. Write results
 
-Write `.adlc/verification-results.md`. Every criterion from the slice must appear in exactly one section (Passed or Failed).
+Write `.adlc/verification-results.md`. The directory already exists — do not create it. Every criterion from the slice must appear in exactly one section (Passed or Failed).
 
 <verification-results-template>
 

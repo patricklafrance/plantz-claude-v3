@@ -54,7 +54,7 @@ Acceptance criteria are specifications, not suggestions. Implement each criterio
 
 ### 4. Record implementation notes
 
-Write `.adlc/implementation-notes/{id}.md`, where `{id}` is the frontmatter `id` from `.adlc/current-slice.md`. On revision, overwrite the same file.
+Write `.adlc/implementation-notes/{id}.md`, where `{id}` is the frontmatter `id` from `.adlc/current-slice.md`. On revision, overwrite the same file. The directory already exists — do not create it.
 
 Re-read the slice's acceptance criteria. For each criterion, list the file(s) that satisfy it. If a criterion mentions multiple locations (e.g., "in both X and Y"), confirm each location independently.
 
