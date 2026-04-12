@@ -104,6 +104,7 @@ jobs:
 
             - name: Chromatic - Management
               id: chromatic-management
+              if: secrets.MANAGEMENT_CHROMATIC_PROJECT_TOKEN != ''
               uses: chromaui/action@latest
               with:
                   projectToken: ${{ secrets.MANAGEMENT_CHROMATIC_PROJECT_TOKEN }}
@@ -116,6 +117,7 @@ jobs:
 
             - name: Chromatic - Watering
               id: chromatic-watering
+              if: secrets.WATERING_CHROMATIC_PROJECT_TOKEN != ''
               uses: chromaui/action@latest
               with:
                   projectToken: ${{ secrets.WATERING_CHROMATIC_PROJECT_TOKEN }}
@@ -128,6 +130,7 @@ jobs:
 
             - name: Chromatic - Packages
               id: chromatic-packages
+              if: secrets.PACKAGES_CHROMATIC_PROJECT_TOKEN != ''
               uses: chromaui/action@latest
               with:
                   projectToken: ${{ secrets.PACKAGES_CHROMATIC_PROJECT_TOKEN }}

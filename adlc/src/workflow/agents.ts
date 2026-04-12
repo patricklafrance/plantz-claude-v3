@@ -9,7 +9,7 @@ import { parse } from "yaml";
 import { resolveModel, type ResolvedConfig } from "../config.ts";
 import type { DocCandidate } from "../context.ts";
 import type { SDKHooks } from "../hooks/create-hooks.ts";
-import { formatDuration, truncate, type Progress } from "../progress.ts";
+import { formatDuration, formatTokens, type Progress } from "../progress.ts";
 
 /** SDK-compatible agent definition. */
 export type AgentDefinition = {
@@ -197,28 +197,19 @@ function writeToolLine(text: string, prefix = TOOL_PREFIX): void {
     }
 }
 
-const TOOL_DISPLAY_KEYS: ReadonlyArray<{ key: string; maxLen?: number; firstLineOnly?: boolean }> = [
-    { key: "file_path" },
-    { key: "command", firstLineOnly: true },
-    { key: "pattern" },
-    { key: "query", maxLen: 60 },
-    { key: "url" },
-    { key: "description", maxLen: 60 },
-    { key: "prompt", maxLen: 60, firstLineOnly: true }
-];
+const TOOL_DISPLAY_KEYS = ["file_path", "command", "pattern", "query", "url", "description", "prompt"] as const;
 
 /** Extract the most meaningful argument from a pre-parsed tool input for display. */
 function formatToolArgs(toolName: string, input: Record<string, unknown> | undefined): string {
     if (!input) {
         return toolName;
     }
-    for (const { key, maxLen = 80, firstLineOnly } of TOOL_DISPLAY_KEYS) {
+    for (const key of TOOL_DISPLAY_KEYS) {
         const raw = input[key];
         if (typeof raw !== "string") {
             continue;
         }
-        const val = firstLineOnly ? raw.split("\n")[0] : raw;
-        return `${toolName} ${truncate(val, maxLen)}`;
+        return `${toolName} ${raw}`;
     }
     return toolName;
 }
@@ -247,16 +238,23 @@ function ensureNewLine(hasOutput: boolean, lineState: { needsPrefix: boolean }):
     }
 }
 
-/** Write a "↳ Done (N tool uses · Xs)" summary line with the given prefix. */
-function writeDoneLine(prefix: string, startTime: number, toolCount: number): void {
+/** Write a "↳ Done (N tool uses · Xk tokens · Xs)" summary line with the given prefix. */
+function writeDoneLine(prefix: string, startTime: number, toolCount: number, tokenCount?: number): void {
     const elapsed = formatDuration(Date.now() - startTime);
-    const stats = toolCount > 0 ? `${toolCount} tool uses \u00b7 ${elapsed}` : elapsed;
-    process.stdout.write(`${prefix}${pc.dim(`\u21b3 Done (${stats})`)}\n`);
+    const parts: string[] = [];
+    if (toolCount > 0) {
+        parts.push(`${toolCount} tool uses`);
+    }
+    if (tokenCount != null && tokenCount > 0) {
+        parts.push(`${formatTokens(tokenCount)} tokens`);
+    }
+    parts.push(elapsed);
+    process.stdout.write(`${prefix}${pc.dim(`\u21b3 Done (${parts.join(" \u00b7 ")})`)}\n`);
 }
 
 /** Print "Done" summaries for completed Agent tool calls and clear the tracking map. */
 function flushAgentToolSummaries(
-    activeAgentTools: Map<string, { startTime: number; toolCount: number }>,
+    activeAgentTools: Map<string, { startTime: number; toolCount: number; tokenCount: number }>,
     progress: Progress | undefined,
     hasOutput: boolean,
     lineState: { needsPrefix: boolean }
@@ -265,10 +263,10 @@ function flushAgentToolSummaries(
         return;
     }
 
-    for (const [, { startTime, toolCount }] of activeAgentTools) {
+    for (const [, { startTime, toolCount, tokenCount }] of activeAgentTools) {
         progress?.clearSpinner();
         ensureNewLine(hasOutput, lineState);
-        writeDoneLine(SUB_STREAM_PREFIX, startTime, toolCount);
+        writeDoneLine(SUB_STREAM_PREFIX, startTime, toolCount, tokenCount);
         lineState.needsPrefix = true;
     }
     activeAgentTools.clear();
@@ -310,7 +308,8 @@ export async function runAgent(
     let activeToolInput = "";
     let activeBlockType: string | null = null;
 
-    const activeAgentTools = new Map<string, { startTime: number; toolCount: number }>();
+    let totalTokens = 0;
+    const activeAgentTools = new Map<string, { startTime: number; toolCount: number; tokenCount: number }>();
 
     for await (const message of conversation) {
         const parentId = (message as { parent_tool_use_id?: string | null }).parent_tool_use_id;
@@ -335,7 +334,8 @@ export async function runAgent(
                     if (activeToolName === "Agent" && event.content_block?.id) {
                         activeAgentTools.set(event.content_block.id, {
                             startTime: Date.now(),
-                            toolCount: 0
+                            toolCount: 0,
+                            tokenCount: 0
                         });
                     }
                 } else if (blockType === "text" && hasOutput && !lineState.needsPrefix) {
@@ -351,7 +351,7 @@ export async function runAgent(
                     writeStreamLine(event.delta.text, lineState);
                     hasOutput = true;
                 } else if (event.delta?.type === "input_json_delta" && event.delta.partial_json) {
-                    // Cap buffer — formatToolCall only reads the first ~80 chars of each field
+                    // Cap buffer to avoid unbounded accumulation for large inputs
                     if (activeToolInput.length < 4096) {
                         activeToolInput += event.delta.partial_json;
                     }
@@ -371,12 +371,28 @@ export async function runAgent(
                 activeBlockType = null;
             }
         } else if (message.type === "assistant" && parentId) {
-            const betaMsg = (message as { message?: { content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }> } }).message;
-            if (!betaMsg?.content) {
+            const betaMsg = (
+                message as {
+                    message?: {
+                        content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }>;
+                        usage?: { input_tokens?: number; output_tokens?: number };
+                    };
+                }
+            ).message;
+            if (!betaMsg) {
                 continue;
             }
 
             const tracker = activeAgentTools.get(parentId);
+
+            // Accumulate token usage from each sub-agent turn
+            if (tracker && betaMsg.usage) {
+                tracker.tokenCount += (betaMsg.usage.input_tokens ?? 0) + (betaMsg.usage.output_tokens ?? 0);
+            }
+
+            if (!betaMsg.content) {
+                continue;
+            }
 
             for (const block of betaMsg.content) {
                 if (block.type === "tool_use" && block.name) {
@@ -403,6 +419,13 @@ export async function runAgent(
         } else if (message.type === "result") {
             flushAgentToolSummaries(activeAgentTools, progress, hasOutput, lineState);
             ensureNewLine(hasOutput, lineState);
+
+            // Extract total token usage from the result message
+            const resultUsage = (message as { usage?: { input_tokens?: number; output_tokens?: number } }).usage;
+            if (resultUsage) {
+                totalTokens = (resultUsage.input_tokens ?? 0) + (resultUsage.output_tokens ?? 0);
+            }
+
             if (message.subtype === "success") {
                 result = message.result;
             } else {
@@ -413,7 +436,7 @@ export async function runAgent(
 
     progress?.clearSpinner();
     ensureNewLine(hasOutput, lineState);
-    writeDoneLine(STREAM_PREFIX, agentStartTime, toolUseCount);
+    writeDoneLine(STREAM_PREFIX, agentStartTime, toolUseCount, totalTokens);
 
     return result;
 }
