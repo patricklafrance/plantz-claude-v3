@@ -47,6 +47,17 @@ export class Progress {
         console.log();
     }
 
+    /** Start the initialization phase. Returns a `done()` callback that prints readiness with elapsed time. */
+    init(): () => void {
+        const startTime = Date.now();
+        console.log(`  ${pc.cyan(S.bullet)} ${pc.bold("Initializing")}`);
+
+        return () => {
+            const elapsed = formatDuration(Date.now() - startTime);
+            console.log(`  ${pc.green(S.check)} Ready ${pc.dim(`(${elapsed})`)}`);
+        };
+    }
+
     /**
      * Start a major pipeline step.
      * Returns a `done()` callback that prints the completion line with elapsed time.

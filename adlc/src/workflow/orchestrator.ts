@@ -33,18 +33,23 @@ export async function run(featureDescription: string, options: OrchestratorOptio
     progress.banner(featureDescription, PKG.version);
 
     try {
-        // Load and resolve config
+        const doneInit = progress.init();
+
+        progress.log("init", "Loading configuration");
         const rawConfig = await loadConfig(cwd);
         const config = resolveConfig(rawConfig);
 
-        // Repository preflight — validates scripts and devDependencies
+        progress.log("init", "Validating repository");
         validateRepository(cwd);
 
-        // Build project context preamble (agent classifies reference docs, heuristics as fallback)
+        progress.log("init", "Building project context");
         const projectContext = await buildProjectContext(cwd, config, candidates => classifyReferenceDocs(candidates, cwd));
         const preamble = contextToPreamble(projectContext);
 
+        progress.log("init", "Loading agent definitions");
         const agents = loadAllAgents(preamble, config, cwd);
+
+        doneInit();
 
         // Step 1: Domain mapping + placement gate
         const donePlacement = progress.step(1, "Placement");
