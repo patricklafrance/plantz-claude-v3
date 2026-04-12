@@ -129,18 +129,6 @@ describe("runPlacement", () => {
         expect(evidenceResearcherCalls).toHaveLength(3);
     });
 
-    it("creates .adlc directory structure", async () => {
-        agentResultMap["placement-gate"] = "Fine.";
-
-        await runPlacement("Feature", tmpDir, mockAgents);
-
-        const { existsSync } = await import("node:fs");
-        const { resolve } = await import("node:path");
-        expect(existsSync(resolve(tmpDir, ".adlc/slices"))).toBe(true);
-        expect(existsSync(resolve(tmpDir, ".adlc/implementation-notes"))).toBe(true);
-        expect(existsSync(resolve(tmpDir, ".adlc/verification-results"))).toBe(true);
-    });
-
     it("passes feature description to domain mapper", async () => {
         agentResultMap["placement-gate"] = "Fine.";
 

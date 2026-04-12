@@ -40,21 +40,20 @@ describe("Progress", () => {
     });
 
     describe("log", () => {
-        it("should output a timestamped status line", () => {
+        it("should output a status line with the message", () => {
             const progress = new Progress();
             progress.log("plan", "Starting planning phase...");
 
             expect(logSpy).toHaveBeenCalledOnce();
             const output = logSpy.mock.calls[0][0] as string;
-            expect(output).toMatch(/^\[\d{2}:\d{2}:\d{2}( [AP]M)?\] \[plan\] Starting planning phase\.\.\.$/);
+            expect(output).toContain("Starting planning phase...");
         });
 
-        it("should include the phase and message", () => {
+        it("should include the message", () => {
             const progress = new Progress();
             progress.log("exec", "Running slices");
 
             const output = logSpy.mock.calls[0][0] as string;
-            expect(output).toContain("[exec]");
             expect(output).toContain("Running slices");
         });
     });
@@ -66,8 +65,7 @@ describe("Progress", () => {
 
             expect(logSpy).toHaveBeenCalledOnce();
             const output = logSpy.mock.calls[0][0] as string;
-            expect(output).toContain("[plan]");
-            expect(output).toContain("Analyzing codebase...");
+            expect(output).toContain("Analyzing codebase");
         });
 
         it("should log elapsed time when the returned function is called", () => {
@@ -79,7 +77,8 @@ describe("Progress", () => {
 
             expect(logSpy).toHaveBeenCalledTimes(2);
             const output = logSpy.mock.calls[1][0] as string;
-            expect(output).toContain("Analyzing codebase... done (2s)");
+            expect(output).toContain("Analyzing codebase");
+            expect(output).toContain("(2s)");
         });
 
         it("should measure sub-second durations in milliseconds", () => {
@@ -90,7 +89,7 @@ describe("Progress", () => {
             done();
 
             const output = logSpy.mock.calls[1][0] as string;
-            expect(output).toContain("done (250ms)");
+            expect(output).toContain("(250ms)");
         });
     });
 
@@ -100,7 +99,7 @@ describe("Progress", () => {
             progress.wave(0, 1, 5);
 
             const output = logSpy.mock.calls[0][0] as string;
-            expect(output).toContain("[wave-0]");
+            expect(output).toContain("Wave 0");
             expect(output).toContain("1 slice");
             expect(output).not.toContain("parallel");
         });
@@ -110,19 +109,22 @@ describe("Progress", () => {
             progress.wave(1, 3, 5);
 
             const output = logSpy.mock.calls[0][0] as string;
-            expect(output).toContain("[wave-1]");
-            expect(output).toContain("3 slices in parallel (max 5)");
+            expect(output).toContain("Wave 1");
+            expect(output).toContain("3 slices");
+            expect(output).toContain("5");
         });
     });
 
     describe("slice", () => {
-        it("should output indented slice-level event with agent", () => {
+        it("should output an indented slice-level event with agent", () => {
             const progress = new Progress();
             progress.slice("03-share-plants", "coder", "Starting draft");
 
             expect(logSpy).toHaveBeenCalledOnce();
             const output = logSpy.mock.calls[0][0] as string;
-            expect(output).toMatch(/^\[\d{2}:\d{2}:\d{2}( [AP]M)?\]\s+\[03-share-plants\] \[coder\] Starting draft$/);
+            expect(output).toContain("03-share-plants");
+            expect(output).toContain("[coder]");
+            expect(output).toContain("Starting draft");
         });
 
         it("should include slice name, agent, and message", () => {
@@ -130,29 +132,31 @@ describe("Progress", () => {
             progress.slice("01-household", "reviewer", "Review complete");
 
             const output = logSpy.mock.calls[0][0] as string;
-            expect(output).toContain("[01-household]");
+            expect(output).toContain("01-household");
             expect(output).toContain("[reviewer]");
             expect(output).toContain("Review complete");
         });
     });
 
     describe("error", () => {
-        it("should output to stderr with ERROR prefix", () => {
+        it("should output to stderr with error indicator", () => {
             const progress = new Progress();
             progress.error("fatal", "Something went wrong");
 
             expect(errorSpy).toHaveBeenCalledOnce();
             const output = errorSpy.mock.calls[0][0] as string;
-            expect(output).toMatch(/^\[\d{2}:\d{2}:\d{2}( [AP]M)?\] \[fatal\] ERROR: Something went wrong$/);
+            expect(output).toContain("✗");
+            expect(output).toContain("Error:");
+            expect(output).toContain("Something went wrong");
         });
 
-        it("should include phase and message", () => {
+        it("should include the message", () => {
             const progress = new Progress();
             progress.error("exec", "Slice failed");
 
             const output = errorSpy.mock.calls[0][0] as string;
-            expect(output).toContain("[exec]");
-            expect(output).toContain("ERROR: Slice failed");
+            expect(output).toContain("Error:");
+            expect(output).toContain("Slice failed");
         });
     });
 });

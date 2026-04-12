@@ -17,7 +17,7 @@ describe("worktree/merger", () => {
     beforeEach(() => {
         repoDir = mkdtempSync(join(tmpdir(), "merger-test-"));
 
-        git("init", repoDir);
+        git("init -b main", repoDir);
         git("config user.email test@test.com", repoDir);
         git("config user.name Test", repoDir);
 
