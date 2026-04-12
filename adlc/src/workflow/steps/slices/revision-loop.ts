@@ -9,8 +9,7 @@ import { DEFAULTS, type ResolvedConfig } from "../../../config.ts";
 import { createHooks } from "../../../hooks/create-hooks.ts";
 import type { Ports } from "../../../ports.ts";
 import type { Progress } from "../../../progress.ts";
-import type { AgentDefinition } from "../../agents.ts";
-import { loadAllAgents } from "../../agents.ts";
+import { throwAgentError, loadAllAgents, type AgentDefinition } from "../../agents.ts";
 
 /** Hooks record shape returned by createHooks. */
 type SDKHooks = ReturnType<typeof createHooks>["hooks"];
@@ -23,8 +22,11 @@ async function runAgentInWorktree(
     agents: Record<string, AgentDefinition>,
     hooks: SDKHooks,
     ports: Ports,
-    resumeSessionId?: string
+    resumeSessionId?: string,
+    progress?: Progress
 ): Promise<{ result: string; sessionId: string }> {
+    progress?.agent(agentName, resumeSessionId ? "resume" : "spawn", prompt);
+
     const conversation = query({
         prompt,
         options: {
@@ -53,9 +55,7 @@ async function runAgentInWorktree(
                 result = message.result;
                 sessionId = message.session_id;
             } else {
-                const msg = message as Record<string, unknown>;
-                const errors = Array.isArray(msg.errors) ? (msg.errors as string[]).join("; ") : String(msg.subtype);
-                throw new Error(`Agent "${agentName}" failed (${msg.subtype}): ${errors}`);
+                throwAgentError(agentName, message as Record<string, unknown>);
             }
         }
     }
@@ -70,7 +70,8 @@ async function runCoderPass(
     agents: Record<string, AgentDefinition>,
     hooks: SDKHooks,
     ports: Ports,
-    previousSessionId?: string
+    previousSessionId?: string,
+    progress?: Progress
 ): Promise<string> {
     const prompt = mode === "draft" ? `Implement slice: ${sliceName}` : "Apply the reviewer feedback and fix the identified issues.";
 
@@ -81,7 +82,8 @@ async function runCoderPass(
         agents,
         hooks,
         ports,
-        mode === "revision" ? previousSessionId : undefined
+        mode === "revision" ? previousSessionId : undefined,
+        progress
     );
 
     return sessionId;
@@ -114,7 +116,7 @@ export async function runSlicePipeline(
 
     // Explorer phase
     progress?.slice(sliceName, "explorer", "surveying reference packages");
-    await runAgentInWorktree("explorer", "Survey reference packages for this slice.", worktreePath, agents, hooks, ports);
+    await runAgentInWorktree("explorer", "Survey reference packages for this slice.", worktreePath, agents, hooks, ports, undefined, progress);
 
     // Coder <-> Reviewer loop
     let coderSessionId: string | undefined;
@@ -124,12 +126,12 @@ export async function runSlicePipeline(
         // Coder (resume session for revisions)
         progress?.slice(sliceName, "coder", `${mode} attempt ${attempt + 1}/${DEFAULTS.maxRevisionAttempts}`);
         // eslint-disable-next-line no-await-in-loop
-        coderSessionId = await runCoderPass(mode, sliceName, worktreePath, agents, hooks, ports, coderSessionId);
+        coderSessionId = await runCoderPass(mode, sliceName, worktreePath, agents, hooks, ports, coderSessionId, progress);
 
         // Reviewer (fresh session each time for adversarial independence)
         progress?.slice(sliceName, "reviewer", `verifying attempt ${attempt + 1}`);
         // eslint-disable-next-line no-await-in-loop
-        await runAgentInWorktree("reviewer", "Verify the slice implementation.", worktreePath, agents, hooks, ports);
+        await runAgentInWorktree("reviewer", "Verify the slice implementation.", worktreePath, agents, hooks, ports, undefined, progress);
 
         // Check verification results
         const passed = checkVerificationResults(worktreePath);

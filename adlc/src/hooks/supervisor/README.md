@@ -163,7 +163,6 @@ Evidence bypass:
 - bypass is one-shot and expires after a short event window if unused
 - intentionally narrow: rejects relative imports, alias-style imports, generic type errors
 
-
 ## Public hook contract
 
 - `allow` decisions return `{ continue: true }`

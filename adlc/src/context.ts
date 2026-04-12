@@ -82,8 +82,7 @@ export function discoverReferenceDocs(refDir: string, cwd: string): DocCandidate
 
 const REF_DOC_HEURISTICS: Record<string, RegExp> = {
     architecture: /architect/i,
-    adr: /\badr\b|decision/i,
-    operations: /\bodr\b|operat/i,
+    decisions: /\badr\b|\bodr\b|decision|operat/i,
     placement: /placement/i,
     api: /data|msw|tanstack|query/i,
     storybook: /storybook/i,

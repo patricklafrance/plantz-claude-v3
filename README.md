@@ -149,18 +149,18 @@ Agents start with full context rather than burning tokens on exploratory tool ca
 
 The consumer drops markdown files in `./agent-docs/` with whatever naming and folder structure they want. At startup, ADLC discovers every `.md` file, extracts its title, and runs a lightweight Haiku classifier agent that maps each file to one of ten semantic categories:
 
-| Category         | What it covers                                   |
-| ---------------- | ------------------------------------------------ |
-| `architecture`   | Repo structure, system design                    |
-| `adr`            | Architectural decision records                   |
-| `operations`     | Operational decisions, CI/CD                     |
-| `placement`      | Code placement rules, module responsibilities    |
-| `api`            | Data layer, MSW, TanStack Query                  |
-| `storybook`      | Story conventions, decorators                    |
-| `components`     | Component library (shadcn/ui)                    |
-| `styling`        | Tailwind, PostCSS, color modes                   |
-| `browser`        | Browser testing, agent-browser                   |
-| `design`         | UI/UX design principles                          |
+| Category       | What it covers                                |
+| -------------- | --------------------------------------------- |
+| `architecture` | Repo structure, system design                 |
+| `adr`          | Architectural decision records                |
+| `operations`   | Operational decisions, CI/CD                  |
+| `placement`    | Code placement rules, module responsibilities |
+| `api`          | Data layer, MSW, TanStack Query               |
+| `storybook`    | Story conventions, decorators                 |
+| `components`   | Component library (shadcn/ui)                 |
+| `styling`      | Tailwind, PostCSS, color modes                |
+| `browser`      | Browser testing, agent-browser                |
+| `design`       | UI/UX design principles                       |
 
 The result is a lookup table — `category → [file paths]` — embedded in the preamble. Agent prompts reference docs by category name (`"read the placement reference doc"`), never by path. This decouples agent logic from the consumer's file structure: rename or reorganize `agent-docs/` freely, the classifier re-maps on the next run.
 

@@ -14,18 +14,19 @@ export async function runPlacement(
         progress?.log("plan", `Domain mapping attempt ${attempt + 1}/${DEFAULTS.maxDomainMappingAttempts}`);
 
         // eslint-disable-next-line no-await-in-loop
-        await runAgent("domain-mapper", `Map modules for feature: ${featureDescription}`, cwd, agents);
+        await runAgent("domain-mapper", `Map modules for feature: ${featureDescription}`, cwd, agents, progress);
 
         // eslint-disable-next-line no-await-in-loop
-        const gateResult = await runAgent("placement-gate", "Validate the domain mapping.", cwd, agents);
+        const gateResult = await runAgent("placement-gate", "Validate the domain mapping.", cwd, agents, progress);
 
         if (!gateResult.toLowerCase().includes("issue")) {
+            progress?.log("plan", "Placement gate passed");
             break;
         }
 
         // Evidence gaps -- resolve and re-map
         progress?.log("plan", "Placement gate found issues, running evidence researcher...");
         // eslint-disable-next-line no-await-in-loop
-        await runAgent("evidence-researcher", "Resolve evidence gaps identified by the placement gate.", cwd, agents);
+        await runAgent("evidence-researcher", "Resolve evidence gaps identified by the placement gate.", cwd, agents, progress);
     }
 }

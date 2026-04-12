@@ -56,7 +56,7 @@ export async function run(featureDescription: string, options: OrchestratorOptio
         const projectContext = await buildProjectContext(cwd, config, async candidates => {
             doneScan();
             const doneClassify = progress.start("init", "Classifying reference docs");
-            const result = await classifyReferenceDocs(candidates, cwd);
+            const result = await classifyReferenceDocs(candidates, cwd, progress);
             doneClassify();
 
             return result;

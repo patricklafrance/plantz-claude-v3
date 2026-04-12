@@ -48,9 +48,7 @@ export function createPostAgentValidationHook() {
             return { continue: true };
         }
 
-        const handler = agentType === "coder"
-            ? (cwd: string) => handleCoder(cwd, markers)
-            : handlers[agentType];
+        const handler = agentType === "coder" ? (cwd: string) => handleCoder(cwd, markers) : handlers[agentType];
 
         if (!handler) {
             recordMetrics(transcriptPath, agentType, cwd);

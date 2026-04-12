@@ -5,5 +5,5 @@ import { type AgentDefinition, runAgent } from "../agents.ts";
 
 export async function runMonitor(cwd: string, agents: Record<string, AgentDefinition>, progress?: Progress): Promise<void> {
     progress?.log("post", "Monitoring CI...");
-    await runAgent("monitor", "Monitor CI and fix failures.", cwd, agents);
+    await runAgent("monitor", "Monitor CI and fix failures.", cwd, agents, progress);
 }

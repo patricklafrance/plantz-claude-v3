@@ -10,21 +10,27 @@ export async function runPlan(featureDescription: string, cwd: string, agents: R
         progress?.log("plan", `Plan ${mode} attempt ${attempt + 1}/${DEFAULTS.maxPlanAttempts}`);
 
         // eslint-disable-next-line no-await-in-loop
-        await runAgent("planner", `${mode === "draft" ? "Draft" : "Revise"} the implementation plan for: ${featureDescription}`, cwd, agents);
+        await runAgent(
+            "planner",
+            `${mode === "draft" ? "Draft" : "Revise"} the implementation plan for: ${featureDescription}`,
+            cwd,
+            agents,
+            progress
+        );
 
         // eslint-disable-next-line no-await-in-loop
-        await runAgent("plan-gate", "Validate the plan structure.", cwd, agents);
+        await runAgent("plan-gate", "Validate the plan structure.", cwd, agents, progress);
 
         // Adversarial challenge -- challengers in parallel
         // eslint-disable-next-line no-await-in-loop
         const [_cohesionResult, _sprawlResult] = await Promise.all([
-            runAgent("cohesion-challenger", "Check extend decisions for god-module risk.", cwd, agents),
-            runAgent("sprawl-challenger", "Challenge create decisions with extension proposals.", cwd, agents)
+            runAgent("cohesion-challenger", "Check extend decisions for god-module risk.", cwd, agents, progress),
+            runAgent("sprawl-challenger", "Challenge create decisions with extension proposals.", cwd, agents, progress)
         ]);
 
         // Arbiter synthesizes
         // eslint-disable-next-line no-await-in-loop
-        const verdict = await runAgent("challenge-arbiter", "Synthesize challenger debate into unified verdict.", cwd, agents);
+        const verdict = await runAgent("challenge-arbiter", "Synthesize challenger debate into unified verdict.", cwd, agents, progress);
 
         if (verdict.toLowerCase().includes("approved")) {
             progress?.log("plan", "Plan approved by arbiter");
