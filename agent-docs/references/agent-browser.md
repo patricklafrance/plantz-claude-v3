@@ -86,7 +86,7 @@ The host app requires login. Demo credentials: `alice@example.com` / `password`.
 | `/`                  | today/landing-page (index redirect) |
 | `/today`             | today/landing-page                  |
 | `/management/plants` | management/plants                   |
-| `/management/user`   | management/user                     |
+| `/profile`           | management/account                  |
 
 ## Storybook URL pattern
 

@@ -13,9 +13,10 @@ Apps use `@source` directives to tell Tailwind where to find utility classes:
 
 @source "../../../../packages/components/src/**/*.{ts,tsx}";
 @source "../../../../packages/core-module/src/shell/**/*.{ts,tsx}";
-@source "../../../../packages/core-plants/src/**/*.{ts,tsx}";
-@source "../../../management/plants/src/**/*.{ts,tsx}";
-/* ... each domain module */
+@source "../../../../modules/management/src/inventory/**/*.{ts,tsx}";
+@source "../../../../modules/management/src/account/**/*.{ts,tsx}";
+@source "../../../../modules/watering/src/today/**/*.{ts,tsx}";
+/* ... each domain module subfolder */
 ```
 
 Domain storybooks have their own CSS files with `@source` directives scoped to their relevant packages/modules.
