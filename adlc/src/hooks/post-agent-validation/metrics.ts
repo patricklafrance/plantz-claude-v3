@@ -599,11 +599,9 @@ function formatDuration(ms: number): string {
  * SubagentStop only fires for nested agents spawned via the Agent tool.
  * The top-level agent in a `query()` call fires `Stop` instead.
  */
-export function createStopMetricsHook(): (input: StopHookInput) => Promise<HookJSONOutput> {
-    return async (input: StopHookInput) => {
-        if (input.agent_type) {
-            recordMetrics(input.transcript_path, input.agent_type, input.cwd);
-        }
-        return { continue: true };
-    };
+export async function handleStopMetrics(input: StopHookInput): Promise<HookJSONOutput> {
+    if (input.agent_type) {
+        recordMetrics(input.transcript_path, input.agent_type, input.cwd);
+    }
+    return { continue: true };
 }

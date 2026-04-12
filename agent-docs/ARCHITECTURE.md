@@ -30,7 +30,7 @@ plantz-claude/
   agent-docs/                        # Agent documentation (this folder)
   .agents/skills/                    # Shared agent skills (git-commit, etc.)
   .claude/skills/                    # Claude Code discovery layer — symlinks to .agents/skills/ plus project-specific skills
-  .github/workflows/                 # CI, Chromatic, Claude, code-review
+  .github/workflows/                 # CI, Chromatic, Lighthouse
 ```
 
 ## Package naming conventions

@@ -2,7 +2,7 @@
 
 import { createGuardsHook } from "./guards/create-guards-hook.ts";
 import { createPostAgentValidationHook } from "./post-agent-validation/create-post-agent-validation-hook.ts";
-import { createStopMetricsHook } from "./post-agent-validation/metrics.ts";
+import { handleStopMetrics } from "./post-agent-validation/metrics.ts";
 import { createPreCommitHook } from "./pre-commit/create-pre-commit-hook.ts";
 import { createRewritesHook } from "./rewrites/create-rewrites-hook.ts";
 import { createSupervisorHooks } from "./supervisor/create-supervisor-hooks.ts";
@@ -37,7 +37,7 @@ export function createHooks(_options?: { cwd?: string }): { hooks: SDKHooks } {
     const supervisorPreHook = wrapHook(preToolHook);
     const supervisorPostHook = wrapHook(postToolHook);
     const postAgentValidationHook = wrapHook(createPostAgentValidationHook());
-    const stopMetricsHook = wrapHook(createStopMetricsHook());
+    const stopMetricsHook = wrapHook(handleStopMetrics);
 
     return {
         hooks: {
