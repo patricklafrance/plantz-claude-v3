@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -44,7 +44,8 @@ function agentCallOrder(): string[] {
 const mockAgents = {
     "domain-mapper": { description: "mock", prompt: "mock" },
     "placement-gate": { description: "mock", prompt: "mock" },
-    "evidence-researcher": { description: "mock", prompt: "mock" }
+    "evidence-researcher": { description: "mock", prompt: "mock" },
+    "domain-challenger": { description: "mock", prompt: "mock" }
 };
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -61,23 +62,24 @@ describe("runPlacement", () => {
         rmSync(tmp, { recursive: true, force: true });
     });
 
-    it("runs domain-mapper then placement-gate when everything passes", async () => {
+    it("runs full pipeline when gate passes on first attempt", async () => {
         await runPlacement("Add plant watering feature", tmp, mockAgents);
 
         const order = agentCallOrder();
 
         // Each step runs exactly once
         expect(order.filter(a => a === "domain-mapper")).toHaveLength(1);
+        expect(order.filter(a => a === "evidence-researcher")).toHaveLength(1);
+        expect(order.filter(a => a === "domain-challenger")).toHaveLength(1);
         expect(order.filter(a => a === "placement-gate")).toHaveLength(1);
 
-        // domain-mapper runs before placement-gate
-        expect(order.indexOf("domain-mapper")).toBeLessThan(order.indexOf("placement-gate"));
-
-        // No evidence-researcher needed when placement passes
-        expect(order.filter(a => a === "evidence-researcher")).toHaveLength(0);
+        // Pipeline ordering: mapper → evidence → challenge → gate
+        expect(order.indexOf("domain-mapper")).toBeLessThan(order.indexOf("evidence-researcher"));
+        expect(order.indexOf("evidence-researcher")).toBeLessThan(order.indexOf("domain-challenger"));
+        expect(order.indexOf("domain-challenger")).toBeLessThan(order.indexOf("placement-gate"));
     });
 
-    it("runs evidence-researcher when placement-gate finds issues, then retries", async () => {
+    it("retries when placement-gate finds issues", async () => {
         let placementCallCount = 0;
         const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
@@ -90,10 +92,8 @@ describe("runPlacement", () => {
                     // First gate call writes a revision file (gate fails)
                     mkdirSync(join(tmp, ".adlc"), { recursive: true });
                     writeFileSync(join(tmp, ".adlc", "placement-gate-revision.md"), "### ISSUE-1: Bad boundary");
-                } else {
-                    // Second gate call: revision file was cleaned up by mapper re-run
-                    try { unlinkSync(join(tmp, ".adlc", "placement-gate-revision.md")); } catch { /* already gone */ }
                 }
+                // Second gate call: file was cleaned at top of iteration — gate passes
             }
             return createMockConversation("");
         }) as any);
@@ -102,17 +102,11 @@ describe("runPlacement", () => {
 
         const order = agentCallOrder();
 
-        // Two iterations: first found issues, second passed
+        // Two full iterations
         expect(order.filter(a => a === "domain-mapper")).toHaveLength(2);
+        expect(order.filter(a => a === "evidence-researcher")).toHaveLength(2);
+        expect(order.filter(a => a === "domain-challenger")).toHaveLength(2);
         expect(order.filter(a => a === "placement-gate")).toHaveLength(2);
-        expect(order.filter(a => a === "evidence-researcher")).toHaveLength(1);
-
-        // Evidence researcher runs between the two mapping attempts
-        const erIndex = order.indexOf("evidence-researcher");
-        const firstDM = order.indexOf("domain-mapper");
-        const secondDM = order.lastIndexOf("domain-mapper");
-        expect(erIndex).toBeGreaterThan(firstDM);
-        expect(erIndex).toBeLessThan(secondDM);
     });
 
     it("respects max domain mapping attempts", async () => {
@@ -131,11 +125,12 @@ describe("runPlacement", () => {
         await runPlacement("Feature", tmp, mockAgents);
 
         const order = agentCallOrder();
-        const domainMapperCalls = order.filter(a => a === "domain-mapper");
-        const evidenceResearcherCalls = order.filter(a => a === "evidence-researcher");
 
-        expect(domainMapperCalls).toHaveLength(3);
-        expect(evidenceResearcherCalls).toHaveLength(3);
+        // All four agents run each iteration
+        expect(order.filter(a => a === "domain-mapper")).toHaveLength(3);
+        expect(order.filter(a => a === "evidence-researcher")).toHaveLength(3);
+        expect(order.filter(a => a === "domain-challenger")).toHaveLength(3);
+        expect(order.filter(a => a === "placement-gate")).toHaveLength(3);
     });
 
     it("passes feature description to domain mapper", async () => {

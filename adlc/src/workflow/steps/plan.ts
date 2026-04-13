@@ -1,28 +1,12 @@
-/** Step 2: Plan draft with adversarial challenge loop. */
+/** Step 2: Plan draft with plan-gate review loop. */
 
-import { readFileSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { DEFAULTS } from "../../config.ts";
 import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
-
-function readVerdictStatus(cwd: string): "approved" | "revision-required" | "unknown" {
-    try {
-        const content = readFileSync(
-            resolve(cwd, ".adlc", "current-challenge-verdict.md"), "utf-8"
-        );
-        const statusMatch = content.match(/^##\s+Status\s*\n+(.+)/im);
-        if (!statusMatch) return "unknown";
-        const status = statusMatch[1].trim().toLowerCase();
-        if (status.startsWith("approved")) return "approved";
-        if (status.startsWith("revision required")) return "revision-required";
-        return "unknown";
-    } catch {
-        return "unknown";
-    }
-}
 
 export async function runPlan(
     featureDescription: string,
@@ -32,6 +16,9 @@ export async function runPlan(
     hooks?: SDKHooks
 ): Promise<void> {
     for (let attempt = 0; attempt < DEFAULTS.maxPlanAttempts; attempt++) {
+        // Clean stale gate revision so a passing gate isn't masked by a prior failure.
+        rmSync(resolve(cwd, ".adlc", "plan-gate-revision.md"), { force: true });
+
         const mode = attempt === 0 ? "draft" : "revision";
         progress?.log("plan", `Plan ${mode} attempt ${attempt + 1}/${DEFAULTS.maxPlanAttempts}`);
 
@@ -48,16 +35,8 @@ export async function runPlan(
         // eslint-disable-next-line no-await-in-loop
         await runAgent("plan-gate", "Validate the plan structure.", cwd, agents, progress, hooks);
 
-        // Adversarial challenge -- domain-challenger orchestrates the team
-        // eslint-disable-next-line no-await-in-loop
-        await runAgent(
-            "domain-challenger",
-            "Run the adversarial challenge debate and produce a verdict.",
-            cwd, agents, progress, hooks
-        );
-
-        if (readVerdictStatus(cwd) === "approved") {
-            progress?.log("plan", "Plan approved by arbiter");
+        if (!existsSync(resolve(cwd, ".adlc", "plan-gate-revision.md"))) {
+            progress?.log("plan", "Plan gate passed");
             break;
         }
 
