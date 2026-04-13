@@ -28,13 +28,7 @@ export const DEFAULTS = {
     /** Max USD budget per slice. */
     budgetPerSlice: 15,
     /** Max parallel slices per wave. */
-    maxParallel: 5,
-    /** Max coder ↔ reviewer iterations per slice. */
-    maxRevisionAttempts: 5,
-    /** Max domain-mapper ↔ placement-gate iterations. */
-    maxDomainMappingAttempts: 3,
-    /** Max planner ↔ challenger iterations. */
-    maxPlanAttempts: 5
+    maxParallel: 5
 } as const;
 
 /** Port allocation base for parallel worktrees. */

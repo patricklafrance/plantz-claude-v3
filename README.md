@@ -1,6 +1,6 @@
 # ADLC
 
-A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates sixteen agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
+A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates eighteen agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
 
 ## What is an agent harness?
 
@@ -34,8 +34,8 @@ flowchart TD
 
         subgraph PlanLoop["Plan Loop (max 5)"]
             direction LR
-            Planner --> PlanGate["Gate"] --> Challenge["Domain Challenger"]
-            Challenge -. "revision" .-> Planner
+            Planner --> PlanGate["Gate"]
+            PlanGate -. "revision" .-> Planner
         end
 
         PlanLoop --> SliceLoop
@@ -63,26 +63,28 @@ All inter-agent coordination goes through files in `.adlc/` — plan-header, sli
 
 ## Agents
 
-Sixteen agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
+Eighteen agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
 
-| Agent                 | What it does                                                                            |
-| --------------------- | --------------------------------------------------------------------------------------- |
-| `domain-mapper`       | Analyzes feature terms against existing modules, writes placement decisions             |
-| `evidence-researcher` | Resolves mapper evidence gaps by inspecting code artifacts                              |
-| `placement-gate`      | Holistic quality gate — reviews the entire mapping for architectural coherence          |
-| `sprawl-challenger`   | Challenges create decisions with concrete extension proposals                           |
-| `cohesion-challenger` | Checks extend decisions for god-module risk                                             |
-| `challenge-arbiter`   | Synthesizes challenger debate into unified verdict                                      |
-| `domain-challenger`   | Orchestrates the adversarial challenge team and returns the verdict                     |
-| `planner`             | Drafts a multi-slice plan with acceptance criteria per slice                            |
-| `plan-gate`           | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
-| `explorer`            | Surveys reference packages for a slice, returns patterns summary for the coder          |
-| `coder`               | Implements a single slice — code, MSW handlers, Storybook stories                       |
-| `reviewer`            | Verifies acceptance criteria via browser screenshots and interactions                   |
-| `simplify`            | Reviews changed code for reuse, quality, and efficiency, then fixes issues              |
-| `document`            | Updates module docs and architecture references to reflect what was built               |
-| `pr`                  | Pushes branch, opens PR with summary and technical changes                              |
-| `monitor`             | Polls CI workflows, auto-fixes failures (lint, Chromatic, Lighthouse)                   |
+| Agent                    | What it does                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| `placement-coordinator`  | Orchestrates placement mapping: mapper, evidence, challenge team, and gate              |
+| `domain-mapper`          | Analyzes feature terms against existing modules, writes placement decisions             |
+| `evidence-researcher`    | Resolves mapper evidence gaps by inspecting code artifacts                              |
+| `placement-gate`         | Holistic quality gate — reviews the entire mapping for architectural coherence          |
+| `sprawl-challenger`      | Challenges create decisions with concrete extension proposals                           |
+| `cohesion-challenger`    | Checks extend decisions for god-module risk                                             |
+| `challenge-arbiter`      | Synthesizes challenger debate into unified verdict                                      |
+| `plan-coordinator`       | Orchestrates plan drafting: planner and plan-gate review loop                           |
+| `planner`                | Drafts a multi-slice plan with acceptance criteria per slice                            |
+| `plan-gate`              | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
+| `slice-coordinator`      | Orchestrates slice execution: explorer, coder, and reviewer retry loop                  |
+| `explorer`               | Surveys reference packages for a slice, returns patterns summary for the coder          |
+| `coder`                  | Implements a single slice — code, MSW handlers, Storybook stories                       |
+| `reviewer`               | Verifies acceptance criteria via browser screenshots and interactions                   |
+| `simplify`               | Reviews changed code for reuse, quality, and efficiency, then fixes issues              |
+| `document`               | Updates module docs and architecture references to reflect what was built               |
+| `pr`                     | Pushes branch, opens PR with summary and technical changes                              |
+| `monitor`                | Polls CI workflows, auto-fixes failures (lint, Chromatic, Lighthouse)                   |
 
 ---
 
@@ -101,7 +103,6 @@ Block a subagent's completion until its deliverables meet structural and quality
 | `coder`               | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
 | `planner`             | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
 | `plan-gate`           | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
-| `domain-challenger`   | `.adlc/current-challenge-verdict.md` must exist with a valid `## Status` (reuses `challenge-arbiter` handler)                                                                                                              |
 | `domain-mapper`       | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
 | `evidence-researcher` | evidence findings file exists                                                                                                                                                                                              |
 | `placement-gate`      | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                               |

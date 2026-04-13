@@ -1,42 +1,34 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── Mock SDK ────────────────────────────────────────────────────────────────
 
 type MockMessage = { type: "result"; subtype: "success"; result: string; session_id: string };
 
-let queryCallLog: { prompt: string; agentName: string; options: Record<string, unknown> }[] = [];
-let sessionCounter = 0;
+let queryCallLog: { prompt: string; options: Record<string, unknown> }[] = [];
 
-function createMockConversation(sessionId: string): AsyncGenerator<MockMessage, void> {
+function createMockConversation(result: string): AsyncGenerator<MockMessage, void> {
     return (async function* () {
         yield {
             type: "result" as const,
             subtype: "success" as const,
-            result: "",
-            session_id: sessionId
+            result,
+            session_id: "mock-session-id"
         };
     })();
 }
 
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
     query: vi.fn<any>((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
-        const agentName = (params.options?.agent as string) ?? "unknown";
-        queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
-        sessionCounter++;
-        return createMockConversation(`session-${sessionCounter}`);
+        queryCallLog.push({ prompt: params.prompt as string, options: params.options ?? {} });
+        return createMockConversation("Slice passed verification");
     })
 }));
 
 vi.mock("../../../../src/workflow/agents.js", () => ({
     loadAllAgents: vi.fn<any>(() => ({
-        explorer: { description: "mock", prompt: "mock" },
-        coder: { description: "mock", prompt: "mock" },
-        reviewer: { description: "mock", prompt: "mock" }
-    }))
+        "slice-coordinator": { description: "mock", prompt: "mock" }
+    })),
+    runAgent: vi.fn<any>()
 }));
 
 const mockHooksSentinel = { SubagentStop: [{ hooks: ["mock-hook-sentinel"] }] };
@@ -51,7 +43,8 @@ vi.mock("../../../../src/hooks/create-hooks.js", () => ({
 
 import { resolveConfig } from "../../../../src/config.js";
 import type { Ports } from "../../../../src/ports.js";
-import { runSlicePipeline, checkVerificationResults } from "../../../../src/workflow/steps/slices/revision-loop.js";
+import { runAgent } from "../../../../src/workflow/agents.js";
+import { runSlicePipeline } from "../../../../src/workflow/steps/slices/revision-loop.js";
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 
@@ -59,181 +52,64 @@ const defaultPorts: Ports = { storybook: 6100, hostApp: 8100, browser: 9200 };
 const defaultConfig = resolveConfig({});
 const defaultPreamble = "";
 
-describe("checkVerificationResults", () => {
-    let tmpDir: string;
-
-    beforeEach(() => {
-        tmpDir = mkdtempSync(join(tmpdir(), "rev-loop-test-"));
-    });
-
-    afterEach(() => {
-        rmSync(tmpDir, { recursive: true, force: true });
-    });
-
-    it("returns false when verification-results.md does not exist", () => {
-        expect(checkVerificationResults(tmpDir)).toBe(false);
-    });
-
-    it("returns true when results contain only passing criteria", () => {
-        mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-        writeFileSync(
-            join(tmpDir, ".adlc/verification-results.md"),
-            "# Results\n\n- [x] Passed: renders plant list\n- [x] Passed: navigation works\n"
-        );
-        expect(checkVerificationResults(tmpDir)).toBe(true);
-    });
-
-    it("returns false when results contain 'failed'", () => {
-        mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-        writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [x] Passed: renders list\n- [ ] Failed: validation broken\n");
-        expect(checkVerificationResults(tmpDir)).toBe(false);
-    });
-
-    it("returns false when results contain 'fail' (case-insensitive)", () => {
-        mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-        writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [ ] FAIL: tests do not compile\n");
-        expect(checkVerificationResults(tmpDir)).toBe(false);
-    });
-});
-
 describe("runSlicePipeline", () => {
-    let tmpDir: string;
-
     beforeEach(() => {
-        tmpDir = mkdtempSync(join(tmpdir(), "rev-loop-test-"));
         queryCallLog = [];
-        sessionCounter = 0;
+        vi.mocked(runAgent).mockResolvedValue({ result: "Slice passed verification", sessionId: "mock-session-id" });
     });
 
-    afterEach(() => {
-        rmSync(tmpDir, { recursive: true, force: true });
-        vi.clearAllMocks();
+    it("delegates to slice-coordinator agent", async () => {
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+
+        expect(runAgent).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(runAgent).mock.calls[0][0]).toBe("slice-coordinator");
     });
 
-    it("returns success when reviewer passes on first attempt", async () => {
-        mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-        writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [x] Passed: all good\n");
+    it("passes slice name in the prompt", async () => {
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
 
-        const result = await runSlicePipeline("plant-list", tmpDir, defaultPorts, defaultPreamble, defaultConfig, tmpDir);
-
-        expect(result.success).toBe(true);
-
-        const agents = queryCallLog.map(c => c.agentName);
-        expect(agents[0]).toBe("explorer");
-        expect(agents[1]).toBe("coder");
-        expect(agents[2]).toBe("reviewer");
-        expect(agents).toHaveLength(3);
+        expect(vi.mocked(runAgent).mock.calls[0][1]).toContain("plant-list");
     });
 
-    it("retries when reviewer fails and succeeds on second attempt", async () => {
-        let reviewerCallCount = 0;
+    it("passes port env variables to the coordinator", async () => {
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
 
-        const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
-        vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
-            const agentName = (params.options?.agent as string) ?? "unknown";
-            queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
-            sessionCounter++;
-
-            if (agentName === "reviewer") {
-                reviewerCallCount++;
-                if (reviewerCallCount === 1) {
-                    mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-                    writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [ ] Failed: tests broken\n");
-                } else {
-                    writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [x] Passed: tests fixed\n");
-                }
-            }
-
-            return createMockConversation(`session-${sessionCounter}`);
-        }) as any);
-
-        const result = await runSlicePipeline("plant-list", tmpDir, defaultPorts, defaultPreamble, defaultConfig, tmpDir);
-
-        expect(result.success).toBe(true);
-
-        const agents = queryCallLog.map(c => c.agentName);
-        expect(agents[0]).toBe("explorer");
-        expect(agents[1]).toBe("coder");
-        expect(agents[2]).toBe("reviewer");
-        expect(agents[3]).toBe("coder");
-        expect(agents[4]).toBe("reviewer");
+        const envArg = vi.mocked(runAgent).mock.calls[0][7] as Record<string, string>;
+        expect(envArg).toEqual({
+            STORYBOOK_PORT: "6100",
+            HOST_APP_PORT: "8100",
+            BROWSER_PORT: "9200"
+        });
     });
 
-    it("returns failure after max revision attempts", async () => {
-        const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
-        vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
-            const agentName = (params.options?.agent as string) ?? "unknown";
-            queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
-            sessionCounter++;
+    it("returns success when coordinator result contains 'passed'", async () => {
+        vi.mocked(runAgent).mockResolvedValue({ result: "Slice passed verification", sessionId: "s1" });
 
-            if (agentName === "reviewer") {
-                mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-                writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [ ] Failed: still broken\n");
-            }
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
 
-            return createMockConversation(`session-${sessionCounter}`);
-        }) as any);
-
-        const result = await runSlicePipeline("plant-list", tmpDir, defaultPorts, defaultPreamble, defaultConfig, tmpDir);
-
-        expect(result.success).toBe(false);
-        expect(result.reason).toBe("max revision attempts exceeded");
-
-        const agents = queryCallLog.map(c => c.agentName);
-        expect(agents).toHaveLength(11);
-        expect(agents.filter(a => a === "coder")).toHaveLength(5);
-        expect(agents.filter(a => a === "reviewer")).toHaveLength(5);
+        expect(result).toEqual({ success: true });
     });
 
-    it("always starts with the explorer phase", async () => {
-        mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-        writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [x] Passed: fine\n");
+    it("returns failure when coordinator result does not contain 'passed'", async () => {
+        vi.mocked(runAgent).mockResolvedValue({ result: "Max revision attempts exceeded: tests broken", sessionId: "s1" });
 
-        await runSlicePipeline("plant-list", tmpDir, defaultPorts, defaultPreamble, defaultConfig, tmpDir);
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
 
-        expect(queryCallLog[0].agentName).toBe("explorer");
+        expect(result).toEqual({ success: false, reason: "Max revision attempts exceeded: tests broken" });
     });
 
-    it("resumes the coder session on revision attempts", async () => {
-        let reviewerCallCount = 0;
+    it("returns failure with default reason when coordinator returns empty result", async () => {
+        vi.mocked(runAgent).mockResolvedValue({ result: "", sessionId: "s1" });
 
-        const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
-        vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
-            const agentName = (params.options?.agent as string) ?? "unknown";
-            queryCallLog.push({ prompt: params.prompt as string, agentName, options: params.options ?? {} });
-            sessionCounter++;
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
 
-            if (agentName === "reviewer") {
-                reviewerCallCount++;
-                mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-                if (reviewerCallCount < 2) {
-                    writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [ ] Failed: issues\n");
-                } else {
-                    writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [x] Passed: done\n");
-                }
-            }
-
-            return createMockConversation(`session-${sessionCounter}`);
-        }) as any);
-
-        await runSlicePipeline("plant-list", tmpDir, defaultPorts, defaultPreamble, defaultConfig, tmpDir);
-
-        const coderCalls = queryCallLog.map((c, i) => Object.assign({}, c, { index: i })).filter(c => c.agentName === "coder");
-
-        expect(coderCalls).toHaveLength(2);
-        expect(coderCalls[0].prompt).toContain("Implement slice");
-        expect(coderCalls[1].prompt).toContain("Apply the reviewer feedback");
+        expect(result).toEqual({ success: false, reason: "coordinator reported failure" });
     });
 
-    it("forwards hooks from createHooks to every SDK query call", async () => {
-        mkdirSync(join(tmpDir, ".adlc"), { recursive: true });
-        writeFileSync(join(tmpDir, ".adlc/verification-results.md"), "# Results\n\n- [x] Passed: all good\n");
+    it("forwards hooks from createHooks to the coordinator", async () => {
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
 
-        await runSlicePipeline("plant-list", tmpDir, defaultPorts, defaultPreamble, defaultConfig, tmpDir);
-
-        expect(queryCallLog.length).toBeGreaterThan(0);
-        for (const call of queryCallLog) {
-            expect(call.options.hooks).toBe(mockHooksSentinel);
-        }
+        const hooksArg = vi.mocked(runAgent).mock.calls[0][5];
+        expect(hooksArg).toBe(mockHooksSentinel);
     });
 });

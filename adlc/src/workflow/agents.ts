@@ -280,7 +280,8 @@ export async function runAgent(
     agents: Record<string, AgentDefinition>,
     progress?: Progress,
     hooks?: SDKHooks,
-    resumeSessionId?: string
+    resumeSessionId?: string,
+    env?: Record<string, string>
 ): Promise<{ result: string; sessionId: string }> {
     progress?.agent(agentName, resumeSessionId ? "resume" : "spawn", prompt);
 
@@ -307,7 +308,8 @@ export async function runAgent(
             persistSession: true,
             includePartialMessages: true,
             ...(hooks ? { hooks } : {}),
-            ...(resumeSessionId ? { resume: resumeSessionId } : {})
+            ...(resumeSessionId ? { resume: resumeSessionId } : {}),
+            ...(env ? { env } : {})
         }
     });
 

@@ -97,4 +97,19 @@ describe("runAgent", () => {
         expect(queryCallLog).toHaveLength(1);
         expect(queryCallLog[0].options).not.toHaveProperty("resume");
     });
+
+    it("forwards env to the SDK query call when provided", async () => {
+        const env = { STORYBOOK_PORT: "6100", HOST_APP_PORT: "8100" };
+        await runAgent("coder", "Implement feature", "/tmp/test", mockAgents, undefined, undefined, undefined, env);
+
+        expect(queryCallLog).toHaveLength(1);
+        expect(queryCallLog[0].options.env).toEqual(env);
+    });
+
+    it("omits env from SDK query when not provided", async () => {
+        await runAgent("coder", "Implement feature", "/tmp/test", mockAgents);
+
+        expect(queryCallLog).toHaveLength(1);
+        expect(queryCallLog[0].options).not.toHaveProperty("env");
+    });
 });

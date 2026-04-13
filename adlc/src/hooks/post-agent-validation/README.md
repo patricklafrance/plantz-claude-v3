@@ -47,7 +47,6 @@ Handled agent types:
 - `challenge-arbiter`
 - `coder`
 - `document`
-- `domain-challenger`
 - `domain-mapper`
 - `evidence-researcher`
 - `placement-gate`
@@ -94,10 +93,6 @@ Handlers return:
 ### `challenge-arbiter`
 
 Checks: `.adlc/current-challenge-verdict.md` must exist.
-
-### `domain-challenger`
-
-Reuses the `challenge-arbiter` handler. Checks: `.adlc/current-challenge-verdict.md` must exist with a valid `## Status` section. This ensures the arbiter inside the team produced a verdict even though the orchestrator itself does no analysis.
 
 ### `coder`
 
