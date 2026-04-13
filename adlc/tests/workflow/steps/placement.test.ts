@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 type MockMessage = { type: "result"; subtype: "success"; result: string; session_id: string };
 
 let queryCallLog: { prompt: string; options: Record<string, unknown> }[] = [];
-let agentResultMap: Record<string, string> = {};
+let tmp: string;
 
 function createMockConversation(result: string): AsyncGenerator<MockMessage, void> {
     return (async function* () {
@@ -24,9 +24,7 @@ function createMockConversation(result: string): AsyncGenerator<MockMessage, voi
 
 function defaultQueryMock(params: { prompt: string | unknown; options?: Record<string, unknown> }) {
     queryCallLog.push({ prompt: params.prompt as string, options: params.options ?? {} });
-    const agentName = (params.options?.agent as string) ?? "unknown";
-    const result = agentResultMap[agentName] ?? "";
-    return createMockConversation(result);
+    return createMockConversation("");
 }
 
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
@@ -52,24 +50,19 @@ const mockAgents = {
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 describe("runPlacement", () => {
-    let tmpDir: string;
-
     beforeEach(async () => {
-        tmpDir = mkdtempSync(join(tmpdir(), "placement-test-"));
+        tmp = mkdtempSync(join(tmpdir(), "placement-test-"));
         queryCallLog = [];
-        agentResultMap = {};
         const { query } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(query).mockImplementation(defaultQueryMock as any);
     });
 
     afterEach(() => {
-        rmSync(tmpDir, { recursive: true, force: true });
+        rmSync(tmp, { recursive: true, force: true });
     });
 
     it("runs domain-mapper then placement-gate when everything passes", async () => {
-        agentResultMap["placement-gate"] = "All placements look correct.";
-
-        await runPlacement("Add plant watering feature", tmpDir, mockAgents);
+        await runPlacement("Add plant watering feature", tmp, mockAgents);
 
         const order = agentCallOrder();
 
@@ -93,13 +86,19 @@ describe("runPlacement", () => {
 
             if (agentName === "placement-gate") {
                 placementCallCount++;
-                const result = placementCallCount === 1 ? "Found issue: unclear module boundary." : "All placements verified.";
-                return createMockConversation(result);
+                if (placementCallCount === 1) {
+                    // First gate call writes a revision file (gate fails)
+                    mkdirSync(join(tmp, ".adlc"), { recursive: true });
+                    writeFileSync(join(tmp, ".adlc", "placement-gate-revision.md"), "### ISSUE-1: Bad boundary");
+                } else {
+                    // Second gate call: revision file was cleaned up by mapper re-run
+                    try { unlinkSync(join(tmp, ".adlc", "placement-gate-revision.md")); } catch { /* already gone */ }
+                }
             }
             return createMockConversation("");
         }) as any);
 
-        await runPlacement("Add plant list", tmpDir, mockAgents);
+        await runPlacement("Add plant list", tmp, mockAgents);
 
         const order = agentCallOrder();
 
@@ -117,9 +116,19 @@ describe("runPlacement", () => {
     });
 
     it("respects max domain mapping attempts", async () => {
-        agentResultMap["placement-gate"] = "Found issue: still broken.";
+        const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
+        vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
+            queryCallLog.push({ prompt: params.prompt as string, options: params.options ?? {} });
+            const agentName = (params.options?.agent as string) ?? "unknown";
 
-        await runPlacement("Feature", tmpDir, mockAgents);
+            if (agentName === "placement-gate") {
+                mkdirSync(join(tmp, ".adlc"), { recursive: true });
+                writeFileSync(join(tmp, ".adlc", "placement-gate-revision.md"), "### ISSUE-1: Always broken");
+            }
+            return createMockConversation("");
+        }) as any);
+
+        await runPlacement("Feature", tmp, mockAgents);
 
         const order = agentCallOrder();
         const domainMapperCalls = order.filter(a => a === "domain-mapper");
@@ -130,20 +139,17 @@ describe("runPlacement", () => {
     });
 
     it("passes feature description to domain mapper", async () => {
-        agentResultMap["placement-gate"] = "Fine.";
-
-        await runPlacement("Add plant watering schedule", tmpDir, mockAgents);
+        await runPlacement("Add plant watering schedule", tmp, mockAgents);
 
         const domainMapperCall = queryCallLog.find(c => (c.options.agent as string) === "domain-mapper");
         expect(domainMapperCall?.prompt).toContain("Add plant watering schedule");
     });
 
     it("forwards hooks to every agent call", async () => {
-        agentResultMap["placement-gate"] = "All placements look correct.";
         // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
-        await runPlacement("Add watering", tmpDir, mockAgents, undefined, fakeHooks);
+        await runPlacement("Add watering", tmp, mockAgents, undefined, fakeHooks);
 
         expect(queryCallLog.length).toBeGreaterThan(0);
         for (const call of queryCallLog) {

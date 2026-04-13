@@ -1,5 +1,8 @@
 /** Step 1: Domain mapping with placement gate loop. */
 
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { DEFAULTS } from "../../config.ts";
 import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
@@ -19,9 +22,9 @@ export async function runPlacement(
         await runAgent("domain-mapper", `Map modules for feature: ${featureDescription}`, cwd, agents, progress, hooks);
 
         // eslint-disable-next-line no-await-in-loop
-        const gateResult = await runAgent("placement-gate", "Validate the domain mapping.", cwd, agents, progress, hooks);
+        await runAgent("placement-gate", "Validate the domain mapping.", cwd, agents, progress, hooks);
 
-        if (!gateResult.toLowerCase().includes("issue")) {
+        if (!existsSync(resolve(cwd, ".adlc", "placement-gate-revision.md"))) {
             progress?.log("plan", "Placement gate passed");
             break;
         }

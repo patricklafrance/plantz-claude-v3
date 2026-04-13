@@ -1,6 +1,8 @@
 import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
+import { generatePackageMap } from "./package-map.ts";
+
 export interface SliceContext {
     planHeaderPath: string;
     domainMappingPath: string;
@@ -38,4 +40,8 @@ export async function seedAdlc(worktreePath: string, context: SliceContext): Pro
         const filename = basename(notePath);
         copyFileSync(notePath, join(implNotesDir, filename));
     }
+
+    // Generate the package map from the current slice's reference packages.
+    // Runs against the worktree's filesystem so it reflects prior slice changes.
+    generatePackageMap(worktreePath);
 }
