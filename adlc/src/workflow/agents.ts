@@ -279,9 +279,10 @@ export async function runAgent(
     cwd: string,
     agents: Record<string, AgentDefinition>,
     progress?: Progress,
-    hooks?: SDKHooks
-): Promise<string> {
-    progress?.agent(agentName, "spawn", prompt);
+    hooks?: SDKHooks,
+    resumeSessionId?: string
+): Promise<{ result: string; sessionId: string }> {
+    progress?.agent(agentName, resumeSessionId ? "resume" : "spawn", prompt);
 
     const conversation = query({
         prompt,
@@ -294,11 +295,13 @@ export async function runAgent(
             allowDangerouslySkipPermissions: true,
             persistSession: true,
             includePartialMessages: true,
-            ...(hooks ? { hooks } : {})
+            ...(hooks ? { hooks } : {}),
+            ...(resumeSessionId ? { resume: resumeSessionId } : {})
         }
     });
 
     let result = "";
+    let sessionId = "";
     let hasOutput = false;
     const lineState = { needsPrefix: true };
     const agentStartTime = Date.now();
@@ -442,6 +445,7 @@ export async function runAgent(
 
             if (message.subtype === "success") {
                 result = message.result;
+                sessionId = (message as { session_id?: string }).session_id ?? "";
             } else {
                 throwAgentError(agentName, message as Record<string, unknown>);
             }
@@ -452,7 +456,7 @@ export async function runAgent(
     ensureNewLine(hasOutput, lineState);
     writeDoneLine(STREAM_PREFIX, agentStartTime, toolUseCount, totalTokens);
 
-    return result;
+    return { result, sessionId };
 }
 
 // ── Reference doc classification via agent ──────────────
@@ -502,7 +506,7 @@ export async function classifyReferenceDocs(candidates: DocCandidate[], cwd: str
     const { name, definition } = loadAgent("doc-classifier");
     const agents: Record<string, AgentDefinition> = { [name]: definition };
 
-    const result = await runAgent(name, prompt, cwd, agents, progress);
+    const { result } = await runAgent(name, prompt, cwd, agents, progress);
 
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {

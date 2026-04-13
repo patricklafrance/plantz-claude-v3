@@ -15,6 +15,8 @@ export async function runPlan(
     progress?: Progress,
     hooks?: SDKHooks
 ): Promise<void> {
+    let plannerSessionId: string | undefined;
+
     for (let attempt = 0; attempt < DEFAULTS.maxPlanAttempts; attempt++) {
         // Clean stale gate revision so a passing gate isn't masked by a prior failure.
         rmSync(resolve(cwd, ".adlc", "plan-gate-revision.md"), { force: true });
@@ -22,15 +24,21 @@ export async function runPlan(
         const mode = attempt === 0 ? "draft" : "revision";
         progress?.log("plan", `Plan ${mode} attempt ${attempt + 1}/${DEFAULTS.maxPlanAttempts}`);
 
+        const plannerPrompt = mode === "draft"
+            ? `Draft the implementation plan for: ${featureDescription}`
+            : "Revise the implementation plan based on the plan gate feedback.";
+
         // eslint-disable-next-line no-await-in-loop
-        await runAgent(
+        const { sessionId } = await runAgent(
             "planner",
-            `${mode === "draft" ? "Draft" : "Revise"} the implementation plan for: ${featureDescription}`,
+            plannerPrompt,
             cwd,
             agents,
             progress,
-            hooks
+            hooks,
+            plannerSessionId
         );
+        plannerSessionId = sessionId;
 
         // eslint-disable-next-line no-await-in-loop
         await runAgent("plan-gate", "Validate the plan structure.", cwd, agents, progress, hooks);

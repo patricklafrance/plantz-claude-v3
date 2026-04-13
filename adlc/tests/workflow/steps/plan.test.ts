@@ -102,6 +102,35 @@ describe("runPlan", () => {
         expect(order.filter(a => a === "plan-gate")).toHaveLength(2);
     });
 
+    it("resumes planner session on retry", async () => {
+        let gateCallCount = 0;
+        const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
+        vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
+            queryCallLog.push({ prompt: params.prompt as string, options: params.options ?? {} });
+            const agentName = (params.options?.agent as string) ?? "unknown";
+
+            if (agentName === "plan-gate") {
+                gateCallCount++;
+                if (gateCallCount === 1) {
+                    mkdirSync(join(tmp, ".adlc"), { recursive: true });
+                    writeFileSync(join(tmp, ".adlc", "plan-gate-revision.md"), "# Plan Gate Revision\n\n## Problem\n\nBad boundary.");
+                }
+            }
+            return createMockConversation("");
+        }) as any);
+
+        await runPlan("Add watering", tmp, mockAgents);
+
+        const plannerCalls = queryCallLog.filter(c => (c.options.agent as string) === "planner");
+        expect(plannerCalls).toHaveLength(2);
+
+        // First call: fresh spawn (no resume)
+        expect(plannerCalls[0].options).not.toHaveProperty("resume");
+
+        // Second call: resumes previous session
+        expect(plannerCalls[1].options.resume).toBe("mock-session-id");
+    });
+
     it("respects max plan attempts", async () => {
         const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {

@@ -109,6 +109,35 @@ describe("runPlacement", () => {
         expect(order.filter(a => a === "placement-gate")).toHaveLength(2);
     });
 
+    it("resumes domain-mapper session on retry", async () => {
+        let placementCallCount = 0;
+        const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
+        vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
+            queryCallLog.push({ prompt: params.prompt as string, options: params.options ?? {} });
+            const agentName = (params.options?.agent as string) ?? "unknown";
+
+            if (agentName === "placement-gate") {
+                placementCallCount++;
+                if (placementCallCount === 1) {
+                    mkdirSync(join(tmp, ".adlc"), { recursive: true });
+                    writeFileSync(join(tmp, ".adlc", "placement-gate-revision.md"), "### ISSUE-1: Bad boundary");
+                }
+            }
+            return createMockConversation("");
+        }) as any);
+
+        await runPlacement("Add plant list", tmp, mockAgents);
+
+        const mapperCalls = queryCallLog.filter(c => (c.options.agent as string) === "domain-mapper");
+        expect(mapperCalls).toHaveLength(2);
+
+        // First call: fresh spawn (no resume)
+        expect(mapperCalls[0].options).not.toHaveProperty("resume");
+
+        // Second call: resumes previous session
+        expect(mapperCalls[1].options.resume).toBe("mock-session-id");
+    });
+
     it("respects max domain mapping attempts", async () => {
         const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {

@@ -71,15 +71,30 @@ describe("runAgent", () => {
         expect(queryCallLog[0].prompt).toBe("Implement the plant list");
     });
 
-    it("returns the agent result", async () => {
+    it("returns the agent result and session ID", async () => {
         const { query: mockQuery } = await import("@anthropic-ai/claude-agent-sdk");
         vi.mocked(mockQuery).mockImplementation(((params: { prompt: string | unknown; options?: Record<string, unknown> }) => {
             queryCallLog.push({ prompt: params.prompt as string, options: params.options ?? {} });
             return createMockConversation("agent output");
         }) as any);
 
-        const result = await runAgent("coder", "Do work", "/tmp/test", mockAgents);
+        const { result, sessionId } = await runAgent("coder", "Do work", "/tmp/test", mockAgents);
 
         expect(result).toBe("agent output");
+        expect(sessionId).toBe("mock-session-id");
+    });
+
+    it("passes resume session ID to the SDK when provided", async () => {
+        await runAgent("coder", "Fix the issue", "/tmp/test", mockAgents, undefined, undefined, "prev-session-123");
+
+        expect(queryCallLog).toHaveLength(1);
+        expect(queryCallLog[0].options.resume).toBe("prev-session-123");
+    });
+
+    it("omits resume from SDK query when not provided", async () => {
+        await runAgent("coder", "Implement feature", "/tmp/test", mockAgents);
+
+        expect(queryCallLog).toHaveLength(1);
+        expect(queryCallLog[0].options).not.toHaveProperty("resume");
     });
 });

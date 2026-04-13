@@ -23,12 +23,20 @@ export async function runPlacement(
     progress?: Progress,
     hooks?: SDKHooks
 ): Promise<void> {
+    let mapperSessionId: string | undefined;
+
     for (let attempt = 0; attempt < DEFAULTS.maxDomainMappingAttempts; attempt++) {
         cleanPlacementArtifacts(cwd);
-        progress?.log("plan", `Domain mapping attempt ${attempt + 1}/${DEFAULTS.maxDomainMappingAttempts}`);
+        const mode = attempt === 0 ? "draft" : "revision";
+        progress?.log("plan", `Domain mapping ${mode} attempt ${attempt + 1}/${DEFAULTS.maxDomainMappingAttempts}`);
+
+        const mapperPrompt = mode === "draft"
+            ? `Map modules for feature: ${featureDescription}`
+            : "Revise the domain mapping based on the placement gate feedback and challenge verdict.";
 
         // eslint-disable-next-line no-await-in-loop
-        await runAgent("domain-mapper", `Map modules for feature: ${featureDescription}`, cwd, agents, progress, hooks);
+        const { sessionId } = await runAgent("domain-mapper", mapperPrompt, cwd, agents, progress, hooks, mapperSessionId);
+        mapperSessionId = sessionId;
 
         // Resolve evidence gaps before the adversarial challenge
         // eslint-disable-next-line no-await-in-loop
