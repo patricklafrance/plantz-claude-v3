@@ -284,11 +284,22 @@ export async function runAgent(
 ): Promise<{ result: string; sessionId: string }> {
     progress?.agent(agentName, resumeSessionId ? "resume" : "spawn", prompt);
 
+    // Block interactive tools globally — the pipeline is headless.
+    const patchedAgents = Object.fromEntries(
+        Object.entries(agents).map(([name, def]) => {
+            const existing = def.disallowedTools ?? [];
+            if (existing.includes("AskUserQuestion")) {
+                return [name, def];
+            }
+            return [name, { ...def, disallowedTools: [...existing, "AskUserQuestion"] }];
+        })
+    );
+
     const conversation = query({
         prompt,
         options: {
             agent: agentName,
-            agents,
+            agents: patchedAgents,
             cwd,
             settingSources: ["project"],
             permissionMode: "bypassPermissions",

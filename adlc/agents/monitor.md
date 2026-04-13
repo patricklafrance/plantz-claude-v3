@@ -31,7 +31,7 @@ Monitor CI workflows on a PR.
 
 ### 1. Discover the PR
 
-Look up the PR via `gh pr view <pr-number>`. If not found, print the error and stop.
+The PR number is provided in the task prompt. Look up the PR via `gh pr view <pr-number>`. If not found, print the error and stop.
 
 ### 2. Monitor and fix
 

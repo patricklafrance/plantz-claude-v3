@@ -156,12 +156,12 @@ export async function run(featureDescription: string, options: OrchestratorOptio
 
         // Step 6: Pull Request
         const donePR = progress.step(6, "Pull Request");
-        await runPr(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
+        const prNumber = await runPr(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
         donePR();
 
         // Step 7: Monitor CI
         const doneMonitor = progress.step(7, "Monitor CI");
-        await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks);
+        await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks, prNumber);
         doneMonitor();
 
         progress.done();

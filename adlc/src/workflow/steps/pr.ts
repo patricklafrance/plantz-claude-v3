@@ -10,7 +10,11 @@ export async function runPr(
     agents: Record<string, AgentDefinition>,
     progress?: Progress,
     hooks?: SDKHooks
-): Promise<void> {
+): Promise<string> {
     progress?.log("post", "Creating pull request...");
-    await runAgent("pr", `Create PR for: ${featureDescription}`, cwd, agents, progress, hooks);
+    const { result } = await runAgent("pr", `Create PR for: ${featureDescription}`, cwd, agents, progress, hooks);
+
+    // Extract the PR number from the agent's response.
+    const match = result.match(/#?(\d+)/);
+    return match?.[1] ?? "";
 }

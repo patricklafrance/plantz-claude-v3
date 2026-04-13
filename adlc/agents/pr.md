@@ -25,7 +25,9 @@ Create a pull request that summarizes the feature and the technical changes.
 
 ### 2. Create the PR
 
-Push the branch and open a PR. The title should be short and descriptive of the feature. Return the PR number.
+Push the branch and open a PR. The title should be short and descriptive of the feature.
+
+Return the PR number.
 
 <pr-body-template>
 
