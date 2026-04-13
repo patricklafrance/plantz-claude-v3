@@ -43,12 +43,6 @@ export function createPostAgentValidationHook() {
     return async (input: SubagentStopHookInput): Promise<HookJSONOutput> => {
         const { agent_type: agentType, agent_transcript_path: transcriptPath, cwd } = input;
 
-        // Already in a retry cycle — record metrics and let through to avoid infinite loops.
-        if (input.stop_hook_active) {
-            recordMetrics(transcriptPath, agentType, cwd);
-            return { continue: true };
-        }
-
         const handler = agentType === "coder" ? (dir: string) => handleCoder(dir, markers) : handlers[agentType];
 
         if (!handler) {

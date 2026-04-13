@@ -31,11 +31,12 @@ Without this hook family, the ADLC loop would depend much more on agents remembe
 High-level flow:
 
 1. Parse the stop-hook input
-2. If already in a stop-hook retry cycle (`stop_hook_active`), record metrics and allow through to avoid infinite loops
-3. Route to the handler for the current agent type
-4. Run that handler's checks / autofixes
-5. If problems remain, block and feed them back to the agent
-6. If clean, record metrics, archive artifacts, and allow the stop
+2. Route to the handler for the current agent type
+3. Run that handler's checks / autofixes
+4. If problems remain, block and feed them back to the agent
+5. If clean, record metrics, archive artifacts, and allow the stop
+
+Validation always runs — even on retry cycles (`stop_hook_active`). The agent is blocked until all checks pass or it hits `maxTurns`.
 
 ## Router and shared modules
 

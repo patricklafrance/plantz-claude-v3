@@ -90,12 +90,14 @@ describe("createPostAgentValidationHook", () => {
         expect(result).toEqual({ continue: true });
     });
 
-    it("skips verification when stop_hook_active is true", async () => {
-        const hook = createPostAgentValidationHook();
-        const result = await hook(makeStopInput({ stop_hook_active: true }));
+    it("runs validation even when stop_hook_active is true", async () => {
+        vi.mocked(handleCoder).mockResolvedValueOnce(["Build failed"]);
 
-        // Should pass through without calling any handler
-        expect(result).toEqual({ continue: true });
+        const hook = createPostAgentValidationHook();
+        const result = await hook(makeStopInput({ stop_hook_active: true, agent_type: "coder" }));
+
+        expect(handleCoder).toHaveBeenCalled();
+        expect(result.decision).toBe("block");
     });
 
     it("blocks when handler reports problems", async () => {
