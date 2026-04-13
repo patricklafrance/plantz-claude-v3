@@ -11,6 +11,7 @@ import { Progress } from "../progress.ts";
 import { classifyReferenceDocs, loadAllAgents } from "./agents.ts";
 import { runDocument } from "./steps/document.ts";
 import { runFixPlan } from "./steps/fix-plan.ts";
+import { type PipelineInput, runGather } from "./steps/gather.ts";
 import { runMonitor } from "./steps/monitor.ts";
 import { runPlacement } from "./steps/placement.ts";
 import { runPlan } from "./steps/plan.ts";
@@ -20,6 +21,8 @@ import { runSlices } from "./steps/slices/run-slices.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "utf-8")) as { version: string };
+
+export type { PipelineInput };
 
 export interface FixTarget {
     /** PR number to fix. */
@@ -33,15 +36,28 @@ export interface OrchestratorOptions {
     cwd: string;
     /** Show wave schedule without executing. */
     dryRun?: boolean;
-    /** Present = fix mode. */
-    fix?: FixTarget;
+    /** Pipeline input — determines mode and data source. */
+    input: PipelineInput;
 }
 
-export async function run(featureDescription: string, options: OrchestratorOptions): Promise<void> {
+function getBannerLabel(input: PipelineInput): string {
+    switch (input.type) {
+        case "feat-text":
+            return input.description;
+        case "feat-issue":
+            return `Issue #${input.issueNumber}`;
+        case "fix-text":
+            return `Fix PR #${input.prNumber}`;
+        case "fix-pr":
+            return `Fix PR #${input.prNumber}`;
+    }
+}
+
+export async function run(options: OrchestratorOptions): Promise<void> {
     const { cwd } = options;
     const progress = new Progress();
 
-    progress.banner(featureDescription, PKG.version);
+    progress.banner(getBannerLabel(options.input), PKG.version);
 
     let runDir: string | undefined;
 
@@ -81,47 +97,43 @@ export async function run(featureDescription: string, options: OrchestratorOptio
         // Fresh hooks per step — supervisor state (browser thrash counters,
         // wall-clock timers, install bypass tokens) must not leak across steps.
 
-        const isFixMode = !!options.fix;
+        // Step 0: Gather — resolve input into a description string.
+        const doneGather = progress.step(0, "Gather");
+        const { description } = await runGather(options.input, runDir!, cwd, agents, progress, createHooks({ cwd }).hooks);
+        doneGather();
 
-        if (isFixMode) {
+        const { input } = options;
+
+        if (input.type === "fix-text" || input.type === "fix-pr") {
+            const fix: FixTarget = {
+                prNumber: input.prNumber,
+                description
+            };
+
             // Fix mode: skip placement, use fix-planner instead of feature planner.
             const doneFixPlan = progress.step(1, "Fix Plan");
-            await runFixPlan(options.fix!, cwd, agents, progress, createHooks({ cwd }).hooks);
+            await runFixPlan(fix, cwd, agents, progress, createHooks({ cwd }).hooks);
             doneFixPlan();
-        } else {
-            // Step 1: Domain mapping + placement gate
-            const donePlacement = progress.step(1, "Placement");
-            await runPlacement(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
-            donePlacement();
 
-            // Step 2: Plan + adversarial challenge
-            const donePlan = progress.step(2, "Plan");
-            await runPlan(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
-            donePlan();
-        }
+            // Step 2: Slice execution (creates its own hooks per slice pipeline)
+            const doneExecution = progress.step(2, "Execution");
+            await runSlices(cwd, config, preamble, options, progress);
+            doneExecution();
 
-        // Step 3: Slice execution (creates its own hooks per slice pipeline)
-        const executionStep = isFixMode ? 2 : 3;
-        const doneExecution = progress.step(executionStep, "Execution");
-        await runSlices(cwd, config, preamble, options, progress);
-        doneExecution();
+            if (options.dryRun) {
+                progress.done();
 
-        if (options.dryRun) {
-            progress.done();
+                return;
+            }
 
-            return;
-        }
+            // Step 3: Simplify
+            const doneSimplify = progress.step(3, "Simplify");
+            await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
+            doneSimplify();
 
-        // Step 4: Simplify
-        const simplifyStep = isFixMode ? 3 : 4;
-        const doneSimplify = progress.step(simplifyStep, "Simplify");
-        await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
-        doneSimplify();
-
-        if (isFixMode) {
-            // Fix mode: skip document, update existing PR instead of creating new one.
+            // Step 4: PR Update
             const donePrUpdate = progress.step(4, "PR Update");
-            const prNumber = await runPrUpdate(options.fix!, cwd, agents, progress, createHooks({ cwd }).hooks);
+            const prNumber = await runPrUpdate(fix, cwd, agents, progress, createHooks({ cwd }).hooks);
             donePrUpdate();
 
             // Step 5: Monitor CI
@@ -129,6 +141,32 @@ export async function run(featureDescription: string, options: OrchestratorOptio
             await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks, prNumber);
             doneMonitor();
         } else {
+            // Step 1: Domain mapping + placement gate
+            const donePlacement = progress.step(1, "Placement");
+            await runPlacement(description, cwd, agents, progress, createHooks({ cwd }).hooks);
+            donePlacement();
+
+            // Step 2: Plan + adversarial challenge
+            const donePlan = progress.step(2, "Plan");
+            await runPlan(description, cwd, agents, progress, createHooks({ cwd }).hooks);
+            donePlan();
+
+            // Step 3: Slice execution (creates its own hooks per slice pipeline)
+            const doneExecution = progress.step(3, "Execution");
+            await runSlices(cwd, config, preamble, options, progress);
+            doneExecution();
+
+            if (options.dryRun) {
+                progress.done();
+
+                return;
+            }
+
+            // Step 4: Simplify
+            const doneSimplify = progress.step(4, "Simplify");
+            await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
+            doneSimplify();
+
             // Step 5: Document
             const doneDocument = progress.step(5, "Document");
             await runDocument(cwd, agents, progress, createHooks({ cwd }).hooks);
@@ -136,7 +174,7 @@ export async function run(featureDescription: string, options: OrchestratorOptio
 
             // Step 6: Pull Request
             const donePR = progress.step(6, "Pull Request");
-            const prNumber = await runPr(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
+            const prNumber = await runPr(description, cwd, agents, progress, createHooks({ cwd }).hooks);
             donePR();
 
             // Step 7: Monitor CI
