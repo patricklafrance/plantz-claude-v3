@@ -9,7 +9,7 @@ description: |
 
 # ADLC Fix — Fix Pipeline Launcher
 
-Launch the ADLC fix pipeline in the background to address issues flagged on a PR.
+Launch the ADLC fix pipeline to address issues flagged on a PR.
 
 ## Arguments
 
@@ -31,24 +31,19 @@ gh issue list --label adlc-fix --state open --json number,title,body,labels --re
 
 Filter the output to issues that reference the PR. Show the user a summary of which issues will be fixed.
 
-### 3. Spawn the ADLC fix pipeline in the background
+### 3. Run the ADLC fix pipeline
 
-Use the **Agent** tool with `run_in_background: true` to spawn a subagent that runs the ADLC fix CLI. The subagent prompt should be:
+Use the **Bash** tool to run the ADLC fix CLI directly from the repository root. Use a long timeout (600000ms) since the pipeline takes time to complete:
 
 ```
-Run the ADLC fix CLI to fix issues on PR #<pr-number>. Execute this command from the repository root:
-
 pnpm exec adlc fix <pr-number>
-
-Monitor the output. If the process exits with a non-zero code, report the error. Otherwise, report that the ADLC fix pipeline completed successfully and summarize any output.
 ```
 
-Use `mode: "bypassPermissions"` so the pipeline can run autonomously.
+If the process exits with a non-zero code, report the error. Otherwise, report that the ADLC fix pipeline completed successfully and summarize any output.
 
 ### 4. Confirm to the user
 
-After spawning the background agent, immediately tell the user:
+After the pipeline completes, tell the user the result:
 
-> ADLC fix pipeline started in the background for PR #\<number\>.
-> Fixing issues: #\<issue1\>, #\<issue2\>, ...
-> You'll be notified when it completes. You can continue working on other tasks in the meantime.
+> ADLC fix pipeline completed for PR #\<number\>.
+> Fixed issues: #\<issue1\>, #\<issue2\>, ...
