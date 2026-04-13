@@ -24,10 +24,12 @@ The full 7-step pipeline for implementing a new feature from a description or Gi
 
 ```mermaid
 flowchart TD
-    Start([Feature request]) --> Mapper
+    Start([Feature request]) --> Gather
 
     subgraph Coord["adlc feat"]
         direction TB
+
+        Gather["0. Gather"] --> ModuleMap
 
         subgraph ModuleMap["1. Placement"]
             direction TB
@@ -69,16 +71,16 @@ A lighter 5-step pipeline for addressing issues flagged via `@adlc` comments on 
 
 **Flag phase:** Comment `@adlc <description>` on a PR. A GitHub Action creates a labeled issue (`adlc-fix`) linked to the PR. Multiple flags can accumulate.
 
-**Fix phase:** Run `adlc fix <PR#>`. The harness collects all open `adlc-fix` issues, generates one slice per issue, and runs them through the standard coder/reviewer loop on the existing PR branch.
+**Fix phase:** Run `adlc fix --pr <PR#>`. The gather agent collects all open `adlc-fix` issues linked to the PR, generates one slice per issue, and runs them through the standard coder/reviewer loop on the existing PR branch.
 
 ```mermaid
 flowchart TD
-    Start(["@adlc comments on PR"]) --> Collect
+    Start(["@adlc comments on PR"]) --> Gather
 
     subgraph Coord["adlc fix"]
         direction TB
 
-        Collect["Collect adlc-fix issues"] --> FixPlan
+        Gather["0. Gather"] --> FixPlan
 
         subgraph FixPlan["1. Fix Plan"]
             direction LR
@@ -107,12 +109,13 @@ flowchart TD
 
 | Aspect | Feature (`adlc feat`) | Fix (`adlc fix`) |
 |---|---|---|
-| Input | Feature description | PR number (issues auto-collected) |
+| Input | Text description or `--issue <N>` | Text description or `--pr <N>` (issues auto-gathered) |
+| Gather | Writes input file (text) or fetches GitHub issue (agent) | Writes input file (text) or fetches linked adlc-fix issues (agent) |
 | Placement | Domain mapping + gate | Skipped |
 | Planning | Feature planner + gate + challenge | Fix planner (1:1 issue-to-slice) |
 | Documentation | Updates reference docs | Skipped |
 | PR | Creates new PR | Appends fix section to existing PR |
-| Steps | 7 | 5 |
+| Steps | 8 (0–7) | 6 (0–5) |
 
 ---
 
@@ -122,10 +125,11 @@ All inter-agent coordination goes through files in `.adlc/` — plan-header, sli
 
 ## Agents
 
-Nineteen agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
+Twenty agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
 
 | Agent                    | Workflow | What it does                                                                            |
 | ------------------------ | -------- | --------------------------------------------------------------------------------------- |
+| `gather`                 | both     | Fetches input from a PM tool (GitHub) and writes a structured input file (Haiku agent)  |
 | `placement-coordinator`  | feat     | Orchestrates placement mapping: mapper, evidence, challenge team, and gate              |
 | `domain-mapper`          | feat     | Analyzes feature terms against existing modules, writes placement decisions             |
 | `evidence-researcher`    | feat     | Resolves mapper evidence gaps by inspecting code artifacts                              |
@@ -325,13 +329,18 @@ pnpm add @patlaf/adlc
 ### Implement a new feature
 
 ```bash
+# From a text description
 pnpm adlc feat "Add a household feature with member invitations and plant sharing"
+
+# From a GitHub issue
+pnpm adlc feat --issue 52
 ```
 
 ### Preview the execution plan
 
 ```bash
 pnpm adlc feat --dry-run "Add household feature"
+pnpm adlc feat --dry-run --issue 52
 ```
 
 ### Fix issues on an existing PR
@@ -339,21 +348,29 @@ pnpm adlc feat --dry-run "Add household feature"
 Flag issues during review by commenting `@adlc <description>` on the PR. Each comment creates a GitHub issue labeled `adlc-fix`. Then batch-fix all flagged issues:
 
 ```bash
-pnpm adlc fix 42
+# From GitHub (auto-gathers linked adlc-fix issues)
+pnpm adlc fix --pr 42
+
+# From a text description
+pnpm adlc fix 42 "Issue #51: Fix color..."
 ```
 
 ### CLI reference
 
 ```
 Usage:
-  adlc feat [options] <feature-description>
-  adlc fix  [options] <pr-number>
+  adlc feat [options] <description>         Text mode
+  adlc feat [options] --issue <N>            GitHub issue mode
+  adlc fix  [options] <pr#> <description>    Text mode
+  adlc fix  [options] --pr <N>               GitHub PR mode
 
 Commands:
   feat    Plan and implement a new feature
   fix     Fix issues flagged on an existing PR
 
 Options:
+  --issue <N>         Fetch input from a GitHub issue (feat only)
+  --pr <N>            Fetch linked adlc-fix issues from a GitHub PR (fix only)
   --dry-run           Show wave schedule without executing
   -h, --help          Show this help message
 ```

@@ -43,7 +43,7 @@ describe("pre-commit gitignore-check", () => {
     it("allows .gitignore changes that don't un-ignore .adlc/", async () => {
         vi.mocked(run).mockResolvedValue({
             ok: true,
-            stdout: "--- a/.gitignore\n+++ b/.gitignore\n+.adlc-logs/\n",
+            stdout: "--- a/.gitignore\n+++ b/.gitignore\n+dist/\n",
             stderr: "",
             code: undefined
         });

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -188,15 +188,5 @@ export async function run(options: OrchestratorOptions): Promise<void> {
         const message = error instanceof Error ? error.message : String(error);
         progress.fatal(message);
         process.exitCode = 1;
-    } finally {
-        // Move SDK streaming log into the run subfolder if it exists.
-        try {
-            const sdkLog = resolve(cwd, ".adlc-logs", "sdk-messages.jsonl");
-            if (runDir && existsSync(sdkLog)) {
-                renameSync(sdkLog, resolve(runDir, "sdk-messages.jsonl"));
-            }
-        } catch {
-            // Best-effort — don't fail the pipeline over a log file.
-        }
     }
 }
