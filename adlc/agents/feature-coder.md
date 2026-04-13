@@ -1,6 +1,6 @@
 ---
-name: coder
-description: Implement a single slice from the plan.
+name: feature-coder
+description: Implement a single feature slice from the plan.
 model: opus
 effort: medium
 skills:

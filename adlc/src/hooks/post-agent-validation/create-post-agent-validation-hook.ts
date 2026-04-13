@@ -31,7 +31,9 @@ const handlers: Record<string, HandlerFn> = {
     "placement-gate": handlePlacementGate,
     "plan-gate": handlePlanGate,
     "feature-planner": handlePlanner,
-    reviewer: handleReviewer,
+    "fix-planner": handlePlanner,
+    "feature-reviewer": handleReviewer,
+    "fix-reviewer": handleReviewer,
     simplify: handleSimplify
 };
 
@@ -42,7 +44,8 @@ export function createPostAgentValidationHook() {
     return async (input: SubagentStopHookInput): Promise<HookJSONOutput> => {
         const { agent_type: agentType, agent_transcript_path: transcriptPath, cwd } = input;
 
-        const handler = agentType === "coder" ? (dir: string) => handleCoder(dir, markers) : handlers[agentType];
+        const isCoderAgent = agentType === "feature-coder" || agentType === "fix-coder";
+        const handler = isCoderAgent ? (dir: string) => handleCoder(dir, markers) : handlers[agentType];
 
         if (!handler) {
             recordMetrics(transcriptPath, agentType, cwd);

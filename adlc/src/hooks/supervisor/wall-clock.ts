@@ -29,8 +29,10 @@ interface Threshold {
 const MINUTES = 60_000;
 
 export const THRESHOLDS: Record<string, Threshold> = {
-    coder: { nudge: null, hardStop: 30 * MINUTES },
-    reviewer: { nudge: 10 * MINUTES, hardStop: 15 * MINUTES },
+    "feature-coder": { nudge: null, hardStop: 30 * MINUTES },
+    "fix-coder": { nudge: null, hardStop: 30 * MINUTES },
+    "feature-reviewer": { nudge: 10 * MINUTES, hardStop: 15 * MINUTES },
+    "fix-reviewer": { nudge: 10 * MINUTES, hardStop: 15 * MINUTES },
     explorer: { nudge: 5 * MINUTES, hardStop: 8 * MINUTES },
     planner: { nudge: 5 * MINUTES, hardStop: 8 * MINUTES },
     "plan-gate": { nudge: 5 * MINUTES, hardStop: 8 * MINUTES },

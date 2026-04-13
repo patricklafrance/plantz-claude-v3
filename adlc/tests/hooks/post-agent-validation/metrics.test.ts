@@ -95,7 +95,7 @@ describe("run-metrics", () => {
             }
         ]);
 
-        recordMetrics(transcript.path, "coder", cwd);
+        recordMetrics(transcript.path, "feature-coder", cwd);
         transcript.cleanup();
 
         const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
@@ -115,11 +115,11 @@ describe("run-metrics", () => {
         expect((run.tools as Record<string, unknown>).Edit).toEqual({ count: 1, tokens: 190, durationMs: 2000 });
 
         // Detail file link
-        expect(run.detailsFile).toBe("run-details/001-coder.json");
+        expect(run.detailsFile).toBe("run-details/001-feature-coder.json");
 
         // Detail file contents
         const details = readDetails(cwd, run.detailsFile as string) as { agent: string; model: string; calls: Record<string, unknown>[] };
-        expect(details.agent).toBe("coder");
+        expect(details.agent).toBe("feature-coder");
         expect(details.model).toBe("claude-sonnet-4-20250514");
         expect(details.calls).toHaveLength(3);
 
@@ -179,21 +179,21 @@ describe("run-metrics", () => {
         ]);
 
         recordMetrics(t1.path, "feature-planner", cwd);
-        recordMetrics(t2.path, "coder", cwd);
+        recordMetrics(t2.path, "feature-coder", cwd);
         t1.cleanup();
         t2.cleanup();
 
         const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
 
         expect((metrics.runs[0] as Record<string, unknown>).detailsFile).toBe("run-details/001-feature-planner.json");
-        expect((metrics.runs[1] as Record<string, unknown>).detailsFile).toBe("run-details/002-coder.json");
+        expect((metrics.runs[1] as Record<string, unknown>).detailsFile).toBe("run-details/002-feature-coder.json");
         expect((metrics.runs[0] as Record<string, unknown>).model).toBe("claude-sonnet-4-20250514");
         expect((metrics.runs[1] as Record<string, unknown>).model).toBe("claude-opus-4-6");
 
         // Both detail files exist
         const mDir = resolveRunDirForTest(cwd);
         expect(existsSync(join(mDir, "run-details", "001-feature-planner.json"))).toBe(true);
-        expect(existsSync(join(mDir, "run-details", "002-coder.json"))).toBe(true);
+        expect(existsSync(join(mDir, "run-details", "002-feature-coder.json"))).toBe(true);
 
         // Detail file has tool call with input
         const d2 = readDetails(cwd, (metrics.runs[1] as Record<string, unknown>).detailsFile as string) as { calls: Record<string, unknown>[] };
@@ -214,20 +214,20 @@ describe("run-metrics", () => {
             { type: "assistant", timestamp: "2026-03-25T10:15:00.000Z", message: { usage: { input_tokens: 60, output_tokens: 30 }, content: [] } }
         ]);
 
-        recordMetrics(coderRun1.path, "coder", cwd);
-        recordMetrics(reviewerRun.path, "reviewer", cwd);
-        recordMetrics(coderRun2.path, "coder", cwd);
+        recordMetrics(coderRun1.path, "feature-coder", cwd);
+        recordMetrics(reviewerRun.path, "feature-reviewer", cwd);
+        recordMetrics(coderRun2.path, "feature-coder", cwd);
         coderRun1.cleanup();
         reviewerRun.cleanup();
         coderRun2.cleanup();
 
         const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[]; totals: Record<string, unknown> };
 
-        expect(metrics.runs.map(r => r.agent)).toEqual(["coder", "reviewer", "coder"]);
+        expect(metrics.runs.map(r => r.agent)).toEqual(["feature-coder", "feature-reviewer", "feature-coder"]);
         expect(metrics.runs.map(r => r.detailsFile)).toEqual([
-            "run-details/001-coder.json",
-            "run-details/002-reviewer.json",
-            "run-details/003-coder.json"
+            "run-details/001-feature-coder.json",
+            "run-details/002-feature-reviewer.json",
+            "run-details/003-feature-coder.json"
         ]);
         // input: 240, output: 120 → billable: 240 + 120×5 = 840
         expect((metrics.totals.tokens as Record<string, unknown>).billableTokens).toBe(840);
@@ -264,7 +264,7 @@ describe("run-metrics", () => {
             }
         ]);
 
-        recordMetrics(transcript.path, "coder", cwd);
+        recordMetrics(transcript.path, "feature-coder", cwd);
         transcript.cleanup();
 
         const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
@@ -291,7 +291,7 @@ describe("run-metrics", () => {
             }
         ]);
 
-        recordMetrics(transcript.path, "coder", cwd);
+        recordMetrics(transcript.path, "feature-coder", cwd);
         transcript.cleanup();
 
         const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
@@ -299,7 +299,7 @@ describe("run-metrics", () => {
     });
 
     it("should handle missing transcript gracefully", () => {
-        recordMetrics("/nonexistent/path.jsonl", "coder", cwd);
+        recordMetrics("/nonexistent/path.jsonl", "feature-coder", cwd);
         // parseTranscript returns null, so no metrics file is written.
         // resolveRunDir was called, so the run dir exists but has no run-metrics.json.
         const runDir = resolveRunDirForTest(cwd);
@@ -307,7 +307,7 @@ describe("run-metrics", () => {
     });
 
     it("should handle null transcript path", () => {
-        recordMetrics(null, "coder", cwd);
+        recordMetrics(null, "feature-coder", cwd);
         // Early return before resolveRunDir — no metrics file anywhere.
         const runDir = resolveRunDirForTest(cwd);
         expect(() => readFileSync(join(runDir, "run-metrics.json"))).toThrow(/ENOENT/);
@@ -333,7 +333,7 @@ describe("run-metrics", () => {
         it("should detect slice from current-slice.md frontmatter", () => {
             writeSlice(cwd, "03-share-plants");
             const t = minimalTranscript();
-            recordMetrics(t.path, "coder", cwd);
+            recordMetrics(t.path, "feature-coder", cwd);
             t.cleanup();
 
             const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
@@ -352,7 +352,7 @@ describe("run-metrics", () => {
         it("should set mode to draft for first coder run on a slice", () => {
             writeSlice(cwd, "01-household");
             const t = minimalTranscript();
-            recordMetrics(t.path, "coder", cwd);
+            recordMetrics(t.path, "feature-coder", cwd);
             t.cleanup();
 
             const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
@@ -365,9 +365,9 @@ describe("run-metrics", () => {
             const t2 = minimalTranscript("2026-03-25T10:10:00.000Z");
             const t3 = minimalTranscript("2026-03-25T10:20:00.000Z");
 
-            recordMetrics(t1.path, "coder", cwd); // draft
-            recordMetrics(t2.path, "reviewer", cwd); // no mode
-            recordMetrics(t3.path, "coder", cwd); // revision
+            recordMetrics(t1.path, "feature-coder", cwd); // draft
+            recordMetrics(t2.path, "feature-reviewer", cwd); // no mode
+            recordMetrics(t3.path, "feature-coder", cwd); // revision
 
             t1.cleanup();
             t2.cleanup();
@@ -382,7 +382,7 @@ describe("run-metrics", () => {
         it("should set mode to null for non-moded agents", () => {
             writeSlice(cwd, "01-household");
             const t = minimalTranscript();
-            recordMetrics(t.path, "reviewer", cwd);
+            recordMetrics(t.path, "feature-reviewer", cwd);
             t.cleanup();
 
             const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
@@ -392,12 +392,12 @@ describe("run-metrics", () => {
         it("should not confuse coder runs across different slices", () => {
             writeSlice(cwd, "01-household");
             const t1 = minimalTranscript("2026-03-25T10:00:00.000Z");
-            recordMetrics(t1.path, "coder", cwd);
+            recordMetrics(t1.path, "feature-coder", cwd);
             t1.cleanup();
 
             writeSlice(cwd, "02-invitations");
             const t2 = minimalTranscript("2026-03-25T10:30:00.000Z");
-            recordMetrics(t2.path, "coder", cwd);
+            recordMetrics(t2.path, "feature-coder", cwd);
             t2.cleanup();
 
             const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
@@ -408,7 +408,7 @@ describe("run-metrics", () => {
         it("should include slice and mode in detail files", () => {
             writeSlice(cwd, "05-actor-tracking");
             const t = minimalTranscript();
-            recordMetrics(t.path, "coder", cwd);
+            recordMetrics(t.path, "feature-coder", cwd);
             t.cleanup();
 
             const details = readDetails(
@@ -426,10 +426,10 @@ describe("run-metrics", () => {
             const t3 = minimalTranscript("2026-03-25T10:10:00.000Z");
             const t4 = minimalTranscript("2026-03-25T10:20:00.000Z");
 
-            recordMetrics(t1.path, "coder", cwd); // draft
-            recordMetrics(t2.path, "reviewer", cwd); // first review
-            recordMetrics(t3.path, "coder", cwd); // revision
-            recordMetrics(t4.path, "reviewer", cwd); // re-review
+            recordMetrics(t1.path, "feature-coder", cwd); // draft
+            recordMetrics(t2.path, "feature-reviewer", cwd); // first review
+            recordMetrics(t3.path, "feature-coder", cwd); // revision
+            recordMetrics(t4.path, "feature-reviewer", cwd); // re-review
 
             t1.cleanup();
             t2.cleanup();
@@ -448,8 +448,8 @@ describe("run-metrics", () => {
             const t1 = minimalTranscript("2026-03-25T10:00:00.000Z");
             const t2 = minimalTranscript("2026-03-25T10:05:00.000Z");
 
-            recordMetrics(t1.path, "coder", cwd);
-            recordMetrics(t2.path, "reviewer", cwd);
+            recordMetrics(t1.path, "feature-coder", cwd);
+            recordMetrics(t2.path, "feature-reviewer", cwd);
 
             t1.cleanup();
             t2.cleanup();

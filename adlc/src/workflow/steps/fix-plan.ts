@@ -3,19 +3,20 @@
 import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
-import type { FixTarget } from "../orchestrator.ts";
 
 /**
  * Run the fix-planner agent to generate one fix slice per issue.
  */
 export async function runFixPlan(
-    fix: FixTarget,
+    description: string,
+    prNumber: number | undefined,
     cwd: string,
     agents: Record<string, AgentDefinition>,
     progress?: Progress,
     hooks?: SDKHooks
 ): Promise<void> {
-    const prompt = [`Generate fix slices for PR #${fix.prNumber}.`, "", "Issues to fix:", fix.description].join("\n");
+    const header = prNumber ? `Generate fix slices for PR #${prNumber}.` : "Generate fix slices.";
+    const prompt = [header, "", "Issues to fix:", description].join("\n");
 
     progress?.log("plan", "Starting fix planner");
     await runAgent("fix-planner", prompt, cwd, agents, progress, hooks);

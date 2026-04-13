@@ -124,22 +124,22 @@ describe("Progress", () => {
     describe("slice", () => {
         it("should output an indented slice-level event with agent", () => {
             const progress = new Progress();
-            progress.slice("03-share-plants", "coder", "Starting draft");
+            progress.slice("03-share-plants", "feature-coder", "Starting draft");
 
             expect(logSpy).toHaveBeenCalledOnce();
             const output = logSpy.mock.calls[0][0] as string;
             expect(output).toContain("03-share-plants");
-            expect(output).toContain("[coder]");
+            expect(output).toContain("[feature-coder]");
             expect(output).toContain("Starting draft");
         });
 
         it("should include slice name, agent, and message", () => {
             const progress = new Progress();
-            progress.slice("01-household", "reviewer", "Review complete");
+            progress.slice("01-household", "feature-reviewer", "Review complete");
 
             const output = logSpy.mock.calls[0][0] as string;
             expect(output).toContain("01-household");
-            expect(output).toContain("[reviewer]");
+            expect(output).toContain("[feature-reviewer]");
             expect(output).toContain("Review complete");
         });
     });

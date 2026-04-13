@@ -46,7 +46,7 @@ describe("runFixPlan", () => {
     });
 
     it("delegates to fix-planner agent", async () => {
-        await runFixPlan({ prNumber: 42, description: "Issue #51: Fix color\nColor should be blue" }, "/tmp/test", mockAgents);
+        await runFixPlan("Issue #51: Fix color\nColor should be blue", 42, "/tmp/test", mockAgents);
 
         expect(queryCallLog).toHaveLength(1);
         expect(queryCallLog[0].options.agent).toBe("fix-planner");
@@ -54,11 +54,8 @@ describe("runFixPlan", () => {
 
     it("includes PR number and description in prompt", async () => {
         await runFixPlan(
-            {
-                prNumber: 42,
-                description:
-                    "Issue #51: Fix color\nLink: https://github.com/owner/repo/issues/51\n\nColor should be blue\n\nIssue #52: Fix sort\nLink: https://github.com/owner/repo/issues/52\n\nSort order wrong"
-            },
+            "Issue #51: Fix color\nLink: https://github.com/owner/repo/issues/51\n\nColor should be blue\n\nIssue #52: Fix sort\nLink: https://github.com/owner/repo/issues/52\n\nSort order wrong",
+            42,
             "/tmp/test",
             mockAgents
         );
@@ -68,11 +65,19 @@ describe("runFixPlan", () => {
         expect(queryCallLog[0].prompt).toContain("Issue #52: Fix sort");
     });
 
+    it("omits PR number from prompt when not provided", async () => {
+        await runFixPlan("Fix the broken color picker", undefined, "/tmp/test", mockAgents);
+
+        expect(queryCallLog[0].prompt).toContain("Generate fix slices.");
+        expect(queryCallLog[0].prompt).not.toContain("PR #");
+        expect(queryCallLog[0].prompt).toContain("Fix the broken color picker");
+    });
+
     it("forwards hooks to the agent", async () => {
         // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
-        await runFixPlan({ prNumber: 42, description: "Issue #51: Fix it\nFix it" }, "/tmp/test", mockAgents, undefined, fakeHooks);
+        await runFixPlan("Issue #51: Fix it\nFix it", 42, "/tmp/test", mockAgents, undefined, fakeHooks);
 
         expect(queryCallLog[0].options.hooks).toBe(fakeHooks);
     });

@@ -25,9 +25,9 @@ const PKG = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "u
 export type { PipelineInput };
 
 export interface FixTarget {
-    /** PR number to fix. */
+    /** PR number to update. */
     prNumber: number;
-    /** Free-form text describing the issues to fix (composed by the skill layer). */
+    /** Free-form text describing the issues that were fixed. */
     description: string;
 }
 
@@ -47,7 +47,7 @@ function getBannerLabel(input: PipelineInput): string {
         case "feat-issue":
             return `Issue #${input.issueNumber}`;
         case "fix-text":
-            return `Fix PR #${input.prNumber}`;
+            return input.description;
         case "fix-pr":
             return `Fix PR #${input.prNumber}`;
     }
@@ -105,14 +105,9 @@ export async function run(options: OrchestratorOptions): Promise<void> {
         const { input } = options;
 
         if (input.type === "fix-text" || input.type === "fix-pr") {
-            const fix: FixTarget = {
-                prNumber: input.prNumber,
-                description
-            };
-
             // Fix mode: skip placement, use fix-planner instead of feature planner.
             const doneFixPlan = progress.step(1, "Fix Plan");
-            await runFixPlan(fix, cwd, agents, progress, createHooks({ cwd }).hooks);
+            await runFixPlan(description, input.type === "fix-pr" ? input.prNumber : undefined, cwd, agents, progress, createHooks({ cwd }).hooks);
             doneFixPlan();
 
             // Step 2: Slice execution (creates its own hooks per slice pipeline)
@@ -131,10 +126,19 @@ export async function run(options: OrchestratorOptions): Promise<void> {
             await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
             doneSimplify();
 
-            // Step 4: PR Update
-            const donePrUpdate = progress.step(4, "PR Update");
-            const prNumber = await runPrUpdate(fix, cwd, agents, progress, createHooks({ cwd }).hooks);
-            donePrUpdate();
+            let prNumber: string;
+
+            if (input.type === "fix-pr") {
+                // Step 4: PR Update — push fix results to the existing PR.
+                const donePrUpdate = progress.step(4, "PR Update");
+                prNumber = await runPrUpdate({ prNumber: input.prNumber, description }, cwd, agents, progress, createHooks({ cwd }).hooks);
+                donePrUpdate();
+            } else {
+                // Step 4: Pull Request — create a new PR for the fix.
+                const donePR = progress.step(4, "Pull Request");
+                prNumber = await runPr(description, cwd, agents, progress, createHooks({ cwd }).hooks);
+                donePR();
+            }
 
             // Step 5: Monitor CI
             const doneMonitor = progress.step(5, "Monitor CI");

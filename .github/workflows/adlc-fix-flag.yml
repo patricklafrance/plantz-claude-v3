@@ -46,7 +46,7 @@ jobs:
                     --repo "$REPO" \
                     --title "$TITLE" \
                     --body "$BODY" \
-                    --label "adlc-fix")
+                    --label "adlc fix")
 
                   ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oP '\d+$')
 

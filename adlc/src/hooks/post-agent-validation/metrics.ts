@@ -150,7 +150,7 @@ function resolveRunDir(cwd: string): string {
 
 /**
  * @param transcriptPath  Absolute path to the agent's .jsonl transcript
- * @param agentType       e.g. "coder"
+ * @param agentType       e.g. "feature-coder"
  * @param cwd             Repo root (where .adlc/ lives)
  */
 export function recordMetrics(transcriptPath: string | null, agentType: string, cwd: string): void {
@@ -252,7 +252,7 @@ function detectSlice(cwd: string): string | null {
  * "revision" on subsequent runs.
  */
 function detectMode(agentType: string, sliceId: string | null, existingRuns: RunEntry[]): string | null {
-    const modedAgents = ["coder", "feature-planner", "domain-mapper"];
+    const modedAgents = ["feature-coder", "fix-coder", "feature-planner", "fix-planner", "domain-mapper"];
     if (!modedAgents.includes(agentType)) {
         return null;
     }
@@ -512,7 +512,7 @@ function computeRework(runs: RunEntry[]): ReworkStats {
 
         // Include the re-review that follows this revision coder
         const next = runs[i + 1];
-        if (next && next.agent === "reviewer" && next.slice === run.slice) {
+        if (next && (next.agent === "feature-reviewer" || next.agent === "fix-reviewer") && next.slice === run.slice) {
             reworkDuration += next.durationMs;
             reworkTokens += next.tokens.billableTokens;
         }

@@ -81,27 +81,35 @@ describe("runGather", () => {
     });
 
     describe("feat-text mode", () => {
-        it("writes description to input.md and returns it", async () => {
+        it("invokes gather agent with description and returns file content", async () => {
+            mockFileContents[INPUT_PATH] = "Add user authentication";
+            agentResult = "Done";
+
             const result = await runGather({ type: "feat-text", description: "Add user authentication" }, RUN_DIR, "/tmp/cwd", mockAgents);
 
+            expect(queryCallLog).toHaveLength(1);
+            expect(queryCallLog[0].prompt).toContain("Write the following description");
+            expect(queryCallLog[0].prompt).toContain("Add user authentication");
             expect(result.description).toBe("Add user authentication");
-            expect(writtenFiles[INPUT_PATH]).toBe("Add user authentication");
-            expect(queryCallLog).toHaveLength(0);
         });
     });
 
     describe("fix-text mode", () => {
-        it("writes description to input.md and returns it", async () => {
+        it("invokes gather agent with description and returns file content", async () => {
+            mockFileContents[INPUT_PATH] = "Issue #51: Fix color\nColor should be blue";
+            agentResult = "Done";
+
             const result = await runGather(
-                { type: "fix-text", prNumber: 42, description: "Issue #51: Fix color\nColor should be blue" },
+                { type: "fix-text", description: "Issue #51: Fix color\nColor should be blue" },
                 RUN_DIR,
                 "/tmp/cwd",
                 mockAgents
             );
 
+            expect(queryCallLog).toHaveLength(1);
+            expect(queryCallLog[0].prompt).toContain("Write the following description");
+            expect(queryCallLog[0].prompt).toContain("Issue #51: Fix color");
             expect(result.description).toBe("Issue #51: Fix color\nColor should be blue");
-            expect(writtenFiles[INPUT_PATH]).toBe("Issue #51: Fix color\nColor should be blue");
-            expect(queryCallLog).toHaveLength(0);
         });
     });
 
@@ -116,7 +124,7 @@ describe("runGather", () => {
             expect(queryCallLog).toHaveLength(1);
             expect(queryCallLog[0].options.agent).toBe("gather");
             expect(queryCallLog[0].prompt).toContain("#52");
-            expect(queryCallLog[0].prompt).toContain("feat-issue");
+            expect(queryCallLog[0].prompt).toContain("Fetch GitHub issue");
             expect(result.description).toBe(fileContent);
         });
     });
@@ -132,7 +140,7 @@ describe("runGather", () => {
             expect(queryCallLog).toHaveLength(1);
             expect(queryCallLog[0].options.agent).toBe("gather");
             expect(queryCallLog[0].prompt).toContain("#42");
-            expect(queryCallLog[0].prompt).toContain("fix-pr");
+            expect(queryCallLog[0].prompt).toContain("Fetch all open adlc-fix issues");
             expect(result.description).toBe(fileContent);
         });
 
@@ -154,7 +162,7 @@ describe("runGather", () => {
         });
     });
 
-    it("forwards hooks to the agent in GitHub mode", async () => {
+    it("forwards hooks to the agent", async () => {
         mockFileContents[INPUT_PATH] = "Issue content";
         agentResult = "Done";
         // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature

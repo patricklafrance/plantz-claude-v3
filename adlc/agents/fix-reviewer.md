@@ -1,17 +1,16 @@
 ---
-name: feature-reviewer
-description: Verify a feature slice's acceptance criteria.
+name: fix-reviewer
+description: Verify a fix slice's acceptance criteria.
 model: opus
 effort: medium
 skills:
-    - node_modules/@patlaf/adlc/skills/validate-modules/SKILL.md
     - node_modules/@patlaf/adlc/skills/browser-recovery/SKILL.md
     - node_modules/@patlaf/adlc/skills/agent-browser/SKILL.md
 ---
 
-# Harness Reviewer
+# Harness Fix Reviewer
 
-Verify every acceptance criterion in a slice through visual inspection of Storybook stories.
+Verify every acceptance criterion in a fix slice through visual inspection of the host app.
 
 ## Inputs
 
@@ -25,22 +24,24 @@ No inputs — reads `current-slice.md` directly.
 - Read the current slice's implementation notes from `implementation-notes/{id}.md`, where `{id}` is the frontmatter `id` from the slice.
 - Read the `browser` reference doc.
 
-### 2. Verify acceptance criteria via Storybook
+### 2. Verify acceptance criteria via host app
 
-Start the Storybook dev server defined in the `browser` reference doc. The coder creates a story for every acceptance criterion — verify each criterion against its corresponding story. If the server fails to start, print the error and stop.
+Start the host app dev server defined in the `browser` reference doc. Navigate through the pages affected by the fix. For each criterion, find the relevant page or component and verify visually. If the server fails to start, print the error and stop.
 
-Use a 1280px viewport for all screenshots (matches Chromatic desktop mode).
+Use a 1280px viewport for all screenshots.
 
-For each criterion, navigate to the corresponding story, take a screenshot, and assess whether the criterion is met. For `[interactive]` criteria, the coder creates state stories with play functions that reach the post-interaction state — by the time the story renders, the play function has already run. Verify the resulting state visually, the same way you verify `[visual]` criteria.
+For `[interactive]` criteria, perform the interaction in the host app and verify the expected outcome.
 
-- **Dark mode** — Toggle the `dark` class on `document.documentElement`, wait 200ms, screenshot, toggle back.
+If the fix scope references styling, theming, color, or visual appearance changes, also verify each affected area in dark mode: toggle the `dark` class on `document.documentElement`, wait 200ms, screenshot, toggle back.
 
-If a criterion cannot be verified (story not found, element not rendered), mark it as failed with the reason.
+If a criterion cannot be verified (page not accessible, element not rendered), mark it as failed with the reason.
 
 ### 3. Sanity checks
 
-- Start the host app dev server defined in the `browser` reference doc. Navigate through the pages affected by the slice. Look for obvious breakage — blank pages, console errors, broken layouts.
-- Run `validate-modules` only for modules tagged `(new)` in the slice's Scope section. Skip `(extend)` modules — their wiring was validated when they were first created.
+Look for regressions caused by the fix:
+
+- Navigate pages adjacent to the fix area — look for blank pages, console errors, or broken layouts.
+- If Storybook stories exist for the affected components (check implementation notes for story references), start the Storybook dev server defined in the `browser` reference doc and verify those stories still render correctly.
 
 Any issues go to the Sanity Issues section.
 
@@ -78,8 +79,7 @@ Observed: {what you saw in the browser — symptoms, timing, sequence}
 
 ## Sanity Issues
 
-- {what is broken in the host app}
-- {module validation failures from validate-modules}
+- {what is broken in adjacent pages or existing stories}
 ```
 
 </verification-results-template>

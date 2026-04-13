@@ -23,8 +23,8 @@ function makeState(startedAt: string | null, nudgeFired = false): SupervisorStat
 describe("wall-clock policy", () => {
     describe("getThresholds", () => {
         it("returns per-agent thresholds for known agents", () => {
-            expect(getThresholds("coder")).toEqual(THRESHOLDS["coder"]);
-            expect(getThresholds("reviewer")).toEqual(THRESHOLDS["reviewer"]);
+            expect(getThresholds("feature-coder")).toEqual(THRESHOLDS["feature-coder"]);
+            expect(getThresholds("feature-reviewer")).toEqual(THRESHOLDS["feature-reviewer"]);
             expect(getThresholds("explorer")).toEqual(THRESHOLDS["explorer"]);
         });
 
@@ -47,7 +47,7 @@ describe("wall-clock policy", () => {
         const START = "2026-03-27T18:00:00.000Z";
 
         it("returns null when startedAt is not set", () => {
-            const event = makeEvent("coder", START);
+            const event = makeEvent("feature-coder", START);
             const state = makeState(null);
             expect(checkWallClock(event, state)).toBeNull();
         });
@@ -59,8 +59,8 @@ describe("wall-clock policy", () => {
         });
 
         it("returns null when under hard stop threshold for nudge-disabled agent", () => {
-            const elapsed = THRESHOLDS["coder"].hardStop - 60_000;
-            const event = makeEvent("coder", new Date(new Date(START).getTime() + elapsed).toISOString());
+            const elapsed = THRESHOLDS["feature-coder"].hardStop - 60_000;
+            const event = makeEvent("feature-coder", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START);
             expect(checkWallClock(event, state)).toBeNull();
         });
@@ -68,14 +68,14 @@ describe("wall-clock policy", () => {
         it("skips nudge when nudge threshold is null", () => {
             // Coder has nudge: null — should never fire a nudge regardless of elapsed time
             const elapsed = 15 * 60_000; // 15 minutes, well past where a nudge would fire
-            const event = makeEvent("coder", new Date(new Date(START).getTime() + elapsed).toISOString());
+            const event = makeEvent("feature-coder", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START);
             expect(checkWallClock(event, state)).toBeNull();
         });
 
         it("fires nudge at T1 threshold for nudge-enabled agent", () => {
-            const elapsed = THRESHOLDS["reviewer"].nudge!;
-            const event = makeEvent("reviewer", new Date(new Date(START).getTime() + elapsed).toISOString());
+            const elapsed = THRESHOLDS["feature-reviewer"].nudge!;
+            const event = makeEvent("feature-reviewer", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START);
 
             const result = checkWallClock(event, state);
@@ -86,15 +86,15 @@ describe("wall-clock policy", () => {
         });
 
         it("does not fire nudge a second time after nudgeFired is set", () => {
-            const elapsed = THRESHOLDS["reviewer"].nudge! + 60_000;
-            const event = makeEvent("reviewer", new Date(new Date(START).getTime() + elapsed).toISOString());
+            const elapsed = THRESHOLDS["feature-reviewer"].nudge! + 60_000;
+            const event = makeEvent("feature-reviewer", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START, true);
             expect(checkWallClock(event, state)).toBeNull();
         });
 
         it("fires hard stop at T2 threshold", () => {
-            const elapsed = THRESHOLDS["coder"].hardStop;
-            const event = makeEvent("coder", new Date(new Date(START).getTime() + elapsed).toISOString());
+            const elapsed = THRESHOLDS["feature-coder"].hardStop;
+            const event = makeEvent("feature-coder", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START, false);
 
             const result = checkWallClock(event, state);
@@ -105,8 +105,8 @@ describe("wall-clock policy", () => {
         });
 
         it("uses different thresholds for reviewer vs coder", () => {
-            const reviewerNudge = THRESHOLDS["reviewer"].nudge!;
-            const event = makeEvent("reviewer", new Date(new Date(START).getTime() + reviewerNudge).toISOString());
+            const reviewerNudge = THRESHOLDS["feature-reviewer"].nudge!;
+            const event = makeEvent("feature-reviewer", new Date(new Date(START).getTime() + reviewerNudge).toISOString());
             const state = makeState(START);
 
             const result = checkWallClock(event, state);

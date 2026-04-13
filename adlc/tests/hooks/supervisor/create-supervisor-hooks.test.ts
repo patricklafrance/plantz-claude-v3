@@ -14,7 +14,7 @@ function makePreToolInput(overrides: Partial<PreToolUseHookInput> = {}): PreTool
         session_id: "test-session",
         transcript_path: "/tmp/transcript.json",
         cwd: "/tmp/test-project",
-        agent_type: "coder",
+        agent_type: "feature-coder",
         tool_name: "Bash",
         tool_input: { command: "git status" },
         tool_use_id: "tu-1",
@@ -28,7 +28,7 @@ function makePostToolInput(overrides: Partial<PostToolUseHookInput> = {}): PostT
         session_id: "test-session",
         transcript_path: "/tmp/transcript.json",
         cwd: "/tmp/test-project",
-        agent_type: "coder",
+        agent_type: "feature-coder",
         tool_name: "Bash",
         tool_input: { command: "git status" },
         tool_response: {},
@@ -96,7 +96,7 @@ describe("createSupervisorPreToolHook", () => {
 
     it("blocks with wall-clock nudge after configured time", async () => {
         const state = createDefaultState();
-        const reviewerNudge = THRESHOLDS["reviewer"].nudge!;
+        const reviewerNudge = THRESHOLDS["feature-reviewer"].nudge!;
 
         // Simulate agent having started a while ago
         state.startedAt = Date.now() - reviewerNudge - 1000;
@@ -104,7 +104,7 @@ describe("createSupervisorPreToolHook", () => {
         const hook = createSupervisorPreToolHook(state);
         const result = await hook(
             makePreToolInput({
-                agent_type: "reviewer",
+                agent_type: "feature-reviewer",
                 tool_input: { command: "git diff" }
             })
         );
@@ -116,14 +116,14 @@ describe("createSupervisorPreToolHook", () => {
 
     it("does not fire wall-clock nudge a second time", async () => {
         const state = createDefaultState();
-        const reviewerNudge = THRESHOLDS["reviewer"].nudge!;
+        const reviewerNudge = THRESHOLDS["feature-reviewer"].nudge!;
         state.startedAt = Date.now() - reviewerNudge - 1000;
         state.wallClock.nudgeFired = true;
 
         const hook = createSupervisorPreToolHook(state);
         const result = await hook(
             makePreToolInput({
-                agent_type: "reviewer",
+                agent_type: "feature-reviewer",
                 tool_input: { command: "git diff" }
             })
         );

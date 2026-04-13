@@ -52,7 +52,7 @@ function makeStopInput(overrides: Partial<SubagentStopHookInput> = {}): Subagent
         transcript_path: "/tmp/transcript.json",
         cwd: "/tmp/test-project",
         agent_id: "agent-1",
-        agent_type: "coder",
+        agent_type: "feature-coder",
         agent_transcript_path: "/tmp/agent-transcript.json",
         stop_hook_active: false,
         ...overrides
@@ -60,9 +60,17 @@ function makeStopInput(overrides: Partial<SubagentStopHookInput> = {}): Subagent
 }
 
 describe("createPostAgentValidationHook", () => {
-    it("routes coder to coder handler", async () => {
+    it("routes feature-coder to coder handler", async () => {
         const hook = createPostAgentValidationHook();
-        const result = await hook(makeStopInput({ agent_type: "coder" }));
+        const result = await hook(makeStopInput({ agent_type: "feature-coder" }));
+
+        expect(handleCoder).toHaveBeenCalledWith("/tmp/test-project", expect.any(Object));
+        expect(result).toEqual({ continue: true });
+    });
+
+    it("routes fix-coder to coder handler", async () => {
+        const hook = createPostAgentValidationHook();
+        const result = await hook(makeStopInput({ agent_type: "fix-coder" }));
 
         expect(handleCoder).toHaveBeenCalledWith("/tmp/test-project", expect.any(Object));
         expect(result).toEqual({ continue: true });
@@ -93,7 +101,7 @@ describe("createPostAgentValidationHook", () => {
         vi.mocked(handleCoder).mockResolvedValueOnce(["Build failed"]);
 
         const hook = createPostAgentValidationHook();
-        const result = await hook(makeStopInput({ stop_hook_active: true, agent_type: "coder" }));
+        const result = await hook(makeStopInput({ stop_hook_active: true, agent_type: "feature-coder" }));
 
         expect(handleCoder).toHaveBeenCalled();
         expect(result.decision).toBe("block");
@@ -103,10 +111,10 @@ describe("createPostAgentValidationHook", () => {
         vi.mocked(handleCoder).mockResolvedValueOnce(["Build failed: type error in src/foo.ts", "Lint: 3 errors found"]);
 
         const hook = createPostAgentValidationHook();
-        const result = await hook(makeStopInput({ agent_type: "coder" }));
+        const result = await hook(makeStopInput({ agent_type: "feature-coder" }));
 
         expect(result.decision).toBe("block");
-        expect(result.reason).toContain("coder post-completion checks failed");
+        expect(result.reason).toContain("feature-coder post-completion checks failed");
         expect(result.reason).toContain("Build failed");
         expect(result.reason).toContain("Lint: 3 errors found");
     });
@@ -115,7 +123,7 @@ describe("createPostAgentValidationHook", () => {
         vi.mocked(handleReviewer).mockReturnValueOnce([]);
 
         const hook = createPostAgentValidationHook();
-        const result = await hook(makeStopInput({ agent_type: "reviewer" }));
+        const result = await hook(makeStopInput({ agent_type: "feature-reviewer" }));
 
         expect(result).toEqual({ continue: true });
     });

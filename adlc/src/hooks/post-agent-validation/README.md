@@ -45,14 +45,14 @@ The main router lives in `create-post-agent-validation-hook.ts`.
 Handled agent types:
 
 - `challenge-arbiter`
-- `coder`
+- `feature-coder` / `fix-coder`
 - `document`
 - `domain-mapper`
 - `evidence-researcher`
 - `placement-gate`
 - `plan-gate`
 - `feature-planner`
-- `reviewer`
+- `feature-reviewer` / `fix-reviewer`
 - `simplify`
 
 Unhandled agent types are allowed through, but their metrics are still recorded.
@@ -94,7 +94,7 @@ Handlers return:
 
 Checks: `.adlc/current-challenge-verdict.md` must exist.
 
-### `coder`
+### `feature-coder` / `fix-coder`
 
 Pipeline:
 
@@ -140,7 +140,7 @@ Checks:
 3. every slice must contain acceptance criteria
 4. every slice must contain a `Reference Packages` section
 
-### `reviewer`
+### `feature-reviewer` / `fix-reviewer`
 
 Checks:
 

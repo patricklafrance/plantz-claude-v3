@@ -26,8 +26,12 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
 vi.mock("../../../../src/workflow/agents.js", () => ({
     loadAllAgents: vi.fn<any>(() => ({
         explorer: { description: "mock", prompt: "mock" },
-        coder: { description: "mock", prompt: "mock" },
-        reviewer: { description: "mock", prompt: "mock" }
+        "feature-coder": { description: "mock", prompt: "mock" },
+        "feature-reviewer": { description: "mock", prompt: "mock" },
+        "fix-coder": { description: "mock", prompt: "mock" },
+        "fix-reviewer": { description: "mock", prompt: "mock" },
+        "feature-slice-coordinator": { description: "mock", prompt: "mock" },
+        "fix-slice-coordinator": { description: "mock", prompt: "mock" }
     })),
     loadAgent: vi.fn<any>(() => ({ name: "_adlc-coder", definition: { description: "mock", prompt: "mock" } })),
     runAgent: vi.fn<any>(async () => "resolved")
@@ -253,5 +257,59 @@ describe("runSlices", () => {
         const { abortMerge, completeMerge } = await import("../../../../src/workflow/steps/slices/worktree/merger.js");
         expect(abortMerge).toHaveBeenCalled();
         expect(completeMerge).not.toHaveBeenCalled();
+    });
+
+    it("passes fix-slice-coordinator to pipeline in fix mode", async () => {
+        const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
+        writeFileSync(join(slicesDir, "slice-01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+
+        const { runSlicePipeline } = await import("../../../../src/workflow/steps/slices/revision-loop.js");
+        vi.mocked(runSlicePipeline).mockResolvedValue({ success: true });
+
+        const fixOptions = {
+            cwd: tmpDir,
+            featureBranch: "feat/test-feature",
+            input: { type: "fix-pr" as const, prNumber: 42 }
+        };
+
+        await runSlices(tmpDir, config, "", fixOptions);
+
+        expect(runSlicePipeline).toHaveBeenCalledWith(
+            "alpha",
+            expect.any(String),
+            expect.any(Object),
+            "",
+            config,
+            tmpDir,
+            undefined,
+            "fix-slice-coordinator"
+        );
+    });
+
+    it("uses fix-coder for merge conflict resolution in fix mode", async () => {
+        const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
+        writeFileSync(join(slicesDir, "slice-01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+
+        mockMergeResults["adlc/alpha"] = { success: false, conflictFiles: ["index.ts"] };
+
+        const { runAgent } = await import("../../../../src/workflow/agents.js");
+        vi.mocked(runAgent).mockResolvedValue({ result: "resolved", sessionId: "test-session" });
+
+        const fixOptions = {
+            cwd: tmpDir,
+            featureBranch: "feat/test-feature",
+            input: { type: "fix-text" as const, description: "fix something" }
+        };
+
+        await runSlices(tmpDir, config, "", fixOptions);
+
+        expect(runAgent).toHaveBeenCalledWith(
+            "fix-coder",
+            expect.stringContaining("resolving merge conflicts"),
+            expect.any(String),
+            expect.any(Object),
+            undefined,
+            expect.any(Object)
+        );
     });
 });

@@ -28,7 +28,7 @@ if (values.help || positionals.length === 0 || (subcommand !== "feat" && subcomm
   ${pc.bold("Commands:")}
     ${pc.cyan("feat")} ${pc.green("<description>")}       Plan and implement a new feature from text
     ${pc.cyan("feat")} ${pc.yellow("--issue")} ${pc.green("<N>")}        Plan and implement a feature from a GitHub issue
-    ${pc.cyan("fix")}  ${pc.green("<pr#> <description>")} Fix issues on an existing PR from text
+    ${pc.cyan("fix")}  ${pc.green("<description>")}        Fix an issue from text
     ${pc.cyan("fix")}  ${pc.yellow("--pr")} ${pc.green("<N>")}           Fix issues on an existing PR from GitHub
 
   ${pc.bold("Options:")}
@@ -39,7 +39,7 @@ if (values.help || positionals.length === 0 || (subcommand !== "feat" && subcomm
     ${pc.dim("$")} adlc feat "Add user authentication with OAuth2"
     ${pc.dim("$")} adlc feat --issue 52
     ${pc.dim("$")} adlc feat --dry-run --issue 52
-    ${pc.dim("$")} adlc fix 42 "Issue #51: Fix color..."
+    ${pc.dim("$")} adlc fix "Fix the broken color picker on the settings page"
     ${pc.dim("$")} adlc fix --pr 42
 `);
     process.exit(values.help ? 0 : 1);
@@ -71,20 +71,13 @@ try {
             }
             input = { type: "fix-pr", prNumber };
         } else {
-            const prArg = positionals[1];
-            if (!prArg || !/^\d+$/.test(prArg)) {
-                // eslint-disable-next-line no-console
-                console.error(`${pc.red("Error:")} adlc fix requires a PR number (e.g. adlc fix 42 "description" or adlc fix --pr 42)`);
-                process.exit(1);
-            }
-            const prNumber = parseInt(prArg, 10);
-            const description = positionals.slice(2).join(" ");
+            const description = positionals.slice(1).join(" ");
             if (!description) {
                 // eslint-disable-next-line no-console
-                console.error(`${pc.red("Error:")} adlc fix requires an issues description (e.g. adlc fix 42 "Issue #51: Fix color...")`);
+                console.error(`${pc.red("Error:")} adlc fix requires a description (e.g. adlc fix "Fix the broken color picker" or adlc fix --pr 42)`);
                 process.exit(1);
             }
-            input = { type: "fix-text", prNumber, description };
+            input = { type: "fix-text", description };
         }
     } else {
         if (values.pr) {

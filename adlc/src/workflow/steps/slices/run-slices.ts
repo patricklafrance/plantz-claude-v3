@@ -37,6 +37,10 @@ export async function runSlices(
     const runDir = resolve(cwd, ".adlc", runDirName);
     const dag = buildDAG(resolve(runDir, "slices"));
 
+    const isFixMode = options.input.type === "fix-text" || options.input.type === "fix-pr";
+    const coordinatorAgent = isFixMode ? "fix-slice-coordinator" : "feature-slice-coordinator";
+    const coderAgent = isFixMode ? "fix-coder" : "feature-coder";
+
     if (options.dryRun) {
         for (const wave of dag.waves) {
             const names = wave.slices.map(s => s.name).join(", ");
@@ -89,7 +93,7 @@ export async function runSlices(
             const results = await Promise.allSettled(
                 waveItems.map(({ slice, wt }, i) => {
                     progress?.slice(slice.name, "pipeline", "starting");
-                    return runSlicePipeline(slice.name, wt.path, ports[i], preamble, config, cwd, progress);
+                    return runSlicePipeline(slice.name, wt.path, ports[i], preamble, config, cwd, progress, coordinatorAgent);
                 })
             );
 
@@ -110,7 +114,7 @@ export async function runSlices(
                         progress?.slice(slice.name, "merge", `conflict in ${conflictFiles.join(", ")} — resolving`);
 
                         // eslint-disable-next-line no-await-in-loop
-                        const resolved = await resolveConflicts(slice.name, conflictFiles, preamble, config, cwd, progress, hooks);
+                        const resolved = await resolveConflicts(slice.name, conflictFiles, preamble, config, cwd, progress, hooks, coderAgent);
                         if (resolved) {
                             completeMerge(cwd, `merge: resolve conflicts for ${slice.name}`);
                             // eslint-disable-next-line no-await-in-loop
@@ -146,7 +150,8 @@ async function resolveConflicts(
     config: ResolvedConfig,
     cwd: string,
     progress?: Progress,
-    hooks?: ReturnType<typeof createHooks>["hooks"]
+    hooks?: ReturnType<typeof createHooks>["hooks"],
+    coderAgent = "feature-coder"
 ): Promise<boolean> {
     try {
         const agents = loadAllAgents(preamble, config, cwd, getRunDirName()!);
@@ -160,7 +165,7 @@ async function resolveConflicts(
             "Do NOT commit — just stage the resolved files."
         ].join("\n");
 
-        await runAgent("coder", prompt, cwd, agents, progress, hooks);
+        await runAgent(coderAgent, prompt, cwd, agents, progress, hooks);
 
         return true;
     } catch {

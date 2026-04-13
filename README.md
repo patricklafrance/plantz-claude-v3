@@ -1,6 +1,6 @@
 # ADLC
 
-A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates nineteen agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
+A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates twenty-three agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
 
 ## What is an agent harness?
 
@@ -50,8 +50,8 @@ flowchart TD
 
         subgraph SliceLoop["3. Execution (parallel slices)"]
             direction LR
-            Explorer --> Coder --> Reviewer
-            Reviewer -. "failures" .-> Coder
+            Explorer --> FeatureCoder["Feature Coder"] --> FeatureReviewer["Feature Reviewer"]
+            FeatureReviewer -. "failures" .-> FeatureCoder
         end
 
         SliceLoop --> Simplify["4. Simplify"] --> Document["5. Document"] --> PR["6. Pull Request"] --> Monitor["7. Monitor CI"]
@@ -91,8 +91,8 @@ flowchart TD
 
         subgraph SliceLoop["2. Execution (parallel slices)"]
             direction LR
-            Explorer --> Coder --> Reviewer
-            Reviewer -. "failures" .-> Coder
+            Explorer["Explorer (conditional)"] --> FixCoder["Fix Coder"] --> FixReviewer["Fix Reviewer"]
+            FixReviewer -. "failures" .-> FixCoder
         end
 
         SliceLoop --> Simplify["3. Simplify"] --> PRUpdate["4. PR Update"] --> Monitor["5. Monitor CI"]
@@ -113,6 +113,7 @@ flowchart TD
 | Gather        | Writes input file (text) or fetches GitHub issue (agent) | Writes input file (text) or fetches linked adlc-fix issues (agent) |
 | Placement     | Domain mapping + gate                                    | Skipped                                                            |
 | Planning      | Feature planner + gate + challenge                       | Fix planner (1:1 issue-to-slice)                                   |
+| Execution     | `feature-slice-coordinator` + `feature-coder` + `feature-reviewer` | `fix-slice-coordinator` + `fix-coder` + `fix-reviewer`       |
 | Documentation | Updates reference docs                                   | Skipped                                                            |
 | PR            | Creates new PR                                           | Appends fix section to existing PR                                 |
 | Steps         | 8 (0–7)                                                  | 6 (0–5)                                                            |
@@ -125,7 +126,7 @@ All inter-agent coordination goes through files in `.adlc/` — plan-header, sli
 
 ## Agents
 
-Twenty agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
+Twenty-three agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
 
 | Agent                   | Workflow | What it does                                                                            |
 | ----------------------- | -------- | --------------------------------------------------------------------------------------- |
@@ -141,10 +142,13 @@ Twenty agents form the pipeline. Each is defined as a markdown file with YAML fr
 | `feature-planner`       | feat     | Drafts a multi-slice plan with acceptance criteria per slice                            |
 | `plan-gate`             | feat     | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
 | `fix-planner`           | fix      | Generates one fix slice per GitHub issue — scoped corrections, no gate                  |
-| `slice-coordinator`     | both     | Orchestrates slice execution: explorer, coder, and reviewer retry loop                  |
+| `feature-slice-coordinator` | feat | Orchestrates slice execution: explorer, coder, and reviewer retry loop                  |
+| `fix-slice-coordinator`     | fix  | Orchestrates fix slice execution: conditional explorer, fix-coder/fix-reviewer loop     |
 | `explorer`              | both     | Surveys reference packages for a slice, returns patterns summary for the coder          |
-| `coder`                 | both     | Implements a single slice — code, MSW handlers, Storybook stories                       |
-| `reviewer`              | both     | Verifies acceptance criteria via browser screenshots and interactions                   |
+| `feature-coder`         | feat     | Implements a single slice — code, MSW handlers, Storybook stories                       |
+| `feature-reviewer`      | feat     | Verifies acceptance criteria via Storybook stories and host app sanity checks           |
+| `fix-coder`             | fix      | Fixes a single issue — fewer skills, updates existing stories instead of creating new   |
+| `fix-reviewer`          | fix      | Verifies fix criteria via host app first, conditional Storybook and dark mode           |
 | `simplify`              | both     | Reviews changed code for reuse, quality, and efficiency, then fixes issues              |
 | `document`              | feat     | Updates module docs and architecture references to reflect what was built               |
 | `pr`                    | both     | Creates new PR (feat) or appends fix section to existing PR (fix)                       |
@@ -164,21 +168,21 @@ Block a subagent's completion until its deliverables meet structural and quality
 
 | Agent                 | Checks                                                                                                                                                                                                                     |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `coder`               | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
+| `feature-coder` / `fix-coder` | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
 | `feature-planner`     | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
 | `plan-gate`           | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
 | `domain-mapper`       | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
 | `evidence-researcher` | evidence findings file exists                                                                                                                                                                                              |
 | `placement-gate`      | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                               |
-| `reviewer`            | verification results exist, results cover every acceptance criterion from the slice                                                                                                                                        |
+| `feature-reviewer` / `fix-reviewer` | verification results exist, results cover every acceptance criterion from the slice                                                                                                                        |
 
 ### Context refreshers
 
-Block once per slice with a concise checklist — forcing attention on concerns that are easy to forget after thousands of tokens. Currently: `coder` gets reminded about MSW handlers, story variants, and implementation notes (keyed by slice name via `.adlc/markers.json`).
+Block once per slice with a concise checklist — forcing attention on concerns that are easy to forget after thousands of tokens. Currently: `feature-coder` and `fix-coder` get reminded about MSW handlers, story variants, and implementation notes (keyed by slice name via `.adlc/markers.json`).
 
 ### Autofixers
 
-`format-fix` and `lint-fix` run automatically before validation for `coder`, `simplify`, and `document`. Formatting violations never surface as failures.
+`format-fix` and `lint-fix` run automatically before validation for `feature-coder`, `fix-coder`, `simplify`, and `document`. Formatting violations never surface as failures.
 
 ### Run metrics
 
@@ -404,7 +408,7 @@ export default defineConfig({
         browser: 9200
     },
     agents: {
-        coder: {
+        "feature-coder": {
             skills: ["accessibility"] // extra skills resolved to .claude/skills/{name}/SKILL.md
         }
     }

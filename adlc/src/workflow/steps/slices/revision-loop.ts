@@ -14,7 +14,8 @@ export async function runSlicePipeline(
     preamble: string,
     config: ResolvedConfig,
     cwd: string,
-    progress?: Progress
+    progress?: Progress,
+    coordinatorAgent = "feature-slice-coordinator"
 ): Promise<{ success: boolean; reason?: string }> {
     const agents = loadAllAgents(preamble, config, cwd, getRunDirName()!);
     const { hooks } = createHooks({ cwd: worktreePath });
@@ -22,7 +23,7 @@ export async function runSlicePipeline(
     progress?.slice(sliceName, "coordinator", "starting slice pipeline");
 
     const { result } = await runAgent(
-        "slice-coordinator",
+        coordinatorAgent,
         `Implement and verify slice: ${sliceName}`,
         worktreePath,
         agents,

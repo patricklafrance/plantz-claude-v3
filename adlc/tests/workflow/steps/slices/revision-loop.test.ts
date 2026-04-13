@@ -26,7 +26,8 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
 
 vi.mock("../../../../src/workflow/agents.js", () => ({
     loadAllAgents: vi.fn<any>(() => ({
-        "slice-coordinator": { description: "mock", prompt: "mock" }
+        "feature-slice-coordinator": { description: "mock", prompt: "mock" },
+        "fix-slice-coordinator": { description: "mock", prompt: "mock" }
     })),
     runAgent: vi.fn<any>()
 }));
@@ -76,14 +77,22 @@ function getRunAgentCall() {
 describe("runSlicePipeline", () => {
     beforeEach(() => {
         queryCallLog = [];
+        vi.clearAllMocks();
         vi.mocked(runAgent).mockResolvedValue({ result: "Slice passed verification", sessionId: "mock-session-id" });
     });
 
-    it("delegates to slice-coordinator agent", async () => {
+    it("delegates to feature-slice-coordinator agent by default", async () => {
         await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(runAgent).toHaveBeenCalledOnce();
-        expect(getRunAgentCall().agentName).toBe("slice-coordinator");
+        expect(getRunAgentCall().agentName).toBe("feature-slice-coordinator");
+    });
+
+    it("accepts a custom coordinator agent name", async () => {
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd", undefined, "fix-slice-coordinator");
+
+        expect(runAgent).toHaveBeenCalledOnce();
+        expect(getRunAgentCall().agentName).toBe("fix-slice-coordinator");
     });
 
     it("passes slice name in the prompt", async () => {
