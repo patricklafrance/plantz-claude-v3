@@ -34,6 +34,8 @@ Push the branch and open a PR. The title should be short and descriptive of the 
 
 {What this feature does from the user's perspective — derived from the feature description}
 
+{If the feature description contains a GitHub issue URL or `#N` reference, add `Closes #N` here — use the short `#N` form even if a full URL was provided.}
+
 ## Technical Changes
 
 {Most important structural changes — new modules, new packages, data model additions, new ADRs. Derived from plan-header and implementation-notes.}
