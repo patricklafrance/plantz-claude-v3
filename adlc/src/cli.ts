@@ -6,7 +6,6 @@ import { parseArgs } from "node:util";
 import pc from "picocolors";
 
 import { run } from "./workflow/orchestrator.ts";
-import { collectFixIssues } from "./workflow/steps/fix-plan.ts";
 
 const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -24,8 +23,8 @@ if (values.help || positionals.length === 0 || (subcommand !== "feat" && subcomm
   ${pc.bold(pc.cyan("adlc"))} ${pc.dim("— Agent-Driven Lifecycle CLI")}
 
   ${pc.bold("Commands:")}
-    ${pc.cyan("feat")} ${pc.green("<feature-description>")}   Plan and implement a new feature
-    ${pc.cyan("fix")}  ${pc.green("<pr-number>")}              Fix issues flagged on an existing PR
+    ${pc.cyan("feat")} ${pc.green("<feature-description>")}            Plan and implement a new feature
+    ${pc.cyan("fix")}  ${pc.green("<pr-number> <issues-description>")}  Fix issues flagged on an existing PR
 
   ${pc.bold("Options:")}
     ${pc.yellow("--dry-run")}           Show wave schedule without executing
@@ -34,8 +33,8 @@ if (values.help || positionals.length === 0 || (subcommand !== "feat" && subcomm
   ${pc.bold("Examples:")}
     ${pc.dim("$")} adlc feat "Add user authentication with OAuth2"
     ${pc.dim("$")} adlc feat --dry-run "Add household feature"
-    ${pc.dim("$")} adlc fix 42
-    ${pc.dim("$")} adlc fix 42 --dry-run
+    ${pc.dim("$")} adlc fix 42 "Issue #51: Fix color\\nLink: ...\\n\\nColor should be blue"
+    ${pc.dim("$")} adlc fix 42 --dry-run "Fix color issue"
 `);
     process.exit(values.help ? 0 : 1);
 }
@@ -52,12 +51,18 @@ try {
         }
 
         const prNumber = parseInt(prArg, 10);
-        const fixTarget = await collectFixIssues(prNumber, cwd);
+        const description = positionals.slice(2).join(" ");
+
+        if (!description) {
+            // eslint-disable-next-line no-console
+            console.error(`${pc.red("Error:")} adlc fix requires an issues description (e.g. adlc fix 42 "Issue #51: Fix color...")`);
+            process.exit(1);
+        }
 
         await run(`Fix PR #${prNumber}`, {
             cwd,
             dryRun: values["dry-run"],
-            fix: fixTarget
+            fix: { prNumber, description }
         });
     } else {
         const featureDescription = positionals.slice(1).join(" ");

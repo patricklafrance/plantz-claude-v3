@@ -340,7 +340,3 @@ Users can share responsibility, coordinate actions, and maintain visibility into
 The feature reduces confusion, avoids duplicate work, and better reflects real-world shared environments.
 
 This introduces significant complexity across domain modeling, workflows, and UI, making it a strong candidate for testing advanced agent orchestration.
-
-## ADLC
-
-Build this task using the `_adlc` skill.

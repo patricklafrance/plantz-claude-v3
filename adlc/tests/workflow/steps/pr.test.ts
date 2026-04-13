@@ -74,7 +74,7 @@ describe("runPrUpdate", () => {
 
     it("delegates to pr agent with fix mode prompt", async () => {
         await runPrUpdate(
-            { prNumber: 42, branch: "feat/plants", issues: [{ number: 51, title: "Fix color", body: "Blue" }] },
+            { prNumber: 42, description: "Issue #51: Fix color\nColor should be blue" },
             "/tmp/test",
             mockAgents
         );
@@ -84,27 +84,24 @@ describe("runPrUpdate", () => {
         expect(queryCallLog[0].prompt).toContain("Mode: fix");
     });
 
-    it("includes PR number and issue refs in prompt", async () => {
+    it("includes PR number and description in prompt", async () => {
         await runPrUpdate(
             {
                 prNumber: 42,
-                branch: "feat/plants",
-                issues: [
-                    { number: 51, title: "Fix color", body: "Blue" },
-                    { number: 52, title: "Fix sort", body: "Sort" }
-                ]
+                description: "Issue #51: Fix color\nLink: https://github.com/owner/repo/issues/51\n\nColor should be blue\n\nIssue #52: Fix sort\nLink: https://github.com/owner/repo/issues/52\n\nSort order wrong"
             },
             "/tmp/test",
             mockAgents
         );
 
         expect(queryCallLog[0].prompt).toContain("PR #42");
-        expect(queryCallLog[0].prompt).toContain("#51, #52");
+        expect(queryCallLog[0].prompt).toContain("Issue #51: Fix color");
+        expect(queryCallLog[0].prompt).toContain("Issue #52: Fix sort");
     });
 
     it("returns the PR number as string", async () => {
         const prNumber = await runPrUpdate(
-            { prNumber: 42, branch: "feat/plants", issues: [{ number: 51, title: "Fix", body: "Fix" }] },
+            { prNumber: 42, description: "Issue #51: Fix it" },
             "/tmp/test",
             mockAgents
         );
@@ -117,7 +114,7 @@ describe("runPrUpdate", () => {
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
         await runPrUpdate(
-            { prNumber: 42, branch: "feat/plants", issues: [{ number: 51, title: "Fix", body: "Fix" }] },
+            { prNumber: 42, description: "Issue #51: Fix it" },
             "/tmp/test",
             mockAgents,
             undefined,

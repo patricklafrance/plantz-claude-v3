@@ -21,7 +21,7 @@ Launch the ADLC fix pipeline to address issues flagged on a PR.
 
 Strip any leading `#` from the argument. If no argument is provided or it's not a valid number, stop and ask the user to provide a PR number.
 
-### 2. Preview the issues
+### 2. Fetch and compose issues
 
 Use the Bash tool to run:
 
@@ -29,14 +29,27 @@ Use the Bash tool to run:
 gh issue list --label adlc-fix --state open --json number,title,body,labels --repo patricklafrance/plantz-claude-v3
 ```
 
-Filter the output to issues that reference the PR. Show the user a summary of which issues will be fixed.
+Filter the JSON output to issues whose `body` contains a reference to the PR (either `#<pr-number>` or the full PR URL `https://github.com/patricklafrance/plantz-claude-v3/pull/<pr-number>`).
+
+If no matching issues are found, stop and tell the user there are no open `adlc-fix` issues linked to that PR.
+
+Compose a **description string** by concatenating each matching issue using this template, separated by blank lines:
+
+```
+Issue #<number>: <title>
+Link: https://github.com/patricklafrance/plantz-claude-v3/issues/<number>
+
+<body>
+```
+
+Show the user a summary of which issues will be fixed.
 
 ### 3. Run the ADLC fix pipeline
 
 Use the **Bash** tool to run the ADLC fix CLI directly from the repository root. Use a long timeout (600000ms) since the pipeline takes time to complete:
 
 ```
-pnpm exec adlc fix <pr-number>
+pnpm exec adlc fix <pr-number> "<composed-description>"
 ```
 
 If the process exits with a non-zero code, report the error. Otherwise, report that the ADLC fix pipeline completed successfully and summarize any output.

@@ -27,10 +27,12 @@ export async function runPrUpdate(
     progress?: Progress,
     hooks?: SDKHooks
 ): Promise<string> {
-    const issueRefs = fix.issues.map(i => `#${i.number}`).join(", ");
     const prompt = [
         `Update PR #${fix.prNumber} with fix results.`,
-        `Fixed issues: ${issueRefs}`,
+        "",
+        "Fixed issues:",
+        fix.description,
+        "",
         "Mode: fix"
     ].join("\n");
 

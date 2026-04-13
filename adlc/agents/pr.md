@@ -51,7 +51,7 @@ Return the PR number.
 
 ## Fix Mode
 
-When the prompt contains `Mode: fix`, you are updating an existing PR instead of creating a new one. The prompt includes the PR number and the list of fixed issues.
+When the prompt contains `Mode: fix`, you are updating an existing PR instead of creating a new one. The prompt includes the PR number and a free-form description of the fixed issues (extract issue references like `#N` from the text).
 
 ### Process (fix mode)
 

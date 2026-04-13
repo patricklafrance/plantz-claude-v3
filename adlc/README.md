@@ -13,5 +13,5 @@ pnpm add @patlaf/adlc
 pnpm adlc feat "Add a household feature"
 
 # Fix issues flagged on a PR
-pnpm adlc fix 42
+pnpm adlc fix 42 "Issue #51: Fix color\n\nColor should be blue"
 ```

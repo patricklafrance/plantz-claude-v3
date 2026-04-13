@@ -11,9 +11,9 @@ Generate one fix slice per GitHub issue. Each issue describes a focused correcti
 
 ## Inputs
 
-| Input    | Description                                      |
-| -------- | ------------------------------------------------ |
-| `issues` | List of GitHub issues (number, title, body) to fix |
+| Input         | Description                                                        |
+| ------------- | ------------------------------------------------------------------ |
+| `description` | Free-form text describing the issues to fix (composed by the caller) |
 
 ## Process
 

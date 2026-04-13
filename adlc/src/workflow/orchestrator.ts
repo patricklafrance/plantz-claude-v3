@@ -70,10 +70,8 @@ export function cleanAdlcState(adlcRoot: string): void {
 export interface FixTarget {
     /** PR number to fix. */
     prNumber: number;
-    /** Head branch of the PR. */
-    branch: string;
-    /** GitHub issues to fix. */
-    issues: Array<{ number: number; title: string; body: string }>;
+    /** Free-form text describing the issues to fix (composed by the skill layer). */
+    description: string;
 }
 
 export interface OrchestratorOptions {
