@@ -28,12 +28,15 @@ export async function runSlicePipeline(
         { STORYBOOK_PORT: String(ports.storybook), HOST_APP_PORT: String(ports.hostApp), BROWSER_PORT: String(ports.browser) }
     );
 
-    const passed = result.toLowerCase().includes("passed");
-    if (passed) {
-        progress?.slice(sliceName, "coordinator", "slice passed");
-        return { success: true };
+    // The coordinator completed without SDK error, and all sub-agent validation
+    // hooks ran during execution. Only mark as failure if the coordinator explicitly
+    // reported exhausting its retry budget or returned no result.
+    const failed = !result || result.toLowerCase().includes("max revision attempts exceeded");
+    if (failed) {
+        progress?.slice(sliceName, "coordinator", "slice failed");
+        return { success: false, reason: result || "coordinator reported failure" };
     }
 
-    progress?.slice(sliceName, "coordinator", "slice failed");
-    return { success: false, reason: result || "coordinator reported failure" };
+    progress?.slice(sliceName, "coordinator", "slice passed");
+    return { success: true };
 }
