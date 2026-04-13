@@ -21,13 +21,13 @@ Resolve architecture upfront, slice the work, define success through acceptance 
 ### 1. Load context
 
 - Read the `architecture` reference doc, the `adr` reference doc, and the `placement` reference doc.
-- Read `.adlc/domain-mapping.md`. The Mapping table tells you which features go to which modules and packages — carry these decisions forward, don't re-derive them.
+- Read `domain-mapping.md` (in the ADLC run directory). The Mapping table tells you which features go to which modules and packages — carry these decisions forward, don't re-derive them.
 - Scan the reference docs listed in the Project context section above for any additional docs relevant to the feature.
 
 ### 2. Analyze requirements
 
 - **Draft:** Determine which modules and packages the feature affects.
-- **Revision:** Read the existing plan in `.adlc/` and the rejection in `.adlc/plan-gate-revision.md`. Revise only what was flagged.
+- **Revision:** Read the existing plan and the rejection in `plan-gate-revision.md`. Revise only what was flagged.
 - If the feature is too vague to resolve durable decisions, print what's missing and stop.
 
 ### 3. Resolve durable decisions
@@ -57,7 +57,7 @@ Scope describes what at the module/component level — no file paths, function n
 
 ## Output Format
 
-All files written to `.adlc/`.
+All files written to the ADLC run directory.
 
 ### plan-header.md (under 40 lines)
 

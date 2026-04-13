@@ -79,7 +79,7 @@ describe("install-gate policy", () => {
             const state = makeState();
             const result = checkInstallGate(event, state, { manifestDiff: false, overrideReason: null });
             expect(result!.action).toBe("block");
-            expect(result!.reason).toContain(".adlc/allow-install");
+            expect(result!.reason).toContain("allow-install");
         });
 
         it("allows pnpm install when manifestDiff is true", () => {

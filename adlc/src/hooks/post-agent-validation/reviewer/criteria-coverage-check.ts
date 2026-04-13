@@ -6,6 +6,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { resolveRunDir } from "../utils.ts";
+
 // -- Parsers -------------------------------------------------------------
 
 /**
@@ -53,7 +55,7 @@ function normalize(text: string): string {
 // -- Check ---------------------------------------------------------------
 
 export function criteriaCoverageCheck(cwd: string): string[] {
-    const resultsPath = resolve(cwd, ".adlc", "verification-results.md");
+    const resultsPath = resolve(resolveRunDir(cwd), "verification-results.md");
 
     let resultsContent: string;
     try {
@@ -65,7 +67,7 @@ export function criteriaCoverageCheck(cwd: string): string[] {
 
     let sliceContent: string;
     try {
-        sliceContent = readFileSync(resolve(cwd, ".adlc", "current-slice.md"), "utf8");
+        sliceContent = readFileSync(resolve(resolveRunDir(cwd), "current-slice.md"), "utf8");
     } catch {
         // No current-slice.md -- skip the coverage check
         return [];

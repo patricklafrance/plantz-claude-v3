@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { listFiles } from "../utils.ts";
+import { listFiles, resolveRunDir } from "../utils.ts";
 
 /** True when the content contains at least one `- [ ] ...` checkbox. */
 function hasCriteria(content: string): boolean {
@@ -12,7 +12,7 @@ function hasCriteria(content: string): boolean {
 
 export function sliceCriteriaCheck(cwd: string): string[] {
     const sliceFilesCheck = listFiles(cwd, "slices", ".md");
-    const slicesDir = resolve(cwd, ".adlc", "slices");
+    const slicesDir = resolve(resolveRunDir(cwd), "slices");
     const emptyCriteria: string[] = [];
 
     for (const file of sliceFilesCheck) {

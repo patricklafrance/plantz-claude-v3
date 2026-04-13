@@ -15,14 +15,14 @@ Verify every acceptance criterion in a slice through visual inspection of Storyb
 
 ## Inputs
 
-No inputs — reads `.adlc/current-slice.md` directly.
+No inputs — reads `current-slice.md` directly.
 
 ## Process
 
 ### 1. Load context
 
-- Read `.adlc/current-slice.md` — extract all acceptance criteria from the Visual and Interactive sections.
-- Read the current slice's implementation notes from `.adlc/implementation-notes/{id}.md`, where `{id}` is the frontmatter `id` from the slice.
+- Read `current-slice.md` (in the ADLC run directory) — extract all acceptance criteria from the Visual and Interactive sections.
+- Read the current slice's implementation notes from `implementation-notes/{id}.md`, where `{id}` is the frontmatter `id` from the slice.
 - Read the `browser` reference doc.
 
 ### 2. Verify acceptance criteria via Storybook
@@ -54,7 +54,7 @@ Skip this step when all criteria pass.
 
 ### 5. Write results
 
-Write `.adlc/verification-results.md`. Every criterion from the slice must appear in exactly one section (Passed or Failed).
+Write `verification-results.md`. Every criterion from the slice must appear in exactly one section (Passed or Failed).
 
 <verification-results-template>
 

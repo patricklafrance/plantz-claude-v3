@@ -17,7 +17,7 @@ Read in this order to minimize anchoring on the mapper's framing:
 
 1. Read the `placement` reference doc.
 2. Read registration files and key source files of modules relevant to the "create" decisions (routes, components, data layer).
-3. Read `.adlc/domain-mapping.md`.
+3. Read `domain-mapping.md` (in the ADLC run directory).
 
 Do not read the feature description. The mapper's forcing question answers provide the feature context you need.
 

@@ -20,20 +20,20 @@ Decide where a feature belongs before planning begins.
 
 ### `draft` (default)
 
-Run the full process below (steps 1-6). If `.adlc/placement-gate-revision.md` exists, read it and incorporate the gate issues as constraints.
+Run the full process below (steps 1-6). If `placement-gate-revision.md` (in the ADLC run directory) exists, read it and incorporate the gate issues as constraints.
 
 ### `evidence-revision`
 
-The Evidence Researcher has produced `.adlc/current-evidence-findings.md` with structured observations and inferences for your evidence gaps. Incorporate the findings and re-evaluate all rows in the mapping — not just the ones that were `insufficient_evidence`. Update `.adlc/domain-mapping.md` with revised decisions.
+The Evidence Researcher has produced `current-evidence-findings.md` with structured observations and inferences for your evidence gaps. Incorporate the findings and re-evaluate all rows in the mapping — not just the ones that were `insufficient_evidence`. Update `domain-mapping.md` with revised decisions.
 
 ### `challenge-revision`
 
-Read `.adlc/current-challenge-verdict.md`. For each concern:
+Read `current-challenge-verdict.md`. For each concern:
 
 1. Treat the verdict's recommendation and your original decision as **two proposals on equal footing**. Select the one with stronger artifact-level evidence.
 2. For "contested" verdicts: both positions are presented — evaluate independently.
 3. If rejecting: cite artifact-level evidence and acknowledge the strongest counter-argument.
-4. Update `.adlc/domain-mapping.md` with a `## Challenge Resolution` section documenting outcomes and evidence.
+4. Update `domain-mapping.md` with a `## Challenge Resolution` section documenting outcomes and evidence.
 
 ## Process
 
@@ -86,7 +86,7 @@ When heuristics diverge, check the feature's purpose against the module mental m
 
 ### 5. Write output
 
-Write `.adlc/domain-mapping.md` using the template below.
+Write `domain-mapping.md` using the template below.
 
 ## Output
 

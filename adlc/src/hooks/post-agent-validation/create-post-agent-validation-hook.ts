@@ -14,7 +14,7 @@ import { handleCoder } from "./coder/handler.ts";
 import { handleDocument } from "./document/handler.ts";
 import { handleModuleMapper } from "./domain-mapper/handler.ts";
 import { handleEvidenceResearcher } from "./evidence-researcher/handler.ts";
-import { archiveArtifacts, recordMetrics } from "./metrics.ts";
+import { recordMetrics } from "./metrics.ts";
 import { handlePlacementGate } from "./placement-gate/handler.ts";
 import { handlePlanGate } from "./plan-gate/handler.ts";
 import { handlePlanner } from "./planner/handler.ts";
@@ -52,7 +52,6 @@ export function createPostAgentValidationHook() {
         const problems = await handler(cwd);
         if (problems.length === 0) {
             recordMetrics(transcriptPath, agentType, cwd);
-            archiveArtifacts(agentType, cwd);
             return { continue: true };
         }
 

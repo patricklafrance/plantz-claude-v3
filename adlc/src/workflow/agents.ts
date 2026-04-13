@@ -139,7 +139,7 @@ function resolveSkillName(name: string, cwd: string): string {
  * @param cwd - Target repository root; used to resolve consumer skill names to paths.
  * @returns a record keyed by agent name.
  */
-export function loadAllAgents(preamble?: string, config?: ResolvedConfig, cwd?: string): Record<string, AgentDefinition> {
+export function loadAllAgents(preamble?: string, config?: ResolvedConfig, cwd?: string, runDirName?: string): Record<string, AgentDefinition> {
     const files = readdirSync(AGENTS_DIR).filter(f => f.endsWith(".md"));
     const agents: Record<string, AgentDefinition> = {};
     const agentOverrides = config?.agents ?? {};
@@ -149,6 +149,15 @@ export function loadAllAgents(preamble?: string, config?: ResolvedConfig, cwd?: 
 
         if (preamble) {
             definition.prompt = `${preamble}\n\n---\n\n${definition.prompt}`;
+        }
+
+        if (runDirName) {
+            const runDirBlock = [
+                "## ADLC Run Directory",
+                `All ADLC working artifacts are stored in: \`.adlc/${runDirName}/\``,
+                "Read and write all ADLC files (domain-mapping.md, plan-header.md, slices/, etc.) in this directory."
+            ].join("\n");
+            definition.prompt = `${runDirBlock}\n\n${definition.prompt}`;
         }
 
         const extra = agentOverrides[name]?.skills;

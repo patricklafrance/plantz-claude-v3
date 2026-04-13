@@ -18,7 +18,6 @@ chromatic-diagnostics.json
 
 # ADLC run artifacts
 .adlc/
-.adlc-logs/
 
 # CI artifacts
 *.sarif

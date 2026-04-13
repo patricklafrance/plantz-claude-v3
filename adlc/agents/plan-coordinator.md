@@ -8,7 +8,7 @@ maxTurns: 50
 
 # Plan Coordinator
 
-Orchestrate the implementation planning pipeline: planner and plan-gate. You are a **pure orchestrator** — never analyze code, edit source files, or modify `.adlc/` artifacts directly. Delegate all work to specialist agents.
+Orchestrate the implementation planning pipeline: planner and plan-gate. You are a **pure orchestrator** — never analyze code, edit source files, or modify ADLC run directory artifacts directly. Delegate all work to specialist agents.
 
 ## Process
 
@@ -23,21 +23,18 @@ For each iteration:
 
 #### 2. Plan Gate
 
-Before running the gate, clean stale files:
-```
-Bash: rm -f .adlc/plan-gate-revision.md
-```
+Before running the gate, delete `plan-gate-revision.md` from the ADLC run directory using Bash.
 
 Use `Agent` tool to spawn `plan-gate` with prompt: `"Validate the plan structure."`
 
 #### 3. Check Gate Result
 
-Read `.adlc/plan-gate-revision.md`:
+Read `plan-gate-revision.md` (in the ADLC run directory):
 - **File does not exist** → gate passed. Return `"Plan gate passed"`.
 - **File exists** → read the content and extract the specific issues. If iterations remain, go to step 1 with the gate feedback. If this was the last iteration, return a summary of unresolved issues.
 
 ## Constraints
 
 - Never edit source files
-- Never modify `.adlc/` artifacts directly (except stale file cleanup via Bash)
+- Never modify ADLC run directory artifacts directly (except stale file cleanup via Bash)
 - Never analyze code yourself — delegate to specialists

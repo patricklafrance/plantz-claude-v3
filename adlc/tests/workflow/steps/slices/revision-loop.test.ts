@@ -39,6 +39,10 @@ vi.mock("../../../../src/hooks/create-hooks.js", () => ({
     }))
 }));
 
+vi.mock("../../../../src/hooks/post-agent-validation/metrics.js", () => ({
+    getRunDirName: vi.fn<any>(() => "test-run")
+}));
+
 // ── Import under test ───────────────────────────────────────────────────────
 
 import { resolveConfig } from "../../../../src/config.js";

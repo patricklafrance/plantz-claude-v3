@@ -13,13 +13,15 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { resolveRunDir } from "../utils.ts";
+
 interface Concern {
     name: string;
     confidence: string;
 }
 
 export function engagementCheck(cwd: string): string[] {
-    const adlc = resolve(cwd, ".adlc");
+    const adlc = resolveRunDir(cwd);
 
     // Parse the unified verdict
     const concerns = parseVerdict(adlc);

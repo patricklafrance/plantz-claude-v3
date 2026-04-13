@@ -5,8 +5,7 @@ import type { SubagentStopHookInput } from "../../../src/hooks/types.js";
 
 // Mock metrics — avoid filesystem side effects
 vi.mock("../../../src/hooks/post-agent-validation/metrics.js", () => ({
-    recordMetrics: vi.fn<any>(),
-    archiveArtifacts: vi.fn<any>()
+    recordMetrics: vi.fn<any>()
 }));
 
 // Mock all 9 handlers

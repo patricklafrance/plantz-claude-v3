@@ -13,9 +13,9 @@ Keep agent documentation in sync with what the code actually does.
 
 ### 1. Load context
 
-- Read `.adlc/plan-header.md`.
-- Read `.adlc/domain-mapping.md`.
-- Read all files in `.adlc/implementation-notes/`.
+- Read `plan-header.md` (in the ADLC run directory).
+- Read `domain-mapping.md`.
+- Read all files in `implementation-notes/`.
 
 ### 2. Update placement reference
 

@@ -1,17 +1,24 @@
 /**
  * Shared utilities for subagent-stop verification hooks.
- * All functions are pure — no module-level state.
  */
 
 import { exec as execCb, execSync } from "node:child_process";
 import { readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { getRunDirName } from "./metrics.ts";
+
 // ── .adlc artifact helpers ─────────────────────────────────
 
-/** True when the file exists in .adlc/ and is non-empty. */
+/** Resolve the per-run directory for the given working directory. */
+export function resolveRunDir(cwd: string): string {
+    const name = getRunDirName();
+    return name ? resolve(cwd, ".adlc", name) : resolve(cwd, ".adlc");
+}
+
+/** True when the file exists in the run directory and is non-empty. */
 export function hasFile(cwd: string, relativePath: string): boolean {
-    const abs = resolve(cwd, ".adlc", relativePath);
+    const abs = resolve(resolveRunDir(cwd), relativePath);
     try {
         return statSync(abs).size > 0;
     } catch {
@@ -19,9 +26,9 @@ export function hasFile(cwd: string, relativePath: string): boolean {
     }
 }
 
-/** Filenames in an .adlc/ subdirectory, optionally filtered by extension. */
+/** Filenames in a run-directory subdirectory, optionally filtered by extension. */
 export function listFiles(cwd: string, relativeDir: string, ext?: string): string[] {
-    const abs = resolve(cwd, ".adlc", relativeDir);
+    const abs = resolve(resolveRunDir(cwd), relativeDir);
     try {
         const entries = readdirSync(abs);
         return ext ? entries.filter(f => f.endsWith(ext)) : entries;

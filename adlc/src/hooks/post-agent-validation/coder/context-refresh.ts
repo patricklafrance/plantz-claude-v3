@@ -14,6 +14,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { resolveRunDir } from "../utils.ts";
+
 const MARKER_KEY_PREFIX = "context-refresh:";
 
 // -- Slice key -----------------------------------------------------------
@@ -46,7 +48,7 @@ const CONTEXT_REFRESH_MESSAGE = [
 ].join("\n");
 
 export function contextRefreshCheck(cwd: string, markers: Record<string, boolean>): string[] {
-    const slicePath = resolve(cwd, ".adlc", "current-slice.md");
+    const slicePath = resolve(resolveRunDir(cwd), "current-slice.md");
 
     if (!existsSync(slicePath)) {
         return [];

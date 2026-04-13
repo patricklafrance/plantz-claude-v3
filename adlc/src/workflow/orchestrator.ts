@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, renameSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadConfig, resolveConfig } from "../config.ts";
 import { buildProjectContext, contextToPreamble } from "../context.ts";
 import { createHooks } from "../hooks/create-hooks.ts";
-import { initLogsDir } from "../hooks/post-agent-validation/metrics.ts";
+import { getRunDirName, initRunDir } from "../hooks/post-agent-validation/metrics.ts";
 import { validateRepository } from "../preflight.ts";
 import { Progress } from "../progress.ts";
 import { classifyReferenceDocs, loadAllAgents } from "./agents.ts";
@@ -20,52 +20,6 @@ import { runSlices } from "./steps/slices/run-slices.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "utf-8")) as { version: string };
-
-/**
- * Remove stale state files from .adlc/ so a fresh run starts clean.
- * Only touches known workflow artifacts — leaves the directory itself
- * and any unknown files intact.
- */
-export function cleanAdlcState(adlcRoot: string): void {
-    if (!existsSync(adlcRoot)) {
-        return;
-    }
-
-    // Individual state files produced by agents / hooks.
-    const staleFiles = [
-        "domain-mapping.md",
-        "plan-header.md",
-        "current-challenge-verdict.md",
-        "current-evidence-findings.md",
-        "current-explorer-summary.md",
-        "placement-gate-revision.md",
-        "plan-gate-revision.md",
-        "allow-install",
-        "metrics-dir",
-        "current-slice.md"
-    ];
-
-    for (const name of staleFiles) {
-        const filePath = resolve(adlcRoot, name);
-        if (existsSync(filePath)) {
-            rmSync(filePath);
-        }
-    }
-
-    // Directories whose contents are fully regenerated each run.
-    const staleDirs = ["slices", "implementation-notes", "verification-results"];
-
-    for (const name of staleDirs) {
-        const dirPath = resolve(adlcRoot, name);
-        if (!existsSync(dirPath)) {
-            continue;
-        }
-
-        for (const entry of readdirSync(dirPath)) {
-            rmSync(resolve(dirPath, entry), { recursive: true });
-        }
-    }
-}
 
 export interface FixTarget {
     /** PR number to fix. */
@@ -104,13 +58,7 @@ export async function run(featureDescription: string, options: OrchestratorOptio
         doneValidate();
 
         const doneDirs = progress.start("init", "Preparing workspace");
-        const adlcRoot = resolve(cwd, ".adlc");
-        cleanAdlcState(adlcRoot);
-        mkdirSync(resolve(adlcRoot, "slices"), { recursive: true });
-        mkdirSync(resolve(adlcRoot, "implementation-notes"), { recursive: true });
-        mkdirSync(resolve(adlcRoot, "verification-results"), { recursive: true });
-        mkdirSync(resolve(cwd, ".adlc-logs"), { recursive: true });
-        runDir = initLogsDir(cwd);
+        runDir = initRunDir(cwd);
         doneDirs();
 
         const doneScan = progress.start("init", "Scanning project files");
@@ -125,7 +73,7 @@ export async function run(featureDescription: string, options: OrchestratorOptio
         const preamble = contextToPreamble(projectContext);
 
         const doneAgents = progress.start("init", "Loading agent definitions");
-        const agents = loadAllAgents(preamble, config, cwd);
+        const agents = loadAllAgents(preamble, config, cwd, getRunDirName()!);
         doneAgents();
 
         doneInit();

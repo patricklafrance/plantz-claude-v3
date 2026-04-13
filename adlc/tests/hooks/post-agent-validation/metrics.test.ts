@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
-import { initLogsDir, recordMetrics, resetLogsDir } from "../../../src/hooks/post-agent-validation/metrics.js";
+import { initRunDir, recordMetrics, resetRunDir } from "../../../src/hooks/post-agent-validation/metrics.js";
 
 function makeTmpDir(): string {
     const dir = mkdtempSync(join(tmpdir(), "metrics-test-"));
@@ -21,23 +21,23 @@ function makeTranscript(lines: Record<string, unknown>[]): { path: string; clean
     return { path, cleanup: () => rmSync(tmp, { recursive: true, force: true }) };
 }
 
-function resolveLogsDirForTest(cwd: string): string {
-    return initLogsDir(cwd);
+function resolveRunDirForTest(cwd: string): string {
+    return initRunDir(cwd);
 }
 
 function readMetrics(cwd: string): Record<string, unknown> {
-    return JSON.parse(readFileSync(join(resolveLogsDirForTest(cwd), "run-metrics.json"), "utf8"));
+    return JSON.parse(readFileSync(join(resolveRunDirForTest(cwd), "run-metrics.json"), "utf8"));
 }
 
 function readDetails(cwd: string, file: string): Record<string, unknown> {
-    return JSON.parse(readFileSync(join(resolveLogsDirForTest(cwd), file), "utf8"));
+    return JSON.parse(readFileSync(join(resolveRunDirForTest(cwd), file), "utf8"));
 }
 
 describe("run-metrics", () => {
     let cwd: string;
 
     beforeEach(() => {
-        resetLogsDir();
+        resetRunDir();
         cwd = makeTmpDir();
     });
 
@@ -191,7 +191,7 @@ describe("run-metrics", () => {
         expect((metrics.runs[1] as Record<string, unknown>).model).toBe("claude-opus-4-6");
 
         // Both detail files exist
-        const mDir = resolveLogsDirForTest(cwd);
+        const mDir = resolveRunDirForTest(cwd);
         expect(existsSync(join(mDir, "run-details", "001-feature-planner.json"))).toBe(true);
         expect(existsSync(join(mDir, "run-details", "002-coder.json"))).toBe(true);
 
@@ -300,17 +300,23 @@ describe("run-metrics", () => {
 
     it("should handle missing transcript gracefully", () => {
         recordMetrics("/nonexistent/path.jsonl", "coder", cwd);
-        expect(() => readFileSync(join(cwd, ".adlc", "run-metrics.json"))).toThrow(/ENOENT/);
+        // parseTranscript returns null, so no metrics file is written.
+        // resolveRunDir was called, so the run dir exists but has no run-metrics.json.
+        const runDir = resolveRunDirForTest(cwd);
+        expect(() => readFileSync(join(runDir, "run-metrics.json"))).toThrow(/ENOENT/);
     });
 
     it("should handle null transcript path", () => {
         recordMetrics(null, "coder", cwd);
-        expect(() => readFileSync(join(cwd, ".adlc", "run-metrics.json"))).toThrow(/ENOENT/);
+        // Early return before resolveRunDir — no metrics file anywhere.
+        const runDir = resolveRunDirForTest(cwd);
+        expect(() => readFileSync(join(runDir, "run-metrics.json"))).toThrow(/ENOENT/);
     });
 
     describe("slice and mode tracking", () => {
         function writeSlice(dir: string, id: string): void {
-            writeFileSync(join(dir, ".adlc", "current-slice.md"), `---\nid: ${id}\n---\n\n# Slice\n`);
+            const runDir = resolveRunDirForTest(dir);
+            writeFileSync(join(runDir, "current-slice.md"), `---\nid: ${id}\n---\n\n# Slice\n`);
         }
 
         function minimalTranscript(ts = "2026-03-25T10:00:00.000Z"): { path: string; cleanup: () => void } {

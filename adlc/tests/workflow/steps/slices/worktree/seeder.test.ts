@@ -28,6 +28,7 @@ describe("worktree/seeder", () => {
         writeFileSync(join(notesDir, "note-a.md"), "Note A content");
 
         context = {
+            runDirName: "test-run",
             planHeaderPath: join(sourceDir, "plan-header.md"),
             domainMappingPath: join(sourceDir, "domain-mapping.md"),
             slicesDir,
@@ -44,24 +45,24 @@ describe("worktree/seeder", () => {
     it("creates the expected directory structure", async () => {
         await seedAdlc(worktreePath, context);
 
-        const adlcRoot = join(worktreePath, ".adlc");
-        expect(existsSync(adlcRoot)).toBe(true);
-        expect(existsSync(join(adlcRoot, "slices"))).toBe(true);
-        expect(existsSync(join(adlcRoot, "implementation-notes"))).toBe(true);
+        const runDir = join(worktreePath, ".adlc", "test-run");
+        expect(existsSync(runDir)).toBe(true);
+        expect(existsSync(join(runDir, "slices"))).toBe(true);
+        expect(existsSync(join(runDir, "implementation-notes"))).toBe(true);
     });
 
     it("copies plan-header.md and domain-mapping.md", async () => {
         await seedAdlc(worktreePath, context);
 
-        const adlcRoot = join(worktreePath, ".adlc");
-        expect(readFileSync(join(adlcRoot, "plan-header.md"), "utf-8")).toBe("# Plan Header");
-        expect(readFileSync(join(adlcRoot, "domain-mapping.md"), "utf-8")).toBe("# Domain Mapping");
+        const runDir = join(worktreePath, ".adlc", "test-run");
+        expect(readFileSync(join(runDir, "plan-header.md"), "utf-8")).toBe("# Plan Header");
+        expect(readFileSync(join(runDir, "domain-mapping.md"), "utf-8")).toBe("# Domain Mapping");
     });
 
-    it("copies all slice files into .adlc/slices/", async () => {
+    it("copies all slice files into .adlc/<runDirName>/slices/", async () => {
         await seedAdlc(worktreePath, context);
 
-        const slicesDir = join(worktreePath, ".adlc", "slices");
+        const slicesDir = join(worktreePath, ".adlc", "test-run", "slices");
         expect(readFileSync(join(slicesDir, "slice-01.md"), "utf-8")).toBe("# Slice 1");
         expect(readFileSync(join(slicesDir, "slice-02.md"), "utf-8")).toBe("# Slice 2");
     });
@@ -69,12 +70,12 @@ describe("worktree/seeder", () => {
     it("copies the current slice as current-slice.md", async () => {
         await seedAdlc(worktreePath, context);
 
-        expect(readFileSync(join(worktreePath, ".adlc", "current-slice.md"), "utf-8")).toBe("# Slice 1");
+        expect(readFileSync(join(worktreePath, ".adlc", "test-run", "current-slice.md"), "utf-8")).toBe("# Slice 1");
     });
 
     it("copies prior implementation notes", async () => {
         await seedAdlc(worktreePath, context);
 
-        expect(readFileSync(join(worktreePath, ".adlc", "implementation-notes", "note-a.md"), "utf-8")).toBe("Note A content");
+        expect(readFileSync(join(worktreePath, ".adlc", "test-run", "implementation-notes", "note-a.md"), "utf-8")).toBe("Note A content");
     });
 });

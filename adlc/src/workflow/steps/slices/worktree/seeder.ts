@@ -4,6 +4,7 @@ import { basename, join, resolve } from "node:path";
 import { generatePackageMap } from "./package-map.ts";
 
 export interface SliceContext {
+    runDirName: string;
     planHeaderPath: string;
     domainMappingPath: string;
     slicesDir: string;
@@ -11,29 +12,29 @@ export interface SliceContext {
     priorImplementationNotes: string[];
 }
 
-/** Seed `.adlc/` directory in a worktree with plan artifacts. */
+/** Seed `.adlc/<runDirName>/` directory in a worktree with plan artifacts. */
 export async function seedAdlc(worktreePath: string, context: SliceContext): Promise<void> {
-    const adlcRoot = resolve(worktreePath, ".adlc");
-    const slicesDir = join(adlcRoot, "slices");
-    const implNotesDir = join(adlcRoot, "implementation-notes");
+    const runDir = resolve(worktreePath, ".adlc", context.runDirName);
+    const slicesDir = join(runDir, "slices");
+    const implNotesDir = join(runDir, "implementation-notes");
 
     // Create directory structure
-    mkdirSync(adlcRoot, { recursive: true });
+    mkdirSync(runDir, { recursive: true });
     mkdirSync(slicesDir, { recursive: true });
     mkdirSync(implNotesDir, { recursive: true });
 
-    // Copy plan-header.md and domain-mapping.md into .adlc/
-    copyFileSync(context.planHeaderPath, join(adlcRoot, "plan-header.md"));
-    copyFileSync(context.domainMappingPath, join(adlcRoot, "domain-mapping.md"));
+    // Copy plan-header.md and domain-mapping.md into the run dir
+    copyFileSync(context.planHeaderPath, join(runDir, "plan-header.md"));
+    copyFileSync(context.domainMappingPath, join(runDir, "domain-mapping.md"));
 
-    // Copy ALL slice files from slicesDir into .adlc/slices/
+    // Copy ALL slice files from slicesDir into run dir slices/
     const sliceFiles = readdirSync(context.slicesDir);
     for (const file of sliceFiles) {
         copyFileSync(join(context.slicesDir, file), join(slicesDir, file));
     }
 
-    // Copy the current slice as .adlc/current-slice.md
-    copyFileSync(join(context.slicesDir, context.sliceFilename), join(adlcRoot, "current-slice.md"));
+    // Copy the current slice as current-slice.md in the run dir
+    copyFileSync(join(context.slicesDir, context.sliceFilename), join(runDir, "current-slice.md"));
 
     // Copy prior implementation notes
     for (const notePath of context.priorImplementationNotes) {
@@ -43,5 +44,5 @@ export async function seedAdlc(worktreePath: string, context: SliceContext): Pro
 
     // Generate the package map from the current slice's reference packages.
     // Runs against the worktree's filesystem so it reflects prior slice changes.
-    generatePackageMap(worktreePath);
+    generatePackageMap(worktreePath, context.runDirName);
 }

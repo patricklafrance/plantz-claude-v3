@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { hasFile } from "../utils.ts";
+import { hasFile, resolveRunDir } from "../utils.ts";
 
 const SLICE_REF_RE = /slice\s+\d+/i;
 
@@ -15,7 +15,7 @@ export function revisionSliceRefsCheck(cwd: string): string[] {
         return [];
     }
 
-    const content = readFileSync(resolve(cwd, ".adlc", "plan-gate-revision.md"), "utf8");
+    const content = readFileSync(resolve(resolveRunDir(cwd), "plan-gate-revision.md"), "utf8");
 
     if (SLICE_REF_RE.test(content)) {
         return [];

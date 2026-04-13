@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { splitCommandSegments } from "../guards/utils.ts";
+import { getRunDirName } from "../post-agent-validation/metrics.ts";
 import type { SupervisorState } from "./state.ts";
 
 interface InstallGateResult {
@@ -47,7 +48,7 @@ interface ToolPayload {
 // few Read/Grep calls between seeing the evidence and attempting pnpm install; short
 // enough that an unrelated later install attempt cannot reuse the token.
 export const INSTALL_BYPASS_EVENT_TTL = 5;
-const ALLOW_INSTALL_OVERRIDE_PATH = ".adlc/allow-install";
+const ALLOW_INSTALL_FILENAME = "allow-install";
 const INSTALL_COMMAND_PATTERN = /^pnpm\s+(?:install|i)(?:\s|$)/;
 const MANIFEST_PATHSPEC = [".", ":(glob)**/package.json", "pnpm-lock.yaml"];
 const LOCKFILE_PATTERNS = [/ERR_PNPM_OUTDATED_LOCKFILE/i, /pnpm-lock\.yaml.*out of date/i];
@@ -103,7 +104,7 @@ export function checkInstallGate(
             "- recent Bash output showed a real missing-dependency failure",
             "",
             "Manual override:",
-            "- write a short justification to .adlc/allow-install",
+            `- write a short justification to the \`allow-install\` file in the ADLC run directory`,
             "- retry pnpm install",
             "- the override stays active for this agent run and is cleared on SubagentStop"
         ].join("\n")
@@ -174,7 +175,12 @@ export function hasManifestDiff(cwd: string): boolean {
 }
 
 export function readInstallOverride(cwd: string): string | null {
-    const overridePath = resolve(cwd, ALLOW_INSTALL_OVERRIDE_PATH);
+    const runDirName = getRunDirName();
+    if (!runDirName) {
+        return null;
+    }
+
+    const overridePath = resolve(cwd, ".adlc", runDirName, ALLOW_INSTALL_FILENAME);
     if (!existsSync(overridePath)) {
         return null;
     }

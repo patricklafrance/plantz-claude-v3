@@ -6,7 +6,8 @@ vi.mock("../../../../src/hooks/post-agent-validation/utils.js", () => ({
     run: vi.fn<any>().mockResolvedValue({ ok: true, stdout: "", stderr: "" }),
     hasFile: vi.fn<any>().mockReturnValue(false),
     listFiles: vi.fn<any>().mockReturnValue([]),
-    getChangedFiles: vi.fn<any>().mockReturnValue([])
+    getChangedFiles: vi.fn<any>().mockReturnValue([]),
+    resolveRunDir: vi.fn<any>((cwd: string) => cwd + "/.adlc")
 }));
 
 describe("coder handler (full pipeline)", () => {

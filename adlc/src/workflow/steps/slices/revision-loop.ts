@@ -2,6 +2,7 @@
 
 import type { ResolvedConfig } from "../../../config.ts";
 import { createHooks } from "../../../hooks/create-hooks.ts";
+import { getRunDirName } from "../../../hooks/post-agent-validation/metrics.ts";
 import type { Ports } from "../../../ports.ts";
 import type { Progress } from "../../../progress.ts";
 import { loadAllAgents, runAgent } from "../../agents.ts";
@@ -15,7 +16,7 @@ export async function runSlicePipeline(
     cwd: string,
     progress?: Progress
 ): Promise<{ success: boolean; reason?: string }> {
-    const agents = loadAllAgents(preamble, config, cwd);
+    const agents = loadAllAgents(preamble, config, cwd, getRunDirName()!);
     const { hooks } = createHooks({ cwd: worktreePath });
 
     progress?.slice(sliceName, "coordinator", "starting slice pipeline");

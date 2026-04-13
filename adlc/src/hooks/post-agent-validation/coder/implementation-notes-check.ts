@@ -1,13 +1,16 @@
-/** Verify that the coder wrote to .adlc/implementation-notes/ for the current slice. */
+/** Verify that the coder wrote to .adlc/<run>/implementation-notes/ for the current slice. */
 
-const EXPECTED_DIR = ".adlc/implementation-notes/";
+import { getRunDirName } from "../metrics.ts";
 
 export function implementationNotesCheck(changedFiles: string[]): string[] {
-    if (changedFiles.some(f => f.startsWith(EXPECTED_DIR) && f.endsWith(".md"))) {
+    const runDirName = getRunDirName();
+    const expectedDir = runDirName ? `.adlc/${runDirName}/implementation-notes/` : ".adlc/implementation-notes/";
+
+    if (changedFiles.some(f => f.startsWith(expectedDir) && f.endsWith(".md"))) {
         return [];
     }
 
     return [
-        `[implementation-notes] No file was created or updated in ${EXPECTED_DIR}. Each slice must document its changes in its own implementation-notes file.`
+        `[implementation-notes] No file was created or updated in ${expectedDir}. Each slice must document its changes in its own implementation-notes file.`
     ];
 }

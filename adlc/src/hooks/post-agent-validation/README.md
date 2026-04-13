@@ -167,13 +167,7 @@ Pipeline:
 - draft vs. revision mode detection
 - rework stats (revision cycles, affected slices, rework cost)
 
-Metrics are written to `.adlc-logs/{timestamp}_{branch}/run-metrics.json` with per-run detail files in `run-details/`.
-
-Artifact archival happens on successful (problem-free) runs:
-
-- `placement-gate` success: archives `domain-mapping.md` and `challenges/`
-- `plan-gate` success: archives `plan-header.md` and `slices/`
-- `reviewer` success: archives `verification-results.md` per slice
+Metrics are written to `.adlc/{timestamp}_{branch}/run-metrics.json` with per-run detail files in `run-details/`. All working artifacts (domain-mapping.md, plan-header.md, slices/, etc.) live in the same per-run directory — no separate archive step is needed.
 
 ## Public hook contract
 

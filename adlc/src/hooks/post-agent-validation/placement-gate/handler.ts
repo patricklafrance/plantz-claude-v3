@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { noPlanMutationsCheck } from "../plan-gate/no-plan-mutations-check.ts";
-import { hasFile } from "../utils.ts";
+import { hasFile, resolveRunDir } from "../utils.ts";
 
 const ISSUE_RE = /###\s+ISSUE-\d+/;
 
@@ -18,7 +18,7 @@ export function handlePlacementGate(cwd: string): string[] {
     const problems = [...noPlanMutationsCheck(cwd)];
 
     if (hasFile(cwd, "placement-gate-revision.md")) {
-        const content = readFileSync(resolve(cwd, ".adlc", "placement-gate-revision.md"), "utf8");
+        const content = readFileSync(resolve(resolveRunDir(cwd), "placement-gate-revision.md"), "utf8");
         if (!ISSUE_RE.test(content)) {
             problems.push(
                 "Revision lacks issues: `.adlc/placement-gate-revision.md` exists but contains no `### ISSUE-N` blocks. " +

@@ -19,9 +19,9 @@ Create a pull request that summarizes the feature and the technical changes.
 
 ### 1. Load context
 
-- Read `.adlc/plan-header.md`.
-- Read all files in `.adlc/implementation-notes/`.
-- Read final verification results from `.adlc/verification-results/` — only files without an attempt suffix (e.g. `01-plant-list.md`, not `01-plant-list-1.md`).
+- Read `plan-header.md` (in the ADLC run directory).
+- Read all files in `implementation-notes/`.
+- Read final verification results from `verification-results/` — only files without an attempt suffix (e.g. `01-plant-list.md`, not `01-plant-list-1.md`).
 
 ### 2. Create the PR
 
@@ -55,7 +55,7 @@ When the prompt contains `Mode: fix`, you are updating an existing PR instead of
 
 ### Process (fix mode)
 
-1. Read `.adlc/implementation-notes/` and `.adlc/verification-results/` (non-suffixed files only).
+1. Read `implementation-notes/` and `verification-results/` (non-suffixed files only).
 2. Read the existing PR body via `gh pr view <PR#> --json body`.
 3. Append a fix section to the PR body via `gh pr edit <PR#> --body <updated-body>`.
 

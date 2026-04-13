@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { listFiles } from "../utils.ts";
+import { listFiles, resolveRunDir } from "../utils.ts";
 
 /** True when the content contains a `## Reference Packages` heading. */
 function hasReferencePackages(content: string): boolean {
@@ -12,7 +12,7 @@ function hasReferencePackages(content: string): boolean {
 
 export function sliceReferencePackagesCheck(cwd: string): string[] {
     const sliceFilesCheck = listFiles(cwd, "slices", ".md");
-    const slicesDir = resolve(cwd, ".adlc", "slices");
+    const slicesDir = resolve(resolveRunDir(cwd), "slices");
     const missing: string[] = [];
 
     for (const file of sliceFilesCheck) {

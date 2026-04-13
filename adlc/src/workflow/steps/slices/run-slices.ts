@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 
 import type { ResolvedConfig } from "../../../config.ts";
 import { createHooks } from "../../../hooks/create-hooks.ts";
+import { getRunDirName } from "../../../hooks/post-agent-validation/metrics.ts";
 import { allocatePorts } from "../../../ports.ts";
 import type { Progress } from "../../../progress.ts";
 import { runAgent, loadAllAgents } from "../../agents.ts";
@@ -32,7 +33,9 @@ export async function runSlices(
     options: RunSlicesOptions,
     progress?: Progress
 ): Promise<void> {
-    const dag = buildDAG(resolve(cwd, ".adlc/slices"));
+    const runDirName = getRunDirName()!;
+    const runDir = resolve(cwd, ".adlc", runDirName);
+    const dag = buildDAG(resolve(runDir, "slices"));
 
     if (options.dryRun) {
         for (const wave of dag.waves) {
@@ -59,16 +62,17 @@ export async function runSlices(
 
         try {
             // Seed .adlc/ and install deps in each worktree
-            const priorNotes = getCompletedNotes(cwd);
+            const priorNotes = getCompletedNotes(cwd, runDirName);
             // eslint-disable-next-line no-await-in-loop
             await Promise.all(
                 waveItems.map(async ({ slice, wt }) => {
                     const doneSetup = progress?.start("execution", `${slice.name}: seeding and installing deps`);
 
                     await seedAdlc(wt.path, {
-                        planHeaderPath: resolve(cwd, ".adlc/plan-header.md"),
-                        domainMappingPath: resolve(cwd, ".adlc/domain-mapping.md"),
-                        slicesDir: resolve(cwd, ".adlc/slices"),
+                        runDirName,
+                        planHeaderPath: resolve(runDir, "plan-header.md"),
+                        domainMappingPath: resolve(runDir, "domain-mapping.md"),
+                        slicesDir: resolve(runDir, "slices"),
                         sliceFilename: slice.filename,
                         priorImplementationNotes: priorNotes
                     });
@@ -98,7 +102,7 @@ export async function runSlices(
 
                     if (mergeResult.success) {
                         // eslint-disable-next-line no-await-in-loop
-                        await collectResults(wt.path, resolve(cwd, ".adlc"), slice.name);
+                        await collectResults(wt.path, runDir, slice.name, runDirName);
                         progress?.slice(slice.name, "merge", "merged cleanly");
                     } else {
                         // Conflict — attempt agent-assisted resolution
@@ -110,7 +114,7 @@ export async function runSlices(
                         if (resolved) {
                             completeMerge(cwd, `merge: resolve conflicts for ${slice.name}`);
                             // eslint-disable-next-line no-await-in-loop
-                            await collectResults(wt.path, resolve(cwd, ".adlc"), slice.name);
+                            await collectResults(wt.path, runDir, slice.name, runDirName);
                             progress?.slice(slice.name, "merge", "conflicts resolved");
                         } else {
                             abortMerge(cwd);
@@ -145,7 +149,7 @@ async function resolveConflicts(
     hooks?: ReturnType<typeof createHooks>["hooks"]
 ): Promise<boolean> {
     try {
-        const agents = loadAllAgents(preamble, config, cwd);
+        const agents = loadAllAgents(preamble, config, cwd, getRunDirName()!);
         const prompt = [
             `You are resolving merge conflicts for slice "${sliceName}".`,
             "",
@@ -165,8 +169,8 @@ async function resolveConflicts(
 }
 
 /** Collect paths to all completed implementation notes from prior waves. */
-function getCompletedNotes(cwd: string): string[] {
-    const notesDir = resolve(cwd, ".adlc/implementation-notes");
+function getCompletedNotes(cwd: string, runDirName: string): string[] {
+    const notesDir = resolve(cwd, ".adlc", runDirName, "implementation-notes");
     try {
         return readdirSync(notesDir)
             .filter(f => f.endsWith(".md"))

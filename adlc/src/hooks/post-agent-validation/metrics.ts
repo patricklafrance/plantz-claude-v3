@@ -1,15 +1,17 @@
 /**
- * Parse a subagent transcript and append run metrics to .adlc/run-metrics.json.
+ * Parse a subagent transcript and append run metrics to the per-run directory.
  *
  * Extracts per-run token breakdown, per-tool use counts / tokens / duration,
  * individual tool call details, model info, and wall time from the JSONL
  * transcript written by Claude Code. Recomputes totals on each write.
  *
- * Per-run detail files are written to .adlc/run-details/ and linked from
- * the main metrics file.
+ * Each pipeline run gets a timestamped subfolder under `.adlc/`
+ * (e.g. `.adlc/2026-04-13T15-30-00_main/`). Per-run detail files are
+ * written to `run-details/` inside that folder and linked from the main
+ * metrics file.
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { HookJSONOutput, StopHookInput } from "../types.ts";
@@ -97,19 +99,21 @@ interface Metrics {
     totals: Totals | null;
 }
 
-// ── Logs directory ────────────────────────────────────────
+// ── Run directory ─────────────────────────────────────────
 
-/** In-memory cache — set once per pipeline run by `initLogsDir`. */
-let _logsDir: string | null = null;
+/** In-memory cache — set once per pipeline run by `initRunDir`. */
+let _runDir: string | null = null;
+let _runDirName: string | null = null;
 
 /**
- * Bootstrap the logs directory for this pipeline run.
+ * Bootstrap the per-run directory for this pipeline run.
  * Call once from the orchestrator before any agents execute.
+ * Creates `.adlc/<timestamp>_<branch>/` with all required subdirs.
  * Returns the absolute path to the run folder.
  */
-export function initLogsDir(cwd: string): string {
-    if (_logsDir) {
-        return _logsDir;
+export function initRunDir(cwd: string): string {
+    if (_runDir) {
+        return _runDir;
     }
 
     const head = readFileSync(resolve(cwd, ".git", "HEAD"), "utf8").trim();
@@ -118,80 +122,30 @@ export function initLogsDir(cwd: string): string {
         .toISOString()
         .replace(/:/g, "-")
         .replace(/\.\d+Z$/, "");
-    const folderName = `${timestamp}_${branch.replace(/\//g, "-")}`;
-    _logsDir = resolve(cwd, ".adlc-logs", folderName);
+    _runDirName = `${timestamp}_${branch.replace(/\//g, "-")}`;
+    _runDir = resolve(cwd, ".adlc", _runDirName);
 
-    for (const sub of ["run-details", "slices", "challenges", "verification-results"]) {
-        mkdirSync(resolve(_logsDir, sub), { recursive: true });
+    for (const sub of ["run-details", "slices", "challenges", "verification-results", "implementation-notes"]) {
+        mkdirSync(resolve(_runDir, sub), { recursive: true });
     }
 
-    return _logsDir;
+    return _runDir;
+}
+
+/** Return the folder name of the current run (e.g. `2026-04-13T15-30-00_main`). */
+export function getRunDirName(): string | null {
+    return _runDirName;
 }
 
 /** Reset in-memory state. Exposed for tests only. */
-export function resetLogsDir(): void {
-    _logsDir = null;
+export function resetRunDir(): void {
+    _runDir = null;
+    _runDirName = null;
 }
 
-/** Return the current run's logs directory, bootstrapping if needed. */
-function resolveLogsDir(cwd: string): string {
-    return _logsDir ?? initLogsDir(cwd);
-}
-
-// ── Artifact archival ──────────────────────────────────────
-
-/**
- * Copy workflow artifacts to the persistent logs folder when a gate passes.
- * Called from subagent-stop after a successful (problems-free) agent run.
- */
-export function archiveArtifacts(agentType: string, cwd: string): void {
-    const logsDir = resolveLogsDir(cwd);
-
-    switch (agentType) {
-        case "placement-gate":
-            if (!existsSync(resolve(cwd, ".adlc", "placement-gate-revision.md"))) {
-                copyIfExists(resolve(cwd, ".adlc", "domain-mapping.md"), resolve(logsDir, "domain-mapping.md"));
-                copyDirContents(resolve(cwd, ".adlc", "challenges"), resolve(logsDir, "challenges"));
-            }
-            break;
-        case "plan-gate":
-            if (!existsSync(resolve(cwd, ".adlc", "plan-gate-revision.md"))) {
-                copyIfExists(resolve(cwd, ".adlc", "plan-header.md"), resolve(logsDir, "plan-header.md"));
-                copyDirContents(resolve(cwd, ".adlc", "slices"), resolve(logsDir, "slices"));
-            }
-            break;
-        case "reviewer": {
-            const sliceId = detectSlice(cwd);
-            if (sliceId) {
-                copyIfExists(resolve(cwd, ".adlc", "verification-results.md"), resolve(logsDir, "verification-results", `${sliceId}.md`));
-            }
-            break;
-        }
-    }
-}
-
-function copyIfExists(src: string, dest: string): void {
-    try {
-        copyFileSync(src, dest);
-    } catch {
-        // Source missing — skip.
-    }
-}
-
-function copyDirContents(srcDir: string, destDir: string): void {
-    let files: string[];
-    try {
-        files = readdirSync(srcDir);
-    } catch {
-        return; // Source dir missing.
-    }
-    for (const file of files) {
-        try {
-            copyFileSync(resolve(srcDir, file), resolve(destDir, file));
-        } catch {
-            // Single file failed (e.g. subdirectory) — continue with the rest.
-        }
-    }
+/** Return the current run's directory, bootstrapping if needed. */
+function resolveRunDir(cwd: string): string {
+    return _runDir ?? initRunDir(cwd);
 }
 
 /**
@@ -209,7 +163,7 @@ export function recordMetrics(transcriptPath: string | null, agentType: string, 
         return;
     }
 
-    const logsDir = resolveLogsDir(cwd);
+    const logsDir = resolveRunDir(cwd);
     const metricsPath = resolve(logsDir, "run-metrics.json");
 
     let metrics: Metrics;
@@ -272,9 +226,12 @@ export function recordMetrics(transcriptPath: string | null, agentType: string, 
 
 // ── Slice & mode detection ─────────────────────────────────
 
-/** Read .adlc/current-slice.md frontmatter to get the active slice ID. */
+/** Read current-slice.md frontmatter from the run directory to get the active slice ID. */
 function detectSlice(cwd: string): string | null {
-    const slicePath = resolve(cwd, ".adlc", "current-slice.md");
+    if (!_runDirName) {
+        return null;
+    }
+    const slicePath = resolve(cwd, ".adlc", _runDirName, "current-slice.md");
     try {
         const content = readFileSync(slicePath, "utf8");
         const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);

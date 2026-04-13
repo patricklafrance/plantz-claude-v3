@@ -40,16 +40,14 @@ describe("pre-commit gitignore-check", () => {
         expect(result[0]).toContain("!.adlc/slices/");
     });
 
-    it("blocks when .gitignore un-ignores .adlc-logs/ paths", async () => {
+    it("allows .gitignore changes that don't un-ignore .adlc/", async () => {
         vi.mocked(run).mockResolvedValue({
             ok: true,
-            stdout: "--- a/.gitignore\n+++ b/.gitignore\n+!.adlc-logs/run-metrics.json\n",
+            stdout: "--- a/.gitignore\n+++ b/.gitignore\n+.adlc-logs/\n",
             stderr: "",
             code: undefined
         });
         const result = await gitignoreCheck("/tmp/test");
-        expect(result).toHaveLength(1);
-        expect(result[0]).toContain("gitignore-check");
-        expect(result[0]).toContain("!.adlc-logs/run-metrics.json");
+        expect(result).toEqual([]);
     });
 });

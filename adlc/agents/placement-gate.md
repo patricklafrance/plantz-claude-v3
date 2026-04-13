@@ -13,7 +13,7 @@ Review the completed placement mapping for architectural coherence before the pl
 
 ### 1. Load context
 
-- Read the `placement` reference doc and `.adlc/domain-mapping.md`.
+- Read the `placement` reference doc and `domain-mapping.md` (in the ADLC run directory).
 - Read source files of modules that are being extended or created.
 - Do not read the feature description. Evaluate the mapping on its architectural merits.
 
@@ -32,7 +32,7 @@ Check for issues that concern-level analysis can miss:
 ## Output
 
 - **Pass:** Write nothing. Done.
-- **Fail:** Write `.adlc/placement-gate-revision.md` with all issues found.
+- **Fail:** Write `placement-gate-revision.md` with all issues found.
 
 <revision-template>
 

@@ -248,17 +248,17 @@ describe("generatePackageMap", () => {
         writeFileSync(join(srcDir, "index.ts"), "export {}");
         writeFileSync(join(srcDir, "schema.ts"), "export interface Plant {}");
 
-        // Set up .adlc/current-slice.md with reference packages
-        const adlcDir = join(worktree, ".adlc");
-        mkdirSync(adlcDir, { recursive: true });
+        // Set up .adlc/test-run/current-slice.md with reference packages
+        const runDir = join(worktree, ".adlc", "test-run");
+        mkdirSync(runDir, { recursive: true });
         writeFileSync(
-            join(adlcDir, "current-slice.md"),
+            join(runDir, "current-slice.md"),
             "# Slice\n\n## Scope\n\nSome scope\n\n## Reference Packages\n\n- `@packages/core-plants` — schema shape, collection factory\n"
         );
 
-        generatePackageMap(worktree);
+        generatePackageMap(worktree, "test-run");
 
-        const output = readFileSync(join(adlcDir, "current-package-map.md"), "utf-8");
+        const output = readFileSync(join(runDir, "current-package-map.md"), "utf-8");
         expect(output).toContain("# Package Map");
         expect(output).toContain("@packages/core-plants");
         expect(output).toContain("src/index.ts");
@@ -267,35 +267,35 @@ describe("generatePackageMap", () => {
     });
 
     it("no-ops when current-slice.md is missing", () => {
-        const adlcDir = join(worktree, ".adlc");
-        mkdirSync(adlcDir, { recursive: true });
+        const runDir = join(worktree, ".adlc", "test-run");
+        mkdirSync(runDir, { recursive: true });
 
-        generatePackageMap(worktree);
+        generatePackageMap(worktree, "test-run");
 
-        expect(existsSync(join(adlcDir, "current-package-map.md"))).toBe(false);
+        expect(existsSync(join(runDir, "current-package-map.md"))).toBe(false);
     });
 
     it("no-ops when slice has no Reference Packages section", () => {
-        const adlcDir = join(worktree, ".adlc");
-        mkdirSync(adlcDir, { recursive: true });
-        writeFileSync(join(adlcDir, "current-slice.md"), "# Slice\n\n## Scope\n\nJust scope\n");
+        const runDir = join(worktree, ".adlc", "test-run");
+        mkdirSync(runDir, { recursive: true });
+        writeFileSync(join(runDir, "current-slice.md"), "# Slice\n\n## Scope\n\nJust scope\n");
 
-        generatePackageMap(worktree);
+        generatePackageMap(worktree, "test-run");
 
-        expect(existsSync(join(adlcDir, "current-package-map.md"))).toBe(false);
+        expect(existsSync(join(runDir, "current-package-map.md"))).toBe(false);
     });
 
     it("handles unresolvable package references", () => {
-        const adlcDir = join(worktree, ".adlc");
-        mkdirSync(adlcDir, { recursive: true });
+        const runDir = join(worktree, ".adlc", "test-run");
+        mkdirSync(runDir, { recursive: true });
         writeFileSync(
-            join(adlcDir, "current-slice.md"),
+            join(runDir, "current-slice.md"),
             "# Slice\n\n## Reference Packages\n\n- `@packages/nonexistent` — something\n"
         );
 
-        generatePackageMap(worktree);
+        generatePackageMap(worktree, "test-run");
 
-        const output = readFileSync(join(adlcDir, "current-package-map.md"), "utf-8");
+        const output = readFileSync(join(runDir, "current-package-map.md"), "utf-8");
         expect(output).toContain("@packages/nonexistent → (not found in workspace)");
     });
 });

@@ -14,11 +14,11 @@ describe("worktree/collector", () => {
         worktreePath = mkdtempSync(join(tmpdir(), "collector-wt-"));
         mainAdlcPath = mkdtempSync(join(tmpdir(), "collector-main-"));
 
-        const adlcRoot = join(worktreePath, ".adlc");
-        mkdirSync(join(adlcRoot, "implementation-notes"), { recursive: true });
+        const runDir = join(worktreePath, ".adlc", "test-run");
+        mkdirSync(join(runDir, "implementation-notes"), { recursive: true });
 
-        writeFileSync(join(adlcRoot, "implementation-notes", "slice-1.md"), "Impl notes for slice 1");
-        writeFileSync(join(adlcRoot, "verification-results.md"), "## Passed\n- [x] Criterion A");
+        writeFileSync(join(runDir, "implementation-notes", "slice-1.md"), "Impl notes for slice 1");
+        writeFileSync(join(runDir, "verification-results.md"), "## Passed\n- [x] Criterion A");
     });
 
     afterEach(() => {
@@ -27,7 +27,7 @@ describe("worktree/collector", () => {
     });
 
     it("copies implementation-notes to the main .adlc/", async () => {
-        await collectResults(worktreePath, mainAdlcPath, "slice-1");
+        await collectResults(worktreePath, mainAdlcPath, "slice-1", "test-run");
 
         const dest = join(mainAdlcPath, "implementation-notes", "slice-1.md");
         expect(existsSync(dest)).toBe(true);
@@ -35,7 +35,7 @@ describe("worktree/collector", () => {
     });
 
     it("copies verification-results.md as verification-results/{sliceName}.md", async () => {
-        await collectResults(worktreePath, mainAdlcPath, "01-plant-list");
+        await collectResults(worktreePath, mainAdlcPath, "01-plant-list", "test-run");
 
         const dest = join(mainAdlcPath, "verification-results", "01-plant-list.md");
         expect(existsSync(dest)).toBe(true);
@@ -45,7 +45,7 @@ describe("worktree/collector", () => {
     it("handles missing source directories gracefully", async () => {
         const emptyWt = mkdtempSync(join(tmpdir(), "collector-empty-"));
 
-        await collectResults(emptyWt, mainAdlcPath, "slice-x");
+        await collectResults(emptyWt, mainAdlcPath, "slice-x", "test-run");
 
         expect(existsSync(join(mainAdlcPath, "implementation-notes"))).toBe(false);
         expect(existsSync(join(mainAdlcPath, "verification-results"))).toBe(false);

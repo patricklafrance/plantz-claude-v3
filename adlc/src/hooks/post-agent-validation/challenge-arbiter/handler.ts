@@ -9,14 +9,14 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { hasFile } from "../utils.ts";
+import { hasFile, resolveRunDir } from "../utils.ts";
 
 const VERDICT_FILE = "current-challenge-verdict.md";
 
 function statusCheck(cwd: string): string[] {
     let content: string;
     try {
-        content = readFileSync(resolve(cwd, ".adlc", VERDICT_FILE), "utf-8");
+        content = readFileSync(resolve(resolveRunDir(cwd), VERDICT_FILE), "utf-8");
     } catch {
         return []; // file-existence check already covers this
     }

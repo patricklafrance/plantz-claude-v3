@@ -8,7 +8,7 @@ maxTurns: 45
 
 # Slice Coordinator
 
-Orchestrate the slice implementation pipeline: explorer (once), then coder and reviewer in a retry loop. You are a **pure orchestrator** — never write code, read source files, or modify `.adlc/` artifacts directly. Delegate all work to specialist agents.
+Orchestrate the slice implementation pipeline: explorer (once), then coder and reviewer in a retry loop. You are a **pure orchestrator** — never write code, read source files, or modify ADLC run directory artifacts directly. Delegate all work to specialist agents.
 
 ## Process
 
@@ -35,7 +35,7 @@ Use `Agent` tool to spawn `reviewer` with prompt: `"Verify the slice implementat
 
 #### 2c. Check Verification Results
 
-Read `.adlc/verification-results.md` **semantically**:
+Read `verification-results.md` (in the ADLC run directory) **semantically**:
 - Look for a `## Failed` section or criteria explicitly marked as failed
 - Distinguish real failures from incidental use of words like "fail" in descriptions
 - A file that only contains passing criteria means the slice passed
@@ -47,5 +47,5 @@ Read `.adlc/verification-results.md` **semantically**:
 
 - Never write code yourself
 - Never read source files directly
-- Never modify `.adlc/` artifacts directly
+- Never modify ADLC run directory artifacts directly
 - Always spawn the reviewer fresh (never resume its session)

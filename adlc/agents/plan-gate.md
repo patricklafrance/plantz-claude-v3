@@ -15,7 +15,7 @@ Never modify plan files.
 
 ### 1. Load context
 
-- Read `.adlc/plan-header.md`, all `.adlc/slices/*.md`, and `.adlc/domain-mapping.md`.
+- Read `plan-header.md` (in the ADLC run directory), all `slices/*.md`, and `domain-mapping.md`.
 - Read the `architecture` reference doc, the `placement` reference doc, and the `adr` reference doc.
 
 ### 2. Evaluate structural soundness
@@ -36,7 +36,7 @@ Never modify plan files.
 ### 3. Report
 
 - **Pass:** Write nothing. Done.
-- **Fail:** Write `.adlc/plan-gate-revision.md` with all problems found.
+- **Fail:** Write `plan-gate-revision.md` with all problems found.
 
 ## Output Format
 

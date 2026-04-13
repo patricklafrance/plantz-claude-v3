@@ -29,15 +29,15 @@ interface ResolvedRef {
 // ── Public API ───────────────────────────────────────────
 
 /**
- * Generate `.adlc/current-package-map.md` in the given worktree.
+ * Generate `current-package-map.md` in the worktree's run directory.
  *
- * Reads `current-slice.md` from the worktree's `.adlc/` directory, extracts
+ * Reads `current-slice.md` from the worktree's run directory, extracts
  * reference packages, resolves them against the workspace, and writes the map.
  *
  * No-ops silently when the slice has no reference packages section.
  */
-export function generatePackageMap(worktreePath: string): void {
-    const adlcDir = resolve(worktreePath, ".adlc");
+export function generatePackageMap(worktreePath: string, runDirName: string): void {
+    const adlcDir = resolve(worktreePath, ".adlc", runDirName);
     const slicePath = resolve(adlcDir, "current-slice.md");
     const outputPath = resolve(adlcDir, "current-package-map.md");
 

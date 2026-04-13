@@ -20,7 +20,7 @@ Generate one fix slice per GitHub issue. Each issue describes a focused correcti
 ### 1. Load context
 
 - Read the `architecture` reference doc and the `placement` reference doc.
-- Read `.adlc/plan-header.md` if it exists — understand the feature context.
+- Read `plan-header.md` (in the ADLC run directory) if it exists — understand the feature context.
 - Scan the codebase to locate files referenced in each issue.
 
 ### 2. Analyze each issue
@@ -38,11 +38,11 @@ For each issue:
 
 ### 4. Write fix slices
 
-Write one slice file per issue to `.adlc/slices/` using the standard format. Each slice maps 1:1 to a GitHub issue.
+Write one slice file per issue to `slices/` using the standard format. Each slice maps 1:1 to a GitHub issue.
 
 ## Output Format
 
-All files written to `.adlc/slices/`.
+All files written to `slices/`.
 
 ### slices/NN-fix-{short-title}.md
 
