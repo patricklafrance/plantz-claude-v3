@@ -1,6 +1,6 @@
 ---
 name: challenge-arbiter
-description: Synthesize challenger debate into unified verdict.
+description: Synthesize challenger debate into unified verdict. 
 model: opus
 effort: high
 ---
