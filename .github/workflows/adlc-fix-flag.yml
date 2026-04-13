@@ -1,0 +1,55 @@
+name: "ADLC Fix Flag"
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  create-fix-issue:
+    # Only run on PR comments that start with @adlc
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '@adlc')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Create fix issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          PR_TITLE: ${{ github.event.issue.title }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Extract description after @adlc
+          DESCRIPTION="${COMMENT_BODY#@adlc}"
+          DESCRIPTION="$(echo "$DESCRIPTION" | sed 's/^[[:space:]]*//')"
+
+          # Use first sentence as title (up to first period or full description)
+          TITLE="$(echo "$DESCRIPTION" | head -1 | sed 's/\..*//' | cut -c1-80)"
+
+          BODY="$(cat <<EOF
+          **PR:** #${PR_NUMBER} — ${PR_TITLE}
+          **Flagged in:** ${COMMENT_URL}
+
+          ---
+
+          ${DESCRIPTION}
+          EOF
+          )"
+
+          ISSUE_URL=$(gh issue create \
+            --repo "$REPO" \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "adlc-fix")
+
+          ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oP '\d+$')
+
+          gh pr comment "$PR_NUMBER" \
+            --repo "$REPO" \
+            --body "Created #${ISSUE_NUMBER} — will be included in the next \`adlc fix\` run."

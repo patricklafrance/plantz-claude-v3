@@ -30,7 +30,7 @@ const handlers: Record<string, HandlerFn> = {
     "evidence-researcher": handleEvidenceResearcher,
     "placement-gate": handlePlacementGate,
     "plan-gate": handlePlanGate,
-    planner: handlePlanner,
+    "feature-planner": handlePlanner,
     reviewer: handleReviewer,
     simplify: handleSimplify
 };

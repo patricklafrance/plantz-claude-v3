@@ -290,12 +290,12 @@ function detectSlice(cwd: string): string | null {
 
 /**
  * Infer mode from prior runs. Agents that support draft/revision modes
- * (coder, planner, domain-mapper) are "draft" on their
+ * (coder, feature-planner, domain-mapper) are "draft" on their
  * first run for a given slice (or globally for planners/mappers) and
  * "revision" on subsequent runs.
  */
 function detectMode(agentType: string, sliceId: string | null, existingRuns: RunEntry[]): string | null {
-    const modedAgents = ["coder", "planner", "domain-mapper"];
+    const modedAgents = ["coder", "feature-planner", "domain-mapper"];
     if (!modedAgents.includes(agentType)) {
         return null;
     }

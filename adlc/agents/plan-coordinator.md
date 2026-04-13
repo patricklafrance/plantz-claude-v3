@@ -18,8 +18,8 @@ For each iteration:
 
 #### 1. Planner
 
-- **First iteration:** Use `Agent` tool to spawn `planner` with prompt: `"Draft the implementation plan for: {feature description}"`
-- **Subsequent iterations:** Use `SendMessage` to resume the planner's session with the specific gate feedback: `"Revise the implementation plan. Gate feedback: {summary of issues from plan-gate-revision.md}"`
+- **First iteration:** Use `Agent` tool to spawn `feature-planner` with prompt: `"Draft the implementation plan for: {feature description}"`
+- **Subsequent iterations:** Use `SendMessage` to resume the feature-planner's session with the specific gate feedback: `"Revise the implementation plan. Gate feedback: {summary of issues from plan-gate-revision.md}"`
 
 #### 2. Plan Gate
 

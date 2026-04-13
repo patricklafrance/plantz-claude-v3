@@ -178,21 +178,21 @@ describe("run-metrics", () => {
             }
         ]);
 
-        recordMetrics(t1.path, "planner", cwd);
+        recordMetrics(t1.path, "feature-planner", cwd);
         recordMetrics(t2.path, "coder", cwd);
         t1.cleanup();
         t2.cleanup();
 
         const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };
 
-        expect((metrics.runs[0] as Record<string, unknown>).detailsFile).toBe("run-details/001-planner.json");
+        expect((metrics.runs[0] as Record<string, unknown>).detailsFile).toBe("run-details/001-feature-planner.json");
         expect((metrics.runs[1] as Record<string, unknown>).detailsFile).toBe("run-details/002-coder.json");
         expect((metrics.runs[0] as Record<string, unknown>).model).toBe("claude-sonnet-4-20250514");
         expect((metrics.runs[1] as Record<string, unknown>).model).toBe("claude-opus-4-6");
 
         // Both detail files exist
         const mDir = resolveLogsDirForTest(cwd);
-        expect(existsSync(join(mDir, "run-details", "001-planner.json"))).toBe(true);
+        expect(existsSync(join(mDir, "run-details", "001-feature-planner.json"))).toBe(true);
         expect(existsSync(join(mDir, "run-details", "002-coder.json"))).toBe(true);
 
         // Detail file has tool call with input
@@ -336,7 +336,7 @@ describe("run-metrics", () => {
 
         it("should set slice to null when current-slice.md does not exist", () => {
             const t = minimalTranscript();
-            recordMetrics(t.path, "planner", cwd);
+            recordMetrics(t.path, "feature-planner", cwd);
             t.cleanup();
 
             const metrics = readMetrics(cwd) as { runs: Record<string, unknown>[] };

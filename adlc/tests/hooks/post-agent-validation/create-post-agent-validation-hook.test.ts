@@ -69,9 +69,9 @@ describe("createPostAgentValidationHook", () => {
         expect(result).toEqual({ continue: true });
     });
 
-    it("routes planner to planner handler", async () => {
+    it("routes feature-planner to planner handler", async () => {
         const hook = createPostAgentValidationHook();
-        await hook(makeStopInput({ agent_type: "planner" }));
+        await hook(makeStopInput({ agent_type: "feature-planner" }));
 
         expect(handlePlanner).toHaveBeenCalledWith("/tmp/test-project");
     });

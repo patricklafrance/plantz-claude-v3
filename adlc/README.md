@@ -1,13 +1,17 @@
-# @squide/msw
+# @patlaf/adlc
 
-## Usage
+Agent-Driven Lifecycle CLI — a multi-agent pipeline that plans, implements, and ships features.
 
-View the [user's documentation](https://workleap.github.io/wl-squide/).
+See the [root README](../README.md) for full documentation.
 
-## 🤝 Contributing
+## Quick start
 
-View the [contributor's documentation](../../CONTRIBUTING.md).
+```bash
+pnpm add @patlaf/adlc
 
-## License
+# Implement a new feature
+pnpm adlc feat "Add a household feature"
 
-Copyright © 2024, Workleap. This code is licensed under the Apache License, Version 2.0. You may obtain a copy of this license at https://github.com/workleap/workleap-license/blob/master/LICENSE.
+# Fix issues flagged on a PR
+pnpm adlc fix 42
+```

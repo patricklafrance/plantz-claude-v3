@@ -1,10 +1,10 @@
 ---
-name: _adlc
+name: _adlc-feat
 description: |
-  Start the ADLC (Agent-Driven Lifecycle) pipeline for a GitHub issue.
+  Start the ADLC feature pipeline for a GitHub issue.
   Use when the user wants to kick off the full agent pipeline to implement a feature from a GitHub issue.
-  Triggers: "adlc", "start adlc", "run adlc", "implement issue".
-  Accepts a GitHub issue number as argument (e.g., /adlc 42).
+  Triggers: "adlc feat", "start adlc", "run adlc", "implement issue", "adlc feature".
+  Accepts a GitHub issue number as argument (e.g., /adlc-feat 42).
 ---
 
 # ADLC — Agent-Driven Lifecycle Launcher
@@ -48,7 +48,7 @@ Use the **Agent** tool with `run_in_background: true` to spawn a subagent that r
 ```
 Run the ADLC CLI to implement the following feature. Execute this command from the repository root:
 
-pnpm exec adlc "<feature-description>"
+pnpm exec adlc feat "<feature-description>"
 
 Monitor the output. If the process exits with a non-zero code, report the error. Otherwise, report that the ADLC pipeline completed successfully and summarize any output.
 ```

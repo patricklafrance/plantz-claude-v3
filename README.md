@@ -1,6 +1,6 @@
 # ADLC
 
-A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates eighteen agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
+A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates nineteen agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
 
 ## What is an agent harness?
 
@@ -14,16 +14,22 @@ An agent harness enhances the agent's natural capabilities instead of micromanag
 
 ---
 
-## Pipeline
+## Workflows
+
+ADLC has two workflows: **feature** (plan and implement from scratch) and **fix** (address issues flagged during PR review). Both share the same execution engine — parallel slice execution via git worktrees with coder/reviewer loops.
+
+### Feature workflow (`adlc feat`)
+
+The full 7-step pipeline for implementing a new feature from a description or GitHub issue.
 
 ```mermaid
 flowchart TD
     Start([Feature request]) --> Mapper
 
-    subgraph Coord["ADLC"]
+    subgraph Coord["adlc feat"]
         direction TB
 
-        subgraph ModuleMap["Module Mapping"]
+        subgraph ModuleMap["1. Placement"]
             direction TB
             Mapper --> Challengers --> Gate
             Mapper -. "evidence gaps" .-> Evidence["Evidence Researcher"] -. findings .-> Mapper
@@ -32,21 +38,21 @@ flowchart TD
 
         Gate -- "pass" --> PlanLoop
 
-        subgraph PlanLoop["Plan Loop (max 5)"]
+        subgraph PlanLoop["2. Plan (max 5 iterations)"]
             direction LR
-            Planner --> PlanGate["Gate"]
+            Planner["Feature Planner"] --> PlanGate["Gate"]
             PlanGate -. "revision" .-> Planner
         end
 
         PlanLoop --> SliceLoop
 
-        subgraph SliceLoop["Slice Loop (parallel)"]
+        subgraph SliceLoop["3. Execution (parallel slices)"]
             direction LR
             Explorer --> Coder --> Reviewer
             Reviewer -. "failures" .-> Coder
         end
 
-        SliceLoop --> Simplify --> Document --> PR --> Monitor
+        SliceLoop --> Simplify["4. Simplify"] --> Document["5. Document"] --> PR["6. Pull Request"] --> Monitor["7. Monitor CI"]
     end
 
     Monitor --> Done([PR ready])
@@ -57,34 +63,88 @@ flowchart TD
     style Evidence fill:#f8f8f8,stroke:#ccc,color:#888
 ```
 
+### Fix workflow (`adlc fix`)
+
+A lighter 5-step pipeline for addressing issues flagged via `@adlc` comments on an existing PR. Skips placement and documentation — the code already exists, fixes are scoped corrections.
+
+**Flag phase:** Comment `@adlc <description>` on a PR. A GitHub Action creates a labeled issue (`adlc-fix`) linked to the PR. Multiple flags can accumulate.
+
+**Fix phase:** Run `adlc fix <PR#>`. The harness collects all open `adlc-fix` issues, generates one slice per issue, and runs them through the standard coder/reviewer loop on the existing PR branch.
+
+```mermaid
+flowchart TD
+    Start(["@adlc comments on PR"]) --> Collect
+
+    subgraph Coord["adlc fix"]
+        direction TB
+
+        Collect["Collect adlc-fix issues"] --> FixPlan
+
+        subgraph FixPlan["1. Fix Plan"]
+            direction LR
+            FixPlanner["Fix Planner: 1 slice per issue"]
+        end
+
+        FixPlan --> SliceLoop
+
+        subgraph SliceLoop["2. Execution (parallel slices)"]
+            direction LR
+            Explorer --> Coder --> Reviewer
+            Reviewer -. "failures" .-> Coder
+        end
+
+        SliceLoop --> Simplify["3. Simplify"] --> PRUpdate["4. PR Update"] --> Monitor["5. Monitor CI"]
+    end
+
+    Monitor --> Done([PR updated])
+
+    style Start fill:#fbbf24,stroke:#d97706,color:#000
+    style Done fill:#4ade80,stroke:#16a34a,color:#000
+    style Coord fill:#fffbeb,stroke:#d97706
+```
+
+### Key differences
+
+| Aspect | Feature (`adlc feat`) | Fix (`adlc fix`) |
+|---|---|---|
+| Input | Feature description | PR number (issues auto-collected) |
+| Placement | Domain mapping + gate | Skipped |
+| Planning | Feature planner + gate + challenge | Fix planner (1:1 issue-to-slice) |
+| Documentation | Updates reference docs | Skipped |
+| PR | Creates new PR | Appends fix section to existing PR |
+| Steps | 7 | 5 |
+
+---
+
 Slices declare dependencies in their plan files. Independent slices run in parallel — each in its own git worktree with isolated `.adlc/` state, ports, and branch. After completion, results merge back to the feature branch sequentially.
 
 All inter-agent coordination goes through files in `.adlc/` — plan-header, slices, verification-results, implementation-notes, domain-mapping. This makes handoffs explicit and debuggable.
 
 ## Agents
 
-Eighteen agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
+Nineteen agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
 
-| Agent                    | What it does                                                                            |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| `placement-coordinator`  | Orchestrates placement mapping: mapper, evidence, challenge team, and gate              |
-| `domain-mapper`          | Analyzes feature terms against existing modules, writes placement decisions             |
-| `evidence-researcher`    | Resolves mapper evidence gaps by inspecting code artifacts                              |
-| `placement-gate`         | Holistic quality gate — reviews the entire mapping for architectural coherence          |
-| `sprawl-challenger`      | Challenges create decisions with concrete extension proposals                           |
-| `cohesion-challenger`    | Checks extend decisions for god-module risk                                             |
-| `challenge-arbiter`      | Synthesizes challenger debate into unified verdict                                      |
-| `plan-coordinator`       | Orchestrates plan drafting: planner and plan-gate review loop                           |
-| `planner`                | Drafts a multi-slice plan with acceptance criteria per slice                            |
-| `plan-gate`              | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
-| `slice-coordinator`      | Orchestrates slice execution: explorer, coder, and reviewer retry loop                  |
-| `explorer`               | Surveys reference packages for a slice, returns patterns summary for the coder          |
-| `coder`                  | Implements a single slice — code, MSW handlers, Storybook stories                       |
-| `reviewer`               | Verifies acceptance criteria via browser screenshots and interactions                   |
-| `simplify`               | Reviews changed code for reuse, quality, and efficiency, then fixes issues              |
-| `document`               | Updates module docs and architecture references to reflect what was built               |
-| `pr`                     | Pushes branch, opens PR with summary and technical changes                              |
-| `monitor`                | Polls CI workflows, auto-fixes failures (lint, Chromatic, Lighthouse)                   |
+| Agent                    | Workflow | What it does                                                                            |
+| ------------------------ | -------- | --------------------------------------------------------------------------------------- |
+| `placement-coordinator`  | feat     | Orchestrates placement mapping: mapper, evidence, challenge team, and gate              |
+| `domain-mapper`          | feat     | Analyzes feature terms against existing modules, writes placement decisions             |
+| `evidence-researcher`    | feat     | Resolves mapper evidence gaps by inspecting code artifacts                              |
+| `placement-gate`         | feat     | Holistic quality gate — reviews the entire mapping for architectural coherence          |
+| `sprawl-challenger`      | feat     | Challenges create decisions with concrete extension proposals                           |
+| `cohesion-challenger`    | feat     | Checks extend decisions for god-module risk                                             |
+| `challenge-arbiter`      | feat     | Synthesizes challenger debate into unified verdict                                      |
+| `plan-coordinator`       | feat     | Orchestrates plan drafting: feature-planner and plan-gate review loop                   |
+| `feature-planner`        | feat     | Drafts a multi-slice plan with acceptance criteria per slice                            |
+| `plan-gate`              | feat     | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
+| `fix-planner`            | fix      | Generates one fix slice per GitHub issue — scoped corrections, no gate                  |
+| `slice-coordinator`      | both     | Orchestrates slice execution: explorer, coder, and reviewer retry loop                  |
+| `explorer`               | both     | Surveys reference packages for a slice, returns patterns summary for the coder          |
+| `coder`                  | both     | Implements a single slice — code, MSW handlers, Storybook stories                       |
+| `reviewer`               | both     | Verifies acceptance criteria via browser screenshots and interactions                   |
+| `simplify`               | both     | Reviews changed code for reuse, quality, and efficiency, then fixes issues              |
+| `document`               | feat     | Updates module docs and architecture references to reflect what was built               |
+| `pr`                     | both     | Creates new PR (feat) or appends fix section to existing PR (fix)                       |
+| `monitor`                | both     | Polls CI workflows, auto-fixes failures (lint, Chromatic, Lighthouse)                   |
 
 ---
 
@@ -101,7 +161,7 @@ Block a subagent's completion until its deliverables meet structural and quality
 | Agent                 | Checks                                                                                                                                                                                                                     |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `coder`               | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
-| `planner`             | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
+| `feature-planner`     | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
 | `plan-gate`           | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
 | `domain-mapper`       | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
 | `evidence-researcher` | evidence findings file exists                                                                                                                                                                                              |
@@ -262,22 +322,36 @@ pnpm add @patlaf/adlc
 
 ## Usage
 
-### Run the full pipeline
+### Implement a new feature
 
 ```bash
-pnpm adlc "Add a household feature with member invitations and plant sharing"
+pnpm adlc feat "Add a household feature with member invitations and plant sharing"
 ```
 
 ### Preview the execution plan
 
 ```bash
-pnpm adlc --dry-run "Add household feature"
+pnpm adlc feat --dry-run "Add household feature"
+```
+
+### Fix issues on an existing PR
+
+Flag issues during review by commenting `@adlc <description>` on the PR. Each comment creates a GitHub issue labeled `adlc-fix`. Then batch-fix all flagged issues:
+
+```bash
+pnpm adlc fix 42
 ```
 
 ### CLI reference
 
 ```
-Usage: adlc [options] <feature-description>
+Usage:
+  adlc feat [options] <feature-description>
+  adlc fix  [options] <pr-number>
+
+Commands:
+  feat    Plan and implement a new feature
+  fix     Fix issues flagged on an existing PR
 
 Options:
   --dry-run           Show wave schedule without executing

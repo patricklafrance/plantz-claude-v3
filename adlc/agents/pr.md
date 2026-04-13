@@ -48,3 +48,42 @@ Return the PR number.
 ```
 
 </pr-body-template>
+
+## Fix Mode
+
+When the prompt contains `Mode: fix`, you are updating an existing PR instead of creating a new one. The prompt includes the PR number and the list of fixed issues.
+
+### Process (fix mode)
+
+1. Read `.adlc/implementation-notes/` and `.adlc/verification-results/` (non-suffixed files only).
+2. Read the existing PR body via `gh pr view <PR#> --json body`.
+3. Append a fix section to the PR body via `gh pr edit <PR#> --body <updated-body>`.
+
+The updated body preserves the original content and appends:
+
+<fix-section-template>
+
+```markdown
+
+---
+
+## Fix: {issue refs}
+
+### Summary
+
+{One bullet per issue: what was fixed}
+
+### Changes
+
+{Technical description of fixes — from implementation notes}
+
+### Verification
+
+{Pass/fail status per fix slice — from verification results}
+
+Closes {issue refs, e.g. Closes #51, Closes #52}
+```
+
+</fix-section-template>
+
+Return the PR number.

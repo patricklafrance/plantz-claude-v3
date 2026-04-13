@@ -1,5 +1,5 @@
 ---
-name: planner
+name: feature-planner
 description: Draft a multi-slice technical plan.
 model: opus
 effort: high

@@ -51,7 +51,7 @@ Handled agent types:
 - `evidence-researcher`
 - `placement-gate`
 - `plan-gate`
-- `planner`
+- `feature-planner`
 - `reviewer`
 - `simplify`
 
@@ -131,7 +131,7 @@ Checks:
 1. must not modify plan files
 2. revision feedback must reference at least one slice
 
-### `planner`
+### `feature-planner`
 
 Checks:
 

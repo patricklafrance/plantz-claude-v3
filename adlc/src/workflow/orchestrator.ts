@@ -10,10 +10,11 @@ import { validateRepository } from "../preflight.ts";
 import { Progress } from "../progress.ts";
 import { classifyReferenceDocs, loadAllAgents } from "./agents.ts";
 import { runDocument } from "./steps/document.ts";
+import { runFixPlan } from "./steps/fix-plan.ts";
 import { runMonitor } from "./steps/monitor.ts";
 import { runPlacement } from "./steps/placement.ts";
 import { runPlan } from "./steps/plan.ts";
-import { runPr } from "./steps/pr.ts";
+import { runPr, runPrUpdate } from "./steps/pr.ts";
 import { runSimplify } from "./steps/simplify.ts";
 import { runSlices } from "./steps/slices/run-slices.ts";
 
@@ -66,11 +67,22 @@ export function cleanAdlcState(adlcRoot: string): void {
     }
 }
 
+export interface FixTarget {
+    /** PR number to fix. */
+    prNumber: number;
+    /** Head branch of the PR. */
+    branch: string;
+    /** GitHub issues to fix. */
+    issues: Array<{ number: number; title: string; body: string }>;
+}
+
 export interface OrchestratorOptions {
     /** Target repository path. */
     cwd: string;
     /** Show wave schedule without executing. */
     dryRun?: boolean;
+    /** Present = fix mode. */
+    fix?: FixTarget;
 }
 
 export async function run(featureDescription: string, options: OrchestratorOptions): Promise<void> {
@@ -123,18 +135,28 @@ export async function run(featureDescription: string, options: OrchestratorOptio
         // Fresh hooks per step — supervisor state (browser thrash counters,
         // wall-clock timers, install bypass tokens) must not leak across steps.
 
-        // Step 1: Domain mapping + placement gate
-        const donePlacement = progress.step(1, "Placement");
-        await runPlacement(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
-        donePlacement();
+        const isFixMode = !!options.fix;
 
-        // Step 2: Plan + adversarial challenge
-        const donePlan = progress.step(2, "Plan");
-        await runPlan(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
-        donePlan();
+        if (isFixMode) {
+            // Fix mode: skip placement, use fix-planner instead of feature planner.
+            const doneFixPlan = progress.step(1, "Fix Plan");
+            await runFixPlan(options.fix!, cwd, agents, progress, createHooks({ cwd }).hooks);
+            doneFixPlan();
+        } else {
+            // Step 1: Domain mapping + placement gate
+            const donePlacement = progress.step(1, "Placement");
+            await runPlacement(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
+            donePlacement();
+
+            // Step 2: Plan + adversarial challenge
+            const donePlan = progress.step(2, "Plan");
+            await runPlan(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
+            donePlan();
+        }
 
         // Step 3: Slice execution (creates its own hooks per slice pipeline)
-        const doneExecution = progress.step(3, "Execution");
+        const executionStep = isFixMode ? 2 : 3;
+        const doneExecution = progress.step(executionStep, "Execution");
         await runSlices(cwd, config, preamble, options, progress);
         doneExecution();
 
@@ -145,24 +167,37 @@ export async function run(featureDescription: string, options: OrchestratorOptio
         }
 
         // Step 4: Simplify
-        const doneSimplify = progress.step(4, "Simplify");
+        const simplifyStep = isFixMode ? 3 : 4;
+        const doneSimplify = progress.step(simplifyStep, "Simplify");
         await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
         doneSimplify();
 
-        // Step 5: Document
-        const doneDocument = progress.step(5, "Document");
-        await runDocument(cwd, agents, progress, createHooks({ cwd }).hooks);
-        doneDocument();
+        if (isFixMode) {
+            // Fix mode: skip document, update existing PR instead of creating new one.
+            const donePrUpdate = progress.step(4, "PR Update");
+            const prNumber = await runPrUpdate(options.fix!, cwd, agents, progress, createHooks({ cwd }).hooks);
+            donePrUpdate();
 
-        // Step 6: Pull Request
-        const donePR = progress.step(6, "Pull Request");
-        const prNumber = await runPr(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
-        donePR();
+            // Step 5: Monitor CI
+            const doneMonitor = progress.step(5, "Monitor CI");
+            await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks, prNumber);
+            doneMonitor();
+        } else {
+            // Step 5: Document
+            const doneDocument = progress.step(5, "Document");
+            await runDocument(cwd, agents, progress, createHooks({ cwd }).hooks);
+            doneDocument();
 
-        // Step 7: Monitor CI
-        const doneMonitor = progress.step(7, "Monitor CI");
-        await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks, prNumber);
-        doneMonitor();
+            // Step 6: Pull Request
+            const donePR = progress.step(6, "Pull Request");
+            const prNumber = await runPr(featureDescription, cwd, agents, progress, createHooks({ cwd }).hooks);
+            donePR();
+
+            // Step 7: Monitor CI
+            const doneMonitor = progress.step(7, "Monitor CI");
+            await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks, prNumber);
+            doneMonitor();
+        }
 
         progress.done();
     } catch (error) {
