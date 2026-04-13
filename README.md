@@ -1,6 +1,6 @@
 # ADLC
 
-A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates fifteen agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
+A headless CLI that plans, implements, and ships features using a multi-agent pipeline. Built on the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), it orchestrates sixteen agents through an Agent Development Life Cycle (ADLC) — from domain mapping to PR creation — with parallel slice execution via git worktrees.
 
 ## What is an agent harness?
 
@@ -34,8 +34,8 @@ flowchart TD
 
         subgraph PlanLoop["Plan Loop (max 5)"]
             direction LR
-            Planner --> PlanGate["Gate"]
-            PlanGate -. "revision" .-> Planner
+            Planner --> PlanGate["Gate"] --> Challenge["Domain Challenger"]
+            Challenge -. "revision" .-> Planner
         end
 
         PlanLoop --> SliceLoop
@@ -63,7 +63,7 @@ All inter-agent coordination goes through files in `.adlc/` — plan-header, sli
 
 ## Agents
 
-Fifteen agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
+Sixteen agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
 
 | Agent                 | What it does                                                                            |
 | --------------------- | --------------------------------------------------------------------------------------- |
@@ -73,6 +73,7 @@ Fifteen agents form the pipeline. Each is defined as a markdown file with YAML f
 | `sprawl-challenger`   | Challenges create decisions with concrete extension proposals                           |
 | `cohesion-challenger` | Checks extend decisions for god-module risk                                             |
 | `challenge-arbiter`   | Synthesizes challenger debate into unified verdict                                      |
+| `domain-challenger`   | Orchestrates the adversarial challenge team and returns the verdict                     |
 | `planner`             | Drafts a multi-slice plan with acceptance criteria per slice                            |
 | `plan-gate`           | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
 | `explorer`            | Surveys reference packages for a slice, returns patterns summary for the coder          |
@@ -100,6 +101,7 @@ Block a subagent's completion until its deliverables meet structural and quality
 | `coder`               | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
 | `planner`             | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
 | `plan-gate`           | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
+| `domain-challenger`   | `.adlc/current-challenge-verdict.md` must exist with a valid `## Status` (reuses `challenge-arbiter` handler)                                                                                                              |
 | `domain-mapper`       | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
 | `evidence-researcher` | evidence findings file exists                                                                                                                                                                                              |
 | `placement-gate`      | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                               |

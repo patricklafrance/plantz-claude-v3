@@ -25,6 +25,7 @@ type HandlerFn = (cwd: string) => string[] | Promise<string[]>;
 
 const handlers: Record<string, HandlerFn> = {
     "challenge-arbiter": handleChallengeArbiter,
+    "domain-challenger": handleChallengeArbiter,
     document: handleDocument,
     "domain-mapper": handleModuleMapper,
     "evidence-researcher": handleEvidenceResearcher,

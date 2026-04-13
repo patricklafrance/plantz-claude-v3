@@ -1,9 +1,28 @@
 /** Step 2: Plan draft with adversarial challenge loop. */
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { DEFAULTS } from "../../config.ts";
 import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
+
+function readVerdictStatus(cwd: string): "approved" | "revision-required" | "unknown" {
+    try {
+        const content = readFileSync(
+            resolve(cwd, ".adlc", "current-challenge-verdict.md"), "utf-8"
+        );
+        const statusMatch = content.match(/^##\s+Status\s*\n+(.+)/im);
+        if (!statusMatch) return "unknown";
+        const status = statusMatch[1].trim().toLowerCase();
+        if (status.startsWith("approved")) return "approved";
+        if (status.startsWith("revision required")) return "revision-required";
+        return "unknown";
+    } catch {
+        return "unknown";
+    }
+}
 
 export async function runPlan(
     featureDescription: string,
@@ -29,19 +48,15 @@ export async function runPlan(
         // eslint-disable-next-line no-await-in-loop
         await runAgent("plan-gate", "Validate the plan structure.", cwd, agents, progress, hooks);
 
-        // Adversarial challenge -- challengers in parallel
+        // Adversarial challenge -- domain-challenger orchestrates the team
         // eslint-disable-next-line no-await-in-loop
-        const [_cohesionResult, _sprawlResult] = await Promise.all([
-            runAgent("cohesion-challenger", "Check extend decisions for god-module risk.", cwd, agents, progress, hooks),
-            runAgent("sprawl-challenger", "Challenge create decisions with extension proposals.", cwd, agents, progress, hooks)
-        ]);
+        await runAgent(
+            "domain-challenger",
+            "Run the adversarial challenge debate and produce a verdict.",
+            cwd, agents, progress, hooks
+        );
 
-        // Arbiter synthesizes
-        // eslint-disable-next-line no-await-in-loop
-        const verdict = await runAgent("challenge-arbiter", "Synthesize challenger debate into unified verdict.", cwd, agents, progress, hooks);
-
-        const lower = verdict.toLowerCase();
-        if (lower.includes("approved") && !lower.includes("revision required")) {
+        if (readVerdictStatus(cwd) === "approved") {
             progress?.log("plan", "Plan approved by arbiter");
             break;
         }
