@@ -3,9 +3,6 @@ name: gather
 description: Fetch feature or fix input from a project management tool.
 model: haiku
 effort: low
-tools: Bash, Write, Read
-maxTurns: 5
-permissionMode: bypassPermissions
 skills:
     - node_modules/@patlaf/adlc/skills/github/SKILL.md
 ---
