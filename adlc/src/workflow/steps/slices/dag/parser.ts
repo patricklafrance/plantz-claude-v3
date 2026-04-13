@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import type { SliceNode } from "./types.ts";
 
-const SLICE_FILENAME_RE = /^slice-(\d+)-(.+)\.md$/;
+const SLICE_FILENAME_RE = /^(\d+)-(.+)\.md$/;
 const DEPENDS_ON_RE = /^>\s*\*\*Depends on:\*\*\s*(.+)$/m;
 const SLICE_NUMBER_RE = /Slice\s+(\d+)/gi;
 

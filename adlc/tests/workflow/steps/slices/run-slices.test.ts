@@ -159,8 +159,8 @@ describe("runSlices", () => {
 
     it("executes independent slices in a single wave", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
-        writeFileSync(join(slicesDir, "slice-02-beta.md"), "# Slice 2 -- Beta\nContent.\n");
+        writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+        writeFileSync(join(slicesDir, "02-beta.md"), "# Slice 2 -- Beta\nContent.\n");
 
         await runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir });
 
@@ -173,8 +173,8 @@ describe("runSlices", () => {
 
     it("executes dependent slices in sequential waves", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-base.md"), "# Slice 1 -- Base\nBase slice.\n");
-        writeFileSync(join(slicesDir, "slice-02-feature.md"), "# Slice 2 -- Feature\n\n> **Depends on:** Slice 1\n\nFeature.\n");
+        writeFileSync(join(slicesDir, "01-base.md"), "# Slice 1 -- Base\nBase slice.\n");
+        writeFileSync(join(slicesDir, "02-feature.md"), "# Slice 2 -- Feature\n\n> **Depends on:** Slice 1\n\nFeature.\n");
 
         const { runSlicePipeline } = await import("../../../../src/workflow/steps/slices/revision-loop.js");
         const callOrder: string[] = [];
@@ -190,8 +190,8 @@ describe("runSlices", () => {
 
     it("does not merge a failed slice", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-good.md"), "# Slice 1 -- Good\nContent.\n");
-        writeFileSync(join(slicesDir, "slice-02-bad.md"), "# Slice 2 -- Bad\nContent.\n");
+        writeFileSync(join(slicesDir, "01-good.md"), "# Slice 1 -- Good\nContent.\n");
+        writeFileSync(join(slicesDir, "02-bad.md"), "# Slice 2 -- Bad\nContent.\n");
 
         slicePipelineResults["bad"] = { success: false, reason: "max revision attempts exceeded" };
 
@@ -204,7 +204,7 @@ describe("runSlices", () => {
 
     it("does not merge a slice that threw an exception", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-crash.md"), "# Slice 1 -- Crash\nContent.\n");
+        writeFileSync(join(slicesDir, "01-crash.md"), "# Slice 1 -- Crash\nContent.\n");
 
         const { runSlicePipeline } = await import("../../../../src/workflow/steps/slices/revision-loop.js");
         vi.mocked(runSlicePipeline).mockRejectedValue(new Error("Unexpected crash"));
@@ -217,7 +217,7 @@ describe("runSlices", () => {
 
     it("resolves merge conflicts via coder agent then completes merge", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+        writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
 
         mockMergeResults["adlc/alpha"] = { success: false, conflictFiles: ["index.ts"] };
 
@@ -233,7 +233,7 @@ describe("runSlices", () => {
 
     it("cleans up worktrees when seeding throws", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-leak.md"), "# Slice 1 -- Leak\nContent.\n");
+        writeFileSync(join(slicesDir, "01-leak.md"), "# Slice 1 -- Leak\nContent.\n");
 
         const { seedAdlc } = await import("../../../../src/workflow/steps/slices/worktree/seeder.js");
         vi.mocked(seedAdlc).mockRejectedValue(new Error("seed failed"));
@@ -245,7 +245,7 @@ describe("runSlices", () => {
 
     it("aborts merge when coder agent fails to resolve conflicts", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-beta.md"), "# Slice 1 -- Beta\nContent.\n");
+        writeFileSync(join(slicesDir, "01-beta.md"), "# Slice 1 -- Beta\nContent.\n");
 
         mockMergeResults["adlc/beta"] = { success: false, conflictFiles: ["config.ts"] };
 
@@ -261,7 +261,7 @@ describe("runSlices", () => {
 
     it("passes fix-slice-coordinator to pipeline in fix mode", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+        writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
 
         const { runSlicePipeline } = await import("../../../../src/workflow/steps/slices/revision-loop.js");
         vi.mocked(runSlicePipeline).mockResolvedValue({ success: true });
@@ -288,7 +288,7 @@ describe("runSlices", () => {
 
     it("uses fix-coder for merge conflict resolution in fix mode", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
-        writeFileSync(join(slicesDir, "slice-01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+        writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
 
         mockMergeResults["adlc/alpha"] = { success: false, conflictFiles: ["index.ts"] };
 

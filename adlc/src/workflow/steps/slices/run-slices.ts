@@ -37,6 +37,10 @@ export async function runSlices(
     const runDir = resolve(cwd, ".adlc", runDirName);
     const dag = buildDAG(resolve(runDir, "slices"));
 
+    if (dag.nodes.length === 0) {
+        throw new Error("No slice files found in the slices directory. The plan step must produce at least one slice before execution can proceed.");
+    }
+
     const isFixMode = options.input.type === "fix-text" || options.input.type === "fix-pr";
     const coordinatorAgent = isFixMode ? "fix-slice-coordinator" : "feature-slice-coordinator";
     const coderAgent = isFixMode ? "fix-coder" : "feature-coder";

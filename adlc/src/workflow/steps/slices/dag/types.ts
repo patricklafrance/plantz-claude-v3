@@ -1,5 +1,5 @@
 export interface SliceNode {
-    /** Slice filename, e.g. "slice-01-plant-list.md" */
+    /** Slice filename, e.g. "01-plant-list.md" */
     filename: string;
     /** Slice number extracted from filename */
     number: number;

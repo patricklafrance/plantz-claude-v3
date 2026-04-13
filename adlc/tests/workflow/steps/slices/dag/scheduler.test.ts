@@ -9,7 +9,7 @@ import type { SliceNode } from "../../../../../src/workflow/steps/slices/dag/typ
 
 function makeNode(number: number, name: string, dependsOn: number[] = []): SliceNode {
     return {
-        filename: `slice-${String(number).padStart(2, "0")}-${name}.md`,
+        filename: `${String(number).padStart(2, "0")}-${name}.md`,
         number,
         name,
         dependsOn
@@ -102,10 +102,10 @@ describe("buildDAG", () => {
     });
 
     it("builds a complete DAG from slice files on disk", () => {
-        writeFileSync(join(slicesDir, "slice-01-base.md"), "# Slice 1 — Base\n\nBase slice.\n");
-        writeFileSync(join(slicesDir, "slice-02-feature.md"), "# Slice 2 — Feature\n\n> **Depends on:** Slice 1\n\nFeature slice.\n");
-        writeFileSync(join(slicesDir, "slice-03-tests.md"), "# Slice 3 — Tests\n\n> **Depends on:** Slice 1\n\nTest slice.\n");
-        writeFileSync(join(slicesDir, "slice-04-integration.md"), "# Slice 4 — Integration\n\n> **Depends on:** Slice 2, Slice 3\n\nIntegration.\n");
+        writeFileSync(join(slicesDir, "01-base.md"), "# Slice 1 — Base\n\nBase slice.\n");
+        writeFileSync(join(slicesDir, "02-feature.md"), "# Slice 2 — Feature\n\n> **Depends on:** Slice 1\n\nFeature slice.\n");
+        writeFileSync(join(slicesDir, "03-tests.md"), "# Slice 3 — Tests\n\n> **Depends on:** Slice 1\n\nTest slice.\n");
+        writeFileSync(join(slicesDir, "04-integration.md"), "# Slice 4 — Integration\n\n> **Depends on:** Slice 2, Slice 3\n\nIntegration.\n");
 
         const dag = buildDAG(slicesDir);
 

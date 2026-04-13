@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,6 +38,22 @@ export interface OrchestratorOptions {
     dryRun?: boolean;
     /** Pipeline input — determines mode and data source. */
     input: PipelineInput;
+}
+
+/**
+ * Verify that at least one slice produced implementation notes.
+ * Returns true if implementation results exist, false otherwise.
+ */
+function hasImplementationResults(cwd: string, runDirName: string): boolean {
+    const notesDir = resolve(cwd, ".adlc", runDirName, "implementation-notes");
+
+    if (!existsSync(notesDir)) {
+        return false;
+    }
+
+    const files = readdirSync(notesDir).filter(f => f.endsWith(".md"));
+
+    return files.length > 0;
 }
 
 function getBannerLabel(input: PipelineInput): string {
@@ -121,6 +137,10 @@ export async function run(options: OrchestratorOptions): Promise<void> {
                 return;
             }
 
+            if (!hasImplementationResults(cwd, getRunDirName()!)) {
+                throw new Error("Execution produced no implementation results. No slices were successfully implemented — aborting pipeline.");
+            }
+
             // Step 3: Simplify
             const doneSimplify = progress.step(3, "Simplify");
             await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
@@ -164,6 +184,10 @@ export async function run(options: OrchestratorOptions): Promise<void> {
                 progress.done();
 
                 return;
+            }
+
+            if (!hasImplementationResults(cwd, getRunDirName()!)) {
+                throw new Error("Execution produced no implementation results. No slices were successfully implemented — aborting pipeline.");
             }
 
             // Step 4: Simplify
