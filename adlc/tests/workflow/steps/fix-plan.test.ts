@@ -46,11 +46,7 @@ describe("runFixPlan", () => {
     });
 
     it("delegates to fix-planner agent", async () => {
-        await runFixPlan(
-            { prNumber: 42, description: "Issue #51: Fix color\nColor should be blue" },
-            "/tmp/test",
-            mockAgents
-        );
+        await runFixPlan({ prNumber: 42, description: "Issue #51: Fix color\nColor should be blue" }, "/tmp/test", mockAgents);
 
         expect(queryCallLog).toHaveLength(1);
         expect(queryCallLog[0].options.agent).toBe("fix-planner");
@@ -60,7 +56,8 @@ describe("runFixPlan", () => {
         await runFixPlan(
             {
                 prNumber: 42,
-                description: "Issue #51: Fix color\nLink: https://github.com/owner/repo/issues/51\n\nColor should be blue\n\nIssue #52: Fix sort\nLink: https://github.com/owner/repo/issues/52\n\nSort order wrong"
+                description:
+                    "Issue #51: Fix color\nLink: https://github.com/owner/repo/issues/51\n\nColor should be blue\n\nIssue #52: Fix sort\nLink: https://github.com/owner/repo/issues/52\n\nSort order wrong"
             },
             "/tmp/test",
             mockAgents
@@ -75,13 +72,7 @@ describe("runFixPlan", () => {
         // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
-        await runFixPlan(
-            { prNumber: 42, description: "Issue #51: Fix it\nFix it" },
-            "/tmp/test",
-            mockAgents,
-            undefined,
-            fakeHooks
-        );
+        await runFixPlan({ prNumber: 42, description: "Issue #51: Fix it\nFix it" }, "/tmp/test", mockAgents, undefined, fakeHooks);
 
         expect(queryCallLog[0].options.hooks).toBe(fakeHooks);
     });

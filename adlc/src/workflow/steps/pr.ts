@@ -2,8 +2,8 @@
 
 import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
-import type { FixTarget } from "../orchestrator.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
+import type { FixTarget } from "../orchestrator.ts";
 
 export async function runPr(
     featureDescription: string,
@@ -27,14 +27,7 @@ export async function runPrUpdate(
     progress?: Progress,
     hooks?: SDKHooks
 ): Promise<string> {
-    const prompt = [
-        `Update PR #${fix.prNumber} with fix results.`,
-        "",
-        "Fixed issues:",
-        fix.description,
-        "",
-        "Mode: fix"
-    ].join("\n");
+    const prompt = [`Update PR #${fix.prNumber} with fix results.`, "", "Fixed issues:", fix.description, "", "Mode: fix"].join("\n");
 
     progress?.log("post", `Updating PR #${fix.prNumber} with fix results...`);
     await runAgent("pr", prompt, cwd, agents, progress, hooks);

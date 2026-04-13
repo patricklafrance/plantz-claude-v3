@@ -13,11 +13,7 @@ export async function runPlacement(
 ): Promise<void> {
     progress?.log("plan", "Starting placement coordinator");
 
-    await runAgent(
-        "placement-coordinator",
-        `Coordinate module placement for feature: ${featureDescription}`,
-        cwd, agents, progress, hooks
-    );
+    await runAgent("placement-coordinator", `Coordinate module placement for feature: ${featureDescription}`, cwd, agents, progress, hooks);
 
     progress?.log("plan", "Placement complete");
 }

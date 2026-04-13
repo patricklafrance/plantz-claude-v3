@@ -1,4 +1,6 @@
+import type * as NodeFs from "node:fs";
 import { resolve } from "node:path";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── Mock SDK ────────────────────────────────────────────────────────────────
@@ -34,21 +36,21 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
 let writtenFiles: Record<string, string> = {};
 let mockFileContents: Record<string, string> = {};
 
-vi.mock("node:fs", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("node:fs")>();
+vi.mock("node:fs", async importOriginal => {
+    const actual: typeof NodeFs = await importOriginal();
     return {
         ...actual,
-        existsSync: vi.fn((path: string) => {
+        existsSync: vi.fn<(path: string) => boolean>((path: string) => {
             return path in mockFileContents;
         }),
-        writeFileSync: vi.fn((path: string, data: string) => {
+        writeFileSync: vi.fn<(path: string, data: string) => void>((path: string, data: string) => {
             writtenFiles[path] = data;
         }),
-        readFileSync: vi.fn((path: string, _encoding?: string) => {
+        readFileSync: vi.fn<(path: string, encoding?: string) => string>((path: string, _encoding?: string) => {
             if (mockFileContents[path]) {
                 return mockFileContents[path];
             }
-            return actual.readFileSync(path, "utf-8");
+            return actual.readFileSync(path, "utf-8") as string;
         })
     };
 });
@@ -80,12 +82,7 @@ describe("runGather", () => {
 
     describe("feat-text mode", () => {
         it("writes description to input.md and returns it", async () => {
-            const result = await runGather(
-                { type: "feat-text", description: "Add user authentication" },
-                RUN_DIR,
-                "/tmp/cwd",
-                mockAgents
-            );
+            const result = await runGather({ type: "feat-text", description: "Add user authentication" }, RUN_DIR, "/tmp/cwd", mockAgents);
 
             expect(result.description).toBe("Add user authentication");
             expect(writtenFiles[INPUT_PATH]).toBe("Add user authentication");
@@ -114,12 +111,7 @@ describe("runGather", () => {
             mockFileContents[INPUT_PATH] = fileContent;
             agentResult = "Done";
 
-            const result = await runGather(
-                { type: "feat-issue", issueNumber: 52 },
-                RUN_DIR,
-                "/tmp/cwd",
-                mockAgents
-            );
+            const result = await runGather({ type: "feat-issue", issueNumber: 52 }, RUN_DIR, "/tmp/cwd", mockAgents);
 
             expect(queryCallLog).toHaveLength(1);
             expect(queryCallLog[0].options.agent).toBe("gather");
@@ -135,12 +127,7 @@ describe("runGather", () => {
             mockFileContents[INPUT_PATH] = fileContent;
             agentResult = "Done";
 
-            const result = await runGather(
-                { type: "fix-pr", prNumber: 42 },
-                RUN_DIR,
-                "/tmp/cwd",
-                mockAgents
-            );
+            const result = await runGather({ type: "fix-pr", prNumber: 42 }, RUN_DIR, "/tmp/cwd", mockAgents);
 
             expect(queryCallLog).toHaveLength(1);
             expect(queryCallLog[0].options.agent).toBe("gather");
@@ -152,28 +139,18 @@ describe("runGather", () => {
         it("throws when agent returns NO_ISSUES_FOUND", async () => {
             agentResult = "NO_ISSUES_FOUND";
 
-            await expect(
-                runGather(
-                    { type: "fix-pr", prNumber: 42 },
-                    RUN_DIR,
-                    "/tmp/cwd",
-                    mockAgents
-                )
-            ).rejects.toThrow("No open adlc-fix issues found linked to PR #42");
+            await expect(runGather({ type: "fix-pr", prNumber: 42 }, RUN_DIR, "/tmp/cwd", mockAgents)).rejects.toThrow(
+                "No open adlc-fix issues found linked to PR #42"
+            );
         });
 
         it("throws when agent does not write input.md", async () => {
             agentResult = "Done";
             // mockFileContents not set — existsSync returns false
 
-            await expect(
-                runGather(
-                    { type: "fix-pr", prNumber: 42 },
-                    RUN_DIR,
-                    "/tmp/cwd",
-                    mockAgents
-                )
-            ).rejects.toThrow("Gather agent did not write input.md");
+            await expect(runGather({ type: "fix-pr", prNumber: 42 }, RUN_DIR, "/tmp/cwd", mockAgents)).rejects.toThrow(
+                "Gather agent did not write input.md"
+            );
         });
     });
 
@@ -183,14 +160,7 @@ describe("runGather", () => {
         // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
-        await runGather(
-            { type: "feat-issue", issueNumber: 10 },
-            RUN_DIR,
-            "/tmp/cwd",
-            mockAgents,
-            undefined,
-            fakeHooks
-        );
+        await runGather({ type: "feat-issue", issueNumber: 10 }, RUN_DIR, "/tmp/cwd", mockAgents, undefined, fakeHooks);
 
         expect(queryCallLog[0].options.hooks).toBe(fakeHooks);
     });

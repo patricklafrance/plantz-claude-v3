@@ -149,7 +149,8 @@ describe("runSlices", () => {
 
     const baseOptions = {
         cwd: "", // overridden per test
-        featureBranch: "feat/test-feature"
+        featureBranch: "feat/test-feature",
+        input: { type: "feat-text" as const, description: "test feature" }
     };
 
     it("executes independent slices in a single wave", async () => {

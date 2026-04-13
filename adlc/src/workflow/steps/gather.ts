@@ -15,7 +15,7 @@ export type PipelineInput =
     | { type: "fix-text"; prNumber: number; description: string }
     | { type: "fix-pr"; prNumber: number };
 
-export interface GatherResult {
+interface GatherResult {
     description: string;
 }
 

@@ -36,6 +36,7 @@ Use `Agent` tool to spawn `reviewer` with prompt: `"Verify the slice implementat
 #### 2c. Check Verification Results
 
 Read `verification-results.md` (in the ADLC run directory) **semantically**:
+
 - Look for a `## Failed` section or criteria explicitly marked as failed
 - Distinguish real failures from incidental use of words like "fail" in descriptions
 - A file that only contains passing criteria means the slice passed

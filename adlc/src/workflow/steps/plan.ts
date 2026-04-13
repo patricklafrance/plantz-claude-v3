@@ -13,11 +13,7 @@ export async function runPlan(
 ): Promise<void> {
     progress?.log("plan", "Starting plan coordinator");
 
-    await runAgent(
-        "plan-coordinator",
-        `Coordinate implementation planning for feature: ${featureDescription}`,
-        cwd, agents, progress, hooks
-    );
+    await runAgent("plan-coordinator", `Coordinate implementation planning for feature: ${featureDescription}`, cwd, agents, progress, hooks);
 
     progress?.log("plan", "Plan complete");
 }

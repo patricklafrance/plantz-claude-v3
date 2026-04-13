@@ -234,7 +234,7 @@ function formatToolCall(toolName: string, rawInput: string): string {
 }
 
 /** Throw a standardized agent failure error. */
-export function throwAgentError(agentName: string, msg: Record<string, unknown>): never {
+function throwAgentError(agentName: string, msg: Record<string, unknown>): never {
     const errors = Array.isArray(msg.errors) ? (msg.errors as string[]).join("; ") : String(msg.subtype);
     throw new Error(`Agent "${agentName}" failed (${msg.subtype}): ${errors}`);
 }

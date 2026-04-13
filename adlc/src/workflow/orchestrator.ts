@@ -70,7 +70,7 @@ export async function run(options: OrchestratorOptions): Promise<void> {
         doneConfig();
 
         const doneValidate = progress.start("init", "Validating repository");
-        validateRepository(cwd);
+        validateRepository(cwd, resolve(cwd, config.structure.reference));
         doneValidate();
 
         const doneDirs = progress.start("init", "Preparing workspace");

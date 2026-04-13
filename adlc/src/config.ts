@@ -23,14 +23,6 @@ export function resolveModel(alias: string | undefined): string | undefined {
 
 // ── Orchestrator defaults ────────────────────────────────
 
-/** Default orchestrator settings. */
-export const DEFAULTS = {
-    /** Max USD budget per slice. */
-    budgetPerSlice: 15,
-    /** Max parallel slices per wave. */
-    maxParallel: 5
-} as const;
-
 /** Port allocation base for parallel worktrees. */
 const PORT_BASE = {
     storybook: 6100,

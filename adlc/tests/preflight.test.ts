@@ -17,6 +17,8 @@ describe("validateRepository", () => {
         return dir;
     }
 
+    const REFERENCE_DIR = "agent-docs";
+
     const validPkg = {
         scripts: {
             build: "turbo build",
@@ -37,6 +39,12 @@ describe("validateRepository", () => {
         }
     };
 
+    /** Write a valid package.json and create the reference directory. */
+    function setupValidRepo(dir: string): void {
+        writeFileSync(join(dir, "package.json"), JSON.stringify(validPkg));
+        mkdirSync(join(dir, REFERENCE_DIR), { recursive: true });
+    }
+
     afterEach(() => {
         for (const dir of dirs) {
             if (existsSync(dir)) {
@@ -48,39 +56,49 @@ describe("validateRepository", () => {
 
     it("passes for a well-configured repo", () => {
         const dir = makeTmpDir();
-        writeFileSync(join(dir, "package.json"), JSON.stringify(validPkg));
+        setupValidRepo(dir);
 
-        expect(() => validateRepository(dir)).not.toThrow();
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).not.toThrow();
     });
 
     it("throws for missing script", () => {
         const dir = makeTmpDir();
+        setupValidRepo(dir);
         const pkg = { ...validPkg, scripts: { ...validPkg.scripts } };
         delete (pkg.scripts as Record<string, string>)["format-fix"];
         writeFileSync(join(dir, "package.json"), JSON.stringify(pkg));
 
-        expect(() => validateRepository(dir)).toThrow(/Missing script `format-fix`/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Missing script `format-fix`/);
     });
 
     it("throws for missing binary", () => {
         const dir = makeTmpDir();
+        setupValidRepo(dir);
         const pkg = { ...validPkg, devDependencies: {} };
         writeFileSync(join(dir, "package.json"), JSON.stringify(pkg));
 
-        expect(() => validateRepository(dir)).toThrow(/Missing binary `agent-browser`/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Missing binary `agent-browser`/);
     });
 
     it("throws when package.json is missing", () => {
         const dir = makeTmpDir();
 
-        expect(() => validateRepository(dir)).toThrow(/Cannot read/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Cannot read/);
     });
 
     it("error message lists all required scripts", () => {
         const dir = makeTmpDir();
+        setupValidRepo(dir);
         const pkg = { scripts: {}, devDependencies: validPkg.devDependencies };
         writeFileSync(join(dir, "package.json"), JSON.stringify(pkg));
 
-        expect(() => validateRepository(dir)).toThrow(/build, lint, test, typecheck/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/build, lint, test, typecheck/);
+    });
+
+    it("throws when reference docs directory is missing", () => {
+        const dir = makeTmpDir();
+        writeFileSync(join(dir, "package.json"), JSON.stringify(validPkg));
+
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Reference docs directory not found/);
     });
 });

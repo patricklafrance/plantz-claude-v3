@@ -24,7 +24,10 @@ export async function runSlicePipeline(
     const { result } = await runAgent(
         "slice-coordinator",
         `Implement and verify slice: ${sliceName}`,
-        worktreePath, agents, progress, hooks,
+        worktreePath,
+        agents,
+        progress,
+        hooks,
         undefined,
         { STORYBOOK_PORT: String(ports.storybook), HOST_APP_PORT: String(ports.hostApp), BROWSER_PORT: String(ports.browser) }
     );

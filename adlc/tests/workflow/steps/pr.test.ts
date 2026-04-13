@@ -73,11 +73,7 @@ describe("runPrUpdate", () => {
     });
 
     it("delegates to pr agent with fix mode prompt", async () => {
-        await runPrUpdate(
-            { prNumber: 42, description: "Issue #51: Fix color\nColor should be blue" },
-            "/tmp/test",
-            mockAgents
-        );
+        await runPrUpdate({ prNumber: 42, description: "Issue #51: Fix color\nColor should be blue" }, "/tmp/test", mockAgents);
 
         expect(queryCallLog).toHaveLength(1);
         expect(queryCallLog[0].options.agent).toBe("pr");
@@ -88,7 +84,8 @@ describe("runPrUpdate", () => {
         await runPrUpdate(
             {
                 prNumber: 42,
-                description: "Issue #51: Fix color\nLink: https://github.com/owner/repo/issues/51\n\nColor should be blue\n\nIssue #52: Fix sort\nLink: https://github.com/owner/repo/issues/52\n\nSort order wrong"
+                description:
+                    "Issue #51: Fix color\nLink: https://github.com/owner/repo/issues/51\n\nColor should be blue\n\nIssue #52: Fix sort\nLink: https://github.com/owner/repo/issues/52\n\nSort order wrong"
             },
             "/tmp/test",
             mockAgents
@@ -100,11 +97,7 @@ describe("runPrUpdate", () => {
     });
 
     it("returns the PR number as string", async () => {
-        const prNumber = await runPrUpdate(
-            { prNumber: 42, description: "Issue #51: Fix it" },
-            "/tmp/test",
-            mockAgents
-        );
+        const prNumber = await runPrUpdate({ prNumber: 42, description: "Issue #51: Fix it" }, "/tmp/test", mockAgents);
 
         expect(prNumber).toBe("42");
     });
@@ -113,13 +106,7 @@ describe("runPrUpdate", () => {
         // eslint-disable-next-line vitest/require-mock-type-parameters -- complex SDK hook signature
         const fakeHooks = { SubagentStop: [{ hooks: [vi.fn()] }] };
 
-        await runPrUpdate(
-            { prNumber: 42, description: "Issue #51: Fix it" },
-            "/tmp/test",
-            mockAgents,
-            undefined,
-            fakeHooks
-        );
+        await runPrUpdate({ prNumber: 42, description: "Issue #51: Fix it" }, "/tmp/test", mockAgents, undefined, fakeHooks);
 
         expect(queryCallLog[0].options.hooks).toBe(fakeHooks);
     });

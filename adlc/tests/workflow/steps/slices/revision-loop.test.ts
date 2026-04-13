@@ -58,8 +58,16 @@ const defaultPreamble = "";
 
 /** Extract the runAgent call args as named properties — decouples tests from parameter order. */
 function getRunAgentCall() {
-    const [agentName, prompt, cwd, agents, progress, hooks, resumeSessionId, env] =
-        vi.mocked(runAgent).mock.calls[0] as [string, string, string, unknown, unknown, unknown, unknown, Record<string, string> | undefined];
+    const [agentName, prompt, cwd, agents, progress, hooks, resumeSessionId, env] = vi.mocked(runAgent).mock.calls[0] as [
+        string,
+        string,
+        string,
+        unknown,
+        unknown,
+        unknown,
+        unknown,
+        Record<string, string> | undefined
+    ];
     return { agentName, prompt, cwd, agents, progress, hooks, resumeSessionId, env };
 }
 
@@ -129,9 +137,9 @@ describe("runSlicePipeline", () => {
     it("propagates when runAgent throws", async () => {
         vi.mocked(runAgent).mockRejectedValue(new Error("SDK connection lost"));
 
-        await expect(
-            runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd")
-        ).rejects.toThrow("SDK connection lost");
+        await expect(runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd")).rejects.toThrow(
+            "SDK connection lost"
+        );
     });
 
     it("forwards hooks from createHooks to the coordinator", async () => {

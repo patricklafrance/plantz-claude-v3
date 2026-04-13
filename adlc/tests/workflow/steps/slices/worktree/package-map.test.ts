@@ -288,10 +288,7 @@ describe("generatePackageMap", () => {
     it("handles unresolvable package references", () => {
         const runDir = join(worktree, ".adlc", "test-run");
         mkdirSync(runDir, { recursive: true });
-        writeFileSync(
-            join(runDir, "current-slice.md"),
-            "# Slice\n\n## Reference Packages\n\n- `@packages/nonexistent` — something\n"
-        );
+        writeFileSync(join(runDir, "current-slice.md"), "# Slice\n\n## Reference Packages\n\n- `@packages/nonexistent` — something\n");
 
         generatePackageMap(worktree, "test-run");
 

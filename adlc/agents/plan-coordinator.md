@@ -30,6 +30,7 @@ Use `Agent` tool to spawn `plan-gate` with prompt: `"Validate the plan structure
 #### 3. Check Gate Result
 
 Read `plan-gate-revision.md` (in the ADLC run directory):
+
 - **File does not exist** → gate passed. Return `"Plan gate passed"`.
 - **File exists** → read the content and extract the specific issues. If iterations remain, go to step 1 with the gate feedback. If this was the last iteration, return a summary of unresolved issues.
 

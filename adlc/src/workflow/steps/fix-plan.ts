@@ -2,8 +2,8 @@
 
 import type { SDKHooks } from "../../hooks/create-hooks.ts";
 import type { Progress } from "../../progress.ts";
-import type { FixTarget } from "../orchestrator.ts";
 import { type AgentDefinition, runAgent } from "../agents.ts";
+import type { FixTarget } from "../orchestrator.ts";
 
 /**
  * Run the fix-planner agent to generate one fix slice per issue.
@@ -15,12 +15,7 @@ export async function runFixPlan(
     progress?: Progress,
     hooks?: SDKHooks
 ): Promise<void> {
-    const prompt = [
-        `Generate fix slices for PR #${fix.prNumber}.`,
-        "",
-        "Issues to fix:",
-        fix.description
-    ].join("\n");
+    const prompt = [`Generate fix slices for PR #${fix.prNumber}.`, "", "Issues to fix:", fix.description].join("\n");
 
     progress?.log("plan", "Starting fix planner");
     await runAgent("fix-planner", prompt, cwd, agents, progress, hooks);

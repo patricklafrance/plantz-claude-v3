@@ -64,7 +64,6 @@ The updated body preserves the original content and appends:
 <fix-section-template>
 
 ```markdown
-
 ---
 
 ## Fix: {issue refs}

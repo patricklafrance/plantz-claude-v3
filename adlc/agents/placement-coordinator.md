@@ -24,6 +24,7 @@ For each iteration:
 #### 2. Evidence Resolution (conditional)
 
 After the mapper finishes, read `domain-mapping.md` (in the ADLC run directory). Check for:
+
 - `insufficient_evidence` in the Mapping table's Decision column
 - `### GAP-` blocks in the `## Evidence Gaps` section
 
@@ -38,6 +39,7 @@ Then resume the domain-mapper via `SendMessage` with prompt: `"Incorporate evide
 Use `TeamCreate` to create a team named `"challenge"`.
 
 Spawn all three agents **in a single response** using `Agent` tool with `team_name: "challenge"`:
+
 - `sprawl-challenger` — `"Challenge create decisions with extension proposals."`
 - `cohesion-challenger` — `"Check extend decisions for god-module risk."`
 - `challenge-arbiter` — `"Synthesize challenger debate into unified verdict."`
@@ -57,6 +59,7 @@ Use `Agent` tool to spawn `placement-gate` with prompt: `"Validate the domain ma
 #### 5. Check Gate Result
 
 Read `placement-gate-revision.md`:
+
 - **File does not exist** → gate passed. Return `"Placement gate passed"`.
 - **File exists** → gate found issues. If iterations remain, go to step 1 with revision mode. If this was the last iteration, return a summary of unresolved issues.
 
