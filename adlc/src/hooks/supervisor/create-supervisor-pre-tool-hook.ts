@@ -5,9 +5,9 @@
  */
 
 import type { HookJSONOutput, PreToolUseHookInput } from "../types.ts";
-import checkBrowserThrash from "./browser-thrash.ts";
+import checkBrowserThrash, { BROWSER_TOTAL_BUDGET } from "./browser-thrash.ts";
 import { buildPreToolEvent } from "./event-builder.ts";
-import checkFileThrash from "./file-thrash.ts";
+import checkFileThrash, { FILE_TOTAL_BUDGET } from "./file-thrash.ts";
 import {
     checkInstallGate,
     clearExpiredInstallBypass,
@@ -17,7 +17,7 @@ import {
     readInstallOverride
 } from "./install-gate.ts";
 import { applyEventToState, resetAgentLocalState, type SupervisorState } from "./state.ts";
-import checkTestThrash from "./test-thrash.ts";
+import checkTestThrash, { TEST_TOTAL_BUDGET } from "./test-thrash.ts";
 import checkWallClock from "./wall-clock.ts";
 
 const PASS: HookJSONOutput = { continue: true };
@@ -69,6 +69,9 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
                     state.wallClock.nudgeFiredPerAgent[agentName] = true;
                 }
             }
+            if (wallClockResult.severity === "hard-stop") {
+                state.fatalReason = `wall-clock hard-stop: ${agentName ?? "unknown agent"} exceeded time limit`;
+            }
 
             return blockOutput(wallClockResult.reason);
         }
@@ -102,6 +105,10 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
                 // Clear the rolling window so stale browser events don't
                 // immediately re-trigger density after the gate is cleared.
                 state.recentEvents = [];
+
+                if (state.browser.totalCalls > BROWSER_TOTAL_BUDGET) {
+                    state.fatalReason = `browser budget exhausted: ${state.browser.totalCalls}/${BROWSER_TOTAL_BUDGET} browser calls used`;
+                }
             }
             if (browserResult.severity === "gate") {
                 // Gate-blocked calls never reach the browser — undo the
@@ -122,6 +129,10 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
             if (testResult.severity === "recovery") {
                 state.test.recoveryTier = testResult.tier!;
                 state.test.editsSinceRecovery = 0;
+
+                if (state.test.totalCalls > TEST_TOTAL_BUDGET) {
+                    state.fatalReason = `test budget exhausted: ${state.test.totalCalls}/${TEST_TOTAL_BUDGET} test commands used`;
+                }
             }
             if (testResult.severity === "gate") {
                 // Gate-blocked calls never reach the test runner — undo the
@@ -142,6 +153,10 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
                 state.file.recoveryTier = fileResult.tier!;
                 state.file.differentFilesSinceRecovery = 0;
                 state.file.gatedFile = state.file.currentHotFile;
+
+                if (state.file.gatedFileLifetimeHits > FILE_TOTAL_BUDGET) {
+                    state.fatalReason = `file budget exhausted: ${state.file.gatedFileLifetimeHits}/${FILE_TOTAL_BUDGET} edits to ${state.file.currentHotFile}`;
+                }
             }
             if (fileResult.severity === "gate") {
                 // Gate-blocked calls never reach the file — undo the

@@ -127,6 +127,21 @@ export async function runSlices(
                 })
             );
 
+            // Check for supervisor kills — if ANY slice was killed by the
+            // supervisor, abort the entire run. Continuing is wasteful since
+            // slices have sequential dependencies and a killed slice signals
+            // a systemic problem the next slice cannot avoid.
+            for (const [i, { slice }] of waveItems.entries()) {
+                const result = results[i];
+                if (result.status === "fulfilled" && result.value.reason?.startsWith("supervisor:")) {
+                    throw new Error(
+                        `Run aborted: supervisor killed agent during slice "${slice.name}". ` +
+                        `Reason: ${result.value.reason}. ` +
+                        `Continuing would waste tokens on dependent slices that cannot succeed.`
+                    );
+                }
+            }
+
             // Merge sequentially — resolve conflicts with coder agent
             for (const [i, { slice, wt }] of waveItems.entries()) {
                 const result = results[i];

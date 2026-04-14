@@ -6,6 +6,7 @@ import { handleStopMetrics } from "./post-agent-validation/metrics.ts";
 import { createPreCommitHook } from "./pre-commit/create-pre-commit-hook.ts";
 import { createRewritesHook } from "./rewrites/create-rewrites-hook.ts";
 import { createSupervisorHooks } from "./supervisor/create-supervisor-hooks.ts";
+import type { SupervisorState } from "./supervisor/state.ts";
 import type { HookJSONOutput, PostToolUseHookInput, PreToolUseHookInput, StopHookInput, SubagentStopHookInput } from "./types.ts";
 
 // ── SDK callback types (kept local to avoid SDK dependency at type level) ──
@@ -29,11 +30,11 @@ function wrapHook<T extends HookInput>(fn: (input: T) => Promise<HookJSONOutput>
 
 // ── Public API ───────────────────────────────────────────────────────
 
-export function createHooks(_options?: { cwd?: string }): { hooks: SDKHooks } {
+export function createHooks(_options?: { cwd?: string }): { hooks: SDKHooks; supervisorState: SupervisorState } {
     const preCommitHook = wrapHook(createPreCommitHook());
     const rewritesHook = wrapHook(createRewritesHook());
     const guardsHook = wrapHook(createGuardsHook());
-    const { preToolHook, postToolHook } = createSupervisorHooks();
+    const { state, preToolHook, postToolHook } = createSupervisorHooks();
     const supervisorPreHook = wrapHook(preToolHook);
     const supervisorPostHook = wrapHook(postToolHook);
     const postAgentValidationHook = wrapHook(createPostAgentValidationHook());
@@ -45,6 +46,7 @@ export function createHooks(_options?: { cwd?: string }): { hooks: SDKHooks } {
             PostToolUse: [{ matcher: "Bash", hooks: [supervisorPostHook] }],
             Stop: [{ hooks: [stopMetricsHook] }],
             SubagentStop: [{ hooks: [postAgentValidationHook] }]
-        }
+        },
+        supervisorState: state
     };
 }

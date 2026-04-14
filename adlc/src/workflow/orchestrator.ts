@@ -116,10 +116,28 @@ export async function run(options: OrchestratorOptions): Promise<void> {
 
         // Fresh hooks per step — supervisor state (browser thrash counters,
         // wall-clock timers, install bypass tokens) must not leak across steps.
+        // After each step, check if the supervisor killed the agent and abort.
+        function freshHooks() {
+            return createHooks({ cwd });
+        }
+
+        function assertNoSupervisorKill(stepName: string, fatalReason: string | null): void {
+            if (fatalReason) {
+                throw new Error(`Run aborted: supervisor killed agent during "${stepName}". Reason: ${fatalReason}`);
+            }
+        }
+
+        function warnSupervisorKill(stepName: string, fatalReason: string | null): void {
+            if (fatalReason) {
+                progress.log("supervisor", `Warning: agent killed during "${stepName}" (${fatalReason}) — code is already committed, continuing.`);
+            }
+        }
 
         // Step 0: Gather — resolve input into a description string.
         const doneGather = progress.step(0, "Gather");
-        const { description } = await runGather(options.input, runDir!, cwd, agents, progress, createHooks({ cwd }).hooks);
+        const gatherHooks = freshHooks();
+        const { description } = await runGather(options.input, runDir!, cwd, agents, progress, gatherHooks.hooks);
+        assertNoSupervisorKill("gather", gatherHooks.supervisorState.fatalReason);
         doneGather();
 
         const { input } = options;
@@ -127,7 +145,9 @@ export async function run(options: OrchestratorOptions): Promise<void> {
         if (input.type === "fix-text" || input.type === "fix-pr") {
             // Fix mode: skip placement, use fix-planner instead of feature planner.
             const doneFixPlan = progress.step(1, "Fix Plan");
-            await runFixPlan(description, input.type === "fix-pr" ? input.prNumber : undefined, cwd, agents, progress, createHooks({ cwd }).hooks);
+            const fixPlanHooks = freshHooks();
+            await runFixPlan(description, input.type === "fix-pr" ? input.prNumber : undefined, cwd, agents, progress, fixPlanHooks.hooks);
+            assertNoSupervisorKill("fix-plan", fixPlanHooks.supervisorState.fatalReason);
             doneFixPlan();
 
             // Step 2: Slice execution (creates its own hooks per slice pipeline)
@@ -145,9 +165,14 @@ export async function run(options: OrchestratorOptions): Promise<void> {
                 throw new Error("Execution produced no implementation results. No slices were successfully implemented — aborting pipeline.");
             }
 
+            // Post-code steps: supervisor kills are warnings, not fatal.
+            // Code is already committed — aborting here would lose a fully-implemented feature.
+
             // Step 3: Simplify
             const doneSimplify = progress.step(3, "Simplify");
-            await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
+            const fixSimplifyHooks = freshHooks();
+            await runSimplify(cwd, agents, progress, fixSimplifyHooks.hooks);
+            warnSupervisorKill("simplify", fixSimplifyHooks.supervisorState.fatalReason);
             doneSimplify();
 
             let prNumber: string;
@@ -155,28 +180,38 @@ export async function run(options: OrchestratorOptions): Promise<void> {
             if (input.type === "fix-pr") {
                 // Step 4: PR Update — push fix results to the existing PR.
                 const donePrUpdate = progress.step(4, "PR Update");
-                prNumber = await runPrUpdate({ prNumber: input.prNumber, description }, cwd, agents, progress, createHooks({ cwd }).hooks);
+                const prUpdateHooks = freshHooks();
+                prNumber = await runPrUpdate({ prNumber: input.prNumber, description }, cwd, agents, progress, prUpdateHooks.hooks);
+                warnSupervisorKill("pr-update", prUpdateHooks.supervisorState.fatalReason);
                 donePrUpdate();
             } else {
                 // Step 4: Pull Request — create a new PR for the fix.
                 const donePR = progress.step(4, "Pull Request");
-                prNumber = await runPr(description, cwd, agents, progress, createHooks({ cwd }).hooks);
+                const fixPrHooks = freshHooks();
+                prNumber = await runPr(description, cwd, agents, progress, fixPrHooks.hooks);
+                warnSupervisorKill("pull-request", fixPrHooks.supervisorState.fatalReason);
                 donePR();
             }
 
             // Step 5: Monitor CI
             const doneMonitor = progress.step(5, "Monitor CI");
-            await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks, prNumber);
+            const fixMonitorHooks = freshHooks();
+            await runMonitor(cwd, agents, progress, fixMonitorHooks.hooks, prNumber);
+            warnSupervisorKill("monitor", fixMonitorHooks.supervisorState.fatalReason);
             doneMonitor();
         } else {
             // Step 1: Domain mapping + placement gate
             const donePlacement = progress.step(1, "Placement");
-            await runPlacement(description, cwd, agents, progress, createHooks({ cwd }).hooks);
+            const placementHooks = freshHooks();
+            await runPlacement(description, cwd, agents, progress, placementHooks.hooks);
+            assertNoSupervisorKill("placement", placementHooks.supervisorState.fatalReason);
             donePlacement();
 
             // Step 2: Plan + adversarial challenge
             const donePlan = progress.step(2, "Plan");
-            await runPlan(description, cwd, agents, progress, createHooks({ cwd }).hooks);
+            const planHooks = freshHooks();
+            await runPlan(description, cwd, agents, progress, planHooks.hooks);
+            assertNoSupervisorKill("plan", planHooks.supervisorState.fatalReason);
             donePlan();
 
             // Step 3: Slice execution (creates its own hooks per slice pipeline)
@@ -194,24 +229,35 @@ export async function run(options: OrchestratorOptions): Promise<void> {
                 throw new Error("Execution produced no implementation results. No slices were successfully implemented — aborting pipeline.");
             }
 
+            // Post-code steps: supervisor kills are warnings, not fatal.
+            // Code is already committed — aborting here would lose a fully-implemented feature.
+
             // Step 4: Simplify
             const doneSimplify = progress.step(4, "Simplify");
-            await runSimplify(cwd, agents, progress, createHooks({ cwd }).hooks);
+            const simplifyHooks = freshHooks();
+            await runSimplify(cwd, agents, progress, simplifyHooks.hooks);
+            warnSupervisorKill("simplify", simplifyHooks.supervisorState.fatalReason);
             doneSimplify();
 
             // Step 5: Document
             const doneDocument = progress.step(5, "Document");
-            await runDocument(cwd, agents, progress, createHooks({ cwd }).hooks);
+            const documentHooks = freshHooks();
+            await runDocument(cwd, agents, progress, documentHooks.hooks);
+            warnSupervisorKill("document", documentHooks.supervisorState.fatalReason);
             doneDocument();
 
             // Step 6: Pull Request
             const donePR = progress.step(6, "Pull Request");
-            const prNumber = await runPr(description, cwd, agents, progress, createHooks({ cwd }).hooks);
+            const prHooks = freshHooks();
+            const prNumber = await runPr(description, cwd, agents, progress, prHooks.hooks);
+            warnSupervisorKill("pull-request", prHooks.supervisorState.fatalReason);
             donePR();
 
             // Step 7: Monitor CI
             const doneMonitor = progress.step(7, "Monitor CI");
-            await runMonitor(cwd, agents, progress, createHooks({ cwd }).hooks, prNumber);
+            const monitorHooks = freshHooks();
+            await runMonitor(cwd, agents, progress, monitorHooks.hooks, prNumber);
+            warnSupervisorKill("monitor", monitorHooks.supervisorState.fatalReason);
             doneMonitor();
         }
 

@@ -343,6 +343,43 @@ describe("runSlices", () => {
         );
     });
 
+    it("aborts entire run when a slice returns a supervisor kill reason", async () => {
+        const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
+        writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+        writeFileSync(join(slicesDir, "02-beta.md"), "# Slice 2 -- Beta\n\n> **Depends on:** Slice 1\n\nContent.\n");
+
+        const { runSlicePipeline } = await import("../../../../src/workflow/steps/slices/revision-loop.js");
+        vi.mocked(runSlicePipeline).mockResolvedValue({
+            success: false,
+            reason: "supervisor: wall-clock hard-stop: feature-coder exceeded time limit"
+        });
+
+        await expect(
+            runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir })
+        ).rejects.toThrow(/Run aborted: supervisor killed agent during slice "alpha"/);
+
+        // Beta should never have been attempted (it's in wave 2).
+        expect(vi.mocked(runSlicePipeline)).toHaveBeenCalledTimes(1);
+    });
+
+    it("aborts run even when only one of multiple parallel slices has a supervisor kill", async () => {
+        const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
+        writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+        writeFileSync(join(slicesDir, "02-beta.md"), "# Slice 2 -- Beta\nContent.\n");
+
+        const { runSlicePipeline } = await import("../../../../src/workflow/steps/slices/revision-loop.js");
+        vi.mocked(runSlicePipeline).mockImplementation(async (sliceName: string) => {
+            if (sliceName === "alpha") {
+                return { success: false, reason: "supervisor: file budget exhausted: 13/12 edits to knip.json" };
+            }
+            return { success: true };
+        });
+
+        await expect(
+            runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir })
+        ).rejects.toThrow(/Run aborted.*alpha/);
+    });
+
     it("uses fix-coder for merge conflict resolution in fix mode", async () => {
         const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
         writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");

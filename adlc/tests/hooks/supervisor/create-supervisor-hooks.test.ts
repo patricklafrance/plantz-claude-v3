@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { BROWSER_DENSITY_MIN_CALLS } from "../../../src/hooks/supervisor/browser-thrash.js";
+import { BROWSER_DENSITY_MIN_CALLS, BROWSER_TOTAL_BUDGET } from "../../../src/hooks/supervisor/browser-thrash.js";
 import { createSupervisorPostToolHook } from "../../../src/hooks/supervisor/create-supervisor-post-tool-hook.js";
 import { createSupervisorPreToolHook } from "../../../src/hooks/supervisor/create-supervisor-pre-tool-hook.js";
-import { createDefaultState, type SupervisorState } from "../../../src/hooks/supervisor/state.js";
-import { EDIT_GAP_THRESHOLD } from "../../../src/hooks/supervisor/test-thrash.js";
+import { FILE_TOTAL_BUDGET, SAME_FILE_THRESHOLD } from "../../../src/hooks/supervisor/file-thrash.js";
+import { createDefaultState, resetAgentLocalState, type SupervisorState } from "../../../src/hooks/supervisor/state.js";
+import { EDIT_GAP_THRESHOLD, TEST_TOTAL_BUDGET } from "../../../src/hooks/supervisor/test-thrash.js";
 import { THRESHOLDS } from "../../../src/hooks/supervisor/wall-clock.js";
 import type { PreToolUseHookInput, PostToolUseHookInput } from "../../../src/hooks/types.js";
 
@@ -276,6 +277,172 @@ describe("createSupervisorPreToolHook", () => {
 
         expect(result.decision).toBe("block");
         expect(result.reason).toContain("Test loop detected");
+    });
+
+    // --- fatalReason: positive tests (fatal events MUST set it) ---
+
+    it("sets fatalReason on wall-clock hard-stop", async () => {
+        const state = createDefaultState();
+        const hardStop = THRESHOLDS["feature-coder"].hardStop;
+        const agentStart = Date.now() - hardStop - 1000;
+        state.startedAt = agentStart;
+        state.agentStartedAt["feature-coder"] = agentStart;
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(makePreToolInput({ tool_input: { command: "git status" } }));
+
+        expect(state.fatalReason).not.toBeNull();
+        expect(state.fatalReason).toContain("wall-clock hard-stop");
+    });
+
+    it("sets fatalReason on browser budget exhaustion", async () => {
+        const state = createDefaultState();
+        // Set totalCalls to budget so the next browser call pushes it over.
+        // Keep density low and sameTargetCalls low so the budget check (#5) is
+        // the one that fires, not density (#3) or repetition (#4).
+        state.browser.totalCalls = BROWSER_TOTAL_BUDGET;
+        state.browser.sameTargetCalls = 0;
+        state.browser.currentTarget = null;
+        state.eventCount = BROWSER_TOTAL_BUDGET;
+        // Low-density window: mostly non-browser events.
+        state.recentEvents = [];
+        for (let i = 0; i < 10; i++) {
+            state.recentEvents.push({
+                index: BROWSER_TOTAL_BUDGET - 10 + i,
+                timestamp: Date.now(),
+                toolName: "Read",
+                isBrowserCommand: false,
+                isScreenshotCommand: false,
+                isTestCommand: false
+            });
+        }
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(
+            makePreToolInput({
+                tool_input: { command: "pnpm exec agent-browser eval 'document.title'" }
+            })
+        );
+
+        expect(state.fatalReason).not.toBeNull();
+        expect(state.fatalReason).toContain("browser budget exhausted");
+    });
+
+    it("sets fatalReason on test budget exhaustion", async () => {
+        const state = createDefaultState();
+        state.test.totalCalls = TEST_TOTAL_BUDGET;
+        state.test.consecutiveWithoutEdit = EDIT_GAP_THRESHOLD;
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(
+            makePreToolInput({
+                tool_input: { command: "pnpm --filter @plantz/app test" }
+            })
+        );
+
+        expect(state.fatalReason).not.toBeNull();
+        expect(state.fatalReason).toContain("test budget exhausted");
+    });
+
+    it("sets fatalReason on file budget exhaustion", async () => {
+        const state = createDefaultState();
+        state.file.currentHotFile = "/tmp/knip.json";
+        state.file.gatedFile = "/tmp/knip.json";
+        state.file.gatedFileLifetimeHits = FILE_TOTAL_BUDGET + 1;
+        state.file.sameFileHits = SAME_FILE_THRESHOLD - 1;
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(
+            makePreToolInput({
+                tool_name: "Edit",
+                tool_input: { file_path: "/tmp/knip.json", old_string: "a", new_string: "b" }
+            })
+        );
+
+        expect(state.fatalReason).not.toBeNull();
+        expect(state.fatalReason).toContain("file budget exhausted");
+    });
+
+    // --- fatalReason: negative tests (non-fatal events must NOT set it) ---
+
+    it("does not set fatalReason on wall-clock nudge", async () => {
+        const state = createDefaultState();
+        const reviewerNudge = THRESHOLDS["feature-reviewer"].nudge!;
+        const agentStart = Date.now() - reviewerNudge - 1000;
+        state.startedAt = agentStart;
+        state.agentStartedAt["feature-reviewer"] = agentStart;
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(makePreToolInput({ agent_type: "feature-reviewer", tool_input: { command: "git diff" } }));
+
+        expect(state.fatalReason).toBeNull();
+    });
+
+    it("does not set fatalReason on browser recovery (below budget)", async () => {
+        const state = createDefaultState();
+        fillHighDensityBrowserState(state);
+        // totalCalls is at BROWSER_DENSITY_MIN_CALLS (8), well below BROWSER_TOTAL_BUDGET (50)
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(
+            makePreToolInput({
+                tool_input: { command: "pnpm exec agent-browser eval 'document.title'" }
+            })
+        );
+
+        expect(state.browser.recoveryTier).toBe(1);
+        expect(state.fatalReason).toBeNull();
+    });
+
+    it("does not set fatalReason on test recovery (below budget)", async () => {
+        const state = createDefaultState();
+        state.test.consecutiveWithoutEdit = EDIT_GAP_THRESHOLD;
+        state.test.totalCalls = EDIT_GAP_THRESHOLD; // Well below TEST_TOTAL_BUDGET
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(
+            makePreToolInput({
+                tool_input: { command: "pnpm --filter @plantz/app test" }
+            })
+        );
+
+        expect(state.test.recoveryTier).toBe(1);
+        expect(state.fatalReason).toBeNull();
+    });
+
+    it("does not set fatalReason on file recovery (below budget)", async () => {
+        const state = createDefaultState();
+        // Trigger file thrash but stay below total budget
+        state.file.currentHotFile = "/tmp/knip.json";
+        state.file.sameFileHits = SAME_FILE_THRESHOLD - 1;
+
+        const hook = createSupervisorPreToolHook(state);
+        await hook(
+            makePreToolInput({
+                tool_name: "Edit",
+                tool_input: { file_path: "/tmp/knip.json", old_string: "a", new_string: "b" }
+            })
+        );
+
+        expect(state.file.recoveryTier).toBe(1);
+        expect(state.fatalReason).toBeNull();
+    });
+
+    // --- fatalReason: persistence ---
+
+    it("fatalReason persists across agent change (resetAgentLocalState)", async () => {
+        const state = createDefaultState();
+        state.agentName = "feature-coder";
+        state.fatalReason = "wall-clock hard-stop: feature-coder exceeded time limit";
+
+        resetAgentLocalState(state, "feature-reviewer");
+
+        expect(state.fatalReason).toBe("wall-clock hard-stop: feature-coder exceeded time limit");
+    });
+
+    it("createDefaultState initializes fatalReason to null", () => {
+        const state = createDefaultState();
+        expect(state.fatalReason).toBeNull();
     });
 });
 

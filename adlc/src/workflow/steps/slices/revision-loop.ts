@@ -16,7 +16,7 @@ export async function runSlicePipeline(
     coordinatorAgent = "feature-slice-coordinator"
 ): Promise<{ success: boolean; reason?: string }> {
     const agents = loadAllAgents(preamble, config, cwd, getRunDirName()!);
-    const { hooks } = createHooks({ cwd: worktreePath });
+    const { hooks, supervisorState } = createHooks({ cwd: worktreePath });
 
     progress?.slice(sliceName, "coordinator", "starting slice pipeline");
 
@@ -30,6 +30,14 @@ export async function runSlicePipeline(
         undefined,
         { AGENT_BROWSER_SESSION: sliceName }
     );
+
+    // Check if supervisor killed the agent — this takes priority over
+    // normal success/failure since a supervisor kill signals a systemic
+    // problem that downstream slices cannot recover from.
+    if (supervisorState.fatalReason) {
+        progress?.slice(sliceName, "coordinator", `supervisor kill: ${supervisorState.fatalReason}`);
+        return { success: false, reason: `supervisor: ${supervisorState.fatalReason}` };
+    }
 
     // The coordinator completed without SDK error, and all sub-agent validation
     // hooks ran during execution. Only mark as failure if the coordinator explicitly

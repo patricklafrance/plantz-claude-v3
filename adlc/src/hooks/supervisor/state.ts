@@ -67,6 +67,8 @@ export interface SupervisorState {
     agentStartedAt: Record<string, number>;
     wallClock: WallClockState;
     installBypass: InstallBypass | null;
+    /** Set when a fatal supervisor event occurs (wall-clock hard-stop, budget exhaustion). Signals that the run should abort. */
+    fatalReason: string | null;
 }
 
 export function createDefaultState(): SupervisorState {
@@ -103,7 +105,8 @@ export function createDefaultState(): SupervisorState {
             nudgeFired: false,
             nudgeFiredPerAgent: {}
         },
-        installBypass: null
+        installBypass: null,
+        fatalReason: null
     };
 }
 
@@ -113,6 +116,10 @@ export function createDefaultState(): SupervisorState {
  * Resets: browser counters, test counters, recent events, install bypass,
  * and wall-clock tracking for the incoming agent (so retries of the same
  * agent type get a fresh clock and nudge budget).
+ *
+ * NOTE: `fatalReason` is intentionally NOT reset — once set, it must persist
+ * for the lifetime of this hooks instance so the caller can read it after
+ * the agent run completes.
  */
 export function resetAgentLocalState(state: SupervisorState, incomingAgent?: string): void {
     state.browser = {

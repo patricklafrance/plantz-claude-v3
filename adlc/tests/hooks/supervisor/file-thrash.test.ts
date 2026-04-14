@@ -220,7 +220,7 @@ describe("file-thrash policy", () => {
         state.file.currentHotFile = HOT_FILE;
         state.file.gatedFile = HOT_FILE;
         state.file.sameFileHits = 3;
-        state.file.totalHotFileHits = 8;
+        state.file.gatedFileLifetimeHits = 8;
 
         // Edit to hot file should be gated.
         const editEvent1 = makeEditEvent();

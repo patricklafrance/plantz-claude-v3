@@ -33,10 +33,12 @@ vi.mock("../../../../src/workflow/agents.js", () => ({
 }));
 
 const mockHooksSentinel = { SubagentStop: [{ hooks: ["mock-hook-sentinel"] }] };
+const mockSupervisorState: { fatalReason: string | null } = { fatalReason: null };
 
 vi.mock("../../../../src/hooks/create-hooks.js", () => ({
     createHooks: vi.fn<any>(() => ({
-        hooks: mockHooksSentinel
+        hooks: mockHooksSentinel,
+        supervisorState: mockSupervisorState
     }))
 }));
 
@@ -76,6 +78,7 @@ describe("runSlicePipeline", () => {
     beforeEach(() => {
         queryCallLog = [];
         vi.clearAllMocks();
+        mockSupervisorState.fatalReason = null;
         vi.mocked(runAgent).mockResolvedValue({ result: "Slice passed verification", sessionId: "mock-session-id" });
     });
 
@@ -151,5 +154,27 @@ describe("runSlicePipeline", () => {
         await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(getRunAgentCall().hooks).toBe(mockHooksSentinel);
+    });
+
+    it("returns failure with supervisor reason when fatalReason is set", async () => {
+        mockSupervisorState.fatalReason = "wall-clock hard-stop: feature-coder exceeded time limit";
+        vi.mocked(runAgent).mockResolvedValue({ result: "Slice passed verification", sessionId: "s1" });
+
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
+
+        expect(result).toEqual({
+            success: false,
+            reason: "supervisor: wall-clock hard-stop: feature-coder exceeded time limit"
+        });
+    });
+
+    it("supervisor kill takes priority over successful coordinator result", async () => {
+        mockSupervisorState.fatalReason = "test budget exhausted: 16/15 test commands used";
+        vi.mocked(runAgent).mockResolvedValue({ result: "Everything passed!", sessionId: "s1" });
+
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
+
+        expect(result.success).toBe(false);
+        expect(result.reason).toContain("supervisor:");
     });
 });
