@@ -53,6 +53,7 @@ vi.mock("../../../../src/workflow/steps/slices/worktree/lifecycle.js", () => ({
     }),
     removeWorktreeAsync: vi.fn<any>((worktreePath: string) => {
         mockRemovedWorktrees.push(worktreePath);
+        return Promise.resolve();
     })
 }));
 

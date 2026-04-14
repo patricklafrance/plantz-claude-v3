@@ -99,7 +99,9 @@ describe("createSupervisorPreToolHook", () => {
         const reviewerNudge = THRESHOLDS["feature-reviewer"].nudge!;
 
         // Simulate agent having started a while ago
-        state.startedAt = Date.now() - reviewerNudge - 1000;
+        const agentStart = Date.now() - reviewerNudge - 1000;
+        state.startedAt = agentStart;
+        state.agentStartedAt["feature-reviewer"] = agentStart;
 
         const hook = createSupervisorPreToolHook(state);
         const result = await hook(
@@ -117,8 +119,11 @@ describe("createSupervisorPreToolHook", () => {
     it("does not fire wall-clock nudge a second time", async () => {
         const state = createDefaultState();
         const reviewerNudge = THRESHOLDS["feature-reviewer"].nudge!;
-        state.startedAt = Date.now() - reviewerNudge - 1000;
+        const agentStart = Date.now() - reviewerNudge - 1000;
+        state.startedAt = agentStart;
+        state.agentStartedAt["feature-reviewer"] = agentStart;
         state.wallClock.nudgeFired = true;
+        state.wallClock.nudgeFiredPerAgent["feature-reviewer"] = true;
 
         const hook = createSupervisorPreToolHook(state);
         const result = await hook(

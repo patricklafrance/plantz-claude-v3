@@ -21,6 +21,32 @@ import { seedAdlc } from "./worktree/seeder.ts";
 
 const execAsync = promisify(exec);
 
+/** Check whether a local git branch already exists. */
+function branchExists(name: string, cwd: string): boolean {
+    try {
+        execSync(`git rev-parse --verify "refs/heads/${name}"`, { cwd, stdio: "ignore" });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/** Create and checkout a new branch, appending a numeric suffix if the name is taken. */
+function checkoutNewBranch(baseName: string, cwd: string): string {
+    if (!branchExists(baseName, cwd)) {
+        execSync(`git checkout -b "${baseName}"`, { cwd });
+        return baseName;
+    }
+    for (let i = 2; i <= 99; i++) {
+        const candidate = `${baseName}-${i}`;
+        if (!branchExists(candidate, cwd)) {
+            execSync(`git checkout -b "${candidate}"`, { cwd });
+            return candidate;
+        }
+    }
+    throw new Error(`Could not create branch "${baseName}" — all suffixes up to -99 are taken.`);
+}
+
 interface RunSlicesOptions extends OrchestratorOptions {
     /** Override feature branch detection (defaults to `git branch --show-current`). */
     featureBranch?: string;
@@ -55,9 +81,9 @@ export async function runSlices(
 
     // Create a dedicated integration branch for this run so slices
     // merge into it instead of directly into the base branch (e.g. main).
-    const featureBranch = options.featureBranch ?? `adlc/${runDirName}`;
+    let featureBranch = options.featureBranch ?? `adlc/${runDirName}`;
     if (!options.featureBranch) {
-        execSync(`git checkout -b "${featureBranch}"`, { cwd });
+        featureBranch = checkoutNewBranch(featureBranch, cwd);
     }
     const { hooks } = createHooks({ cwd });
     progress?.log("execution", `Feature branch: ${featureBranch}`);
@@ -141,7 +167,8 @@ export async function runSlices(
             }
         } finally {
             for (const { slice, wt } of waveItems) {
-                removeWorktreeAsync(wt.path, cwd);
+                // Fire-and-forget — must not crash the pipeline on cleanup failure.
+                removeWorktreeAsync(wt.path, cwd).catch(() => {});
                 progress?.slice(slice.name, "worktree", "cleanup started");
             }
         }

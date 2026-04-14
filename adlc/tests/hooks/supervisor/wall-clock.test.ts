@@ -20,6 +20,11 @@ function makeState(startedAt: string | null, nudgeFired = false): SupervisorStat
     return state;
 }
 
+/** Set per-agent startedAt so wall-clock resolves correctly. */
+function setAgentStart(state: SupervisorState, agentName: string, startedAt: string): void {
+    state.agentStartedAt[agentName] = new Date(startedAt).getTime();
+}
+
 describe("wall-clock policy", () => {
     describe("getThresholds", () => {
         it("returns per-agent thresholds for known agents", () => {
@@ -62,6 +67,7 @@ describe("wall-clock policy", () => {
             const elapsed = THRESHOLDS["feature-coder"].hardStop - 60_000;
             const event = makeEvent("feature-coder", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START);
+            setAgentStart(state, "feature-coder", START);
             expect(checkWallClock(event, state)).toBeNull();
         });
 
@@ -70,6 +76,7 @@ describe("wall-clock policy", () => {
             const elapsed = 15 * 60_000; // 15 minutes, well past where a nudge would fire
             const event = makeEvent("feature-coder", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START);
+            setAgentStart(state, "feature-coder", START);
             expect(checkWallClock(event, state)).toBeNull();
         });
 
@@ -77,6 +84,7 @@ describe("wall-clock policy", () => {
             const elapsed = THRESHOLDS["feature-reviewer"].nudge!;
             const event = makeEvent("feature-reviewer", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START);
+            setAgentStart(state, "feature-reviewer", START);
 
             const result = checkWallClock(event, state);
             expect(result!.action).toBe("block");
@@ -89,6 +97,8 @@ describe("wall-clock policy", () => {
             const elapsed = THRESHOLDS["feature-reviewer"].nudge! + 60_000;
             const event = makeEvent("feature-reviewer", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START, true);
+            setAgentStart(state, "feature-reviewer", START);
+            state.wallClock.nudgeFiredPerAgent["feature-reviewer"] = true;
             expect(checkWallClock(event, state)).toBeNull();
         });
 
@@ -96,6 +106,7 @@ describe("wall-clock policy", () => {
             const elapsed = THRESHOLDS["feature-coder"].hardStop;
             const event = makeEvent("feature-coder", new Date(new Date(START).getTime() + elapsed).toISOString());
             const state = makeState(START, false);
+            setAgentStart(state, "feature-coder", START);
 
             const result = checkWallClock(event, state);
             expect(result!.action).toBe("block");
@@ -108,6 +119,7 @@ describe("wall-clock policy", () => {
             const reviewerNudge = THRESHOLDS["feature-reviewer"].nudge!;
             const event = makeEvent("feature-reviewer", new Date(new Date(START).getTime() + reviewerNudge).toISOString());
             const state = makeState(START);
+            setAgentStart(state, "feature-reviewer", START);
 
             const result = checkWallClock(event, state);
             expect(result!.action).toBe("block");
@@ -119,6 +131,7 @@ describe("wall-clock policy", () => {
             const defaultNudge = DEFAULT_THRESHOLD.nudge!;
             const event = makeEvent("custom", new Date(new Date(START).getTime() + defaultNudge).toISOString());
             const state = makeState(START);
+            setAgentStart(state, "custom", START);
 
             const result = checkWallClock(event, state);
             expect(result!.action).toBe("block");

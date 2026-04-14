@@ -89,11 +89,13 @@ export default function checkWallClock(event: WallClockEvent, state: SupervisorS
         return null;
     }
 
-    if (!state.startedAt) {
+    // Use per-agent start time so sub-agents aren't penalized for the parent's runtime.
+    const agentStart = event.agentName ? state.agentStartedAt[event.agentName] : state.startedAt;
+    if (!agentStart) {
         return null;
     }
 
-    const elapsed = event.timestamp - state.startedAt;
+    const elapsed = event.timestamp - agentStart;
 
     if (elapsed >= thresholds.hardStop) {
         return {
@@ -103,7 +105,8 @@ export default function checkWallClock(event: WallClockEvent, state: SupervisorS
         };
     }
 
-    if (thresholds.nudge != null && elapsed >= thresholds.nudge && !state.wallClock.nudgeFired) {
+    const nudgeFired = event.agentName ? state.wallClock.nudgeFiredPerAgent[event.agentName] : state.wallClock.nudgeFired;
+    if (thresholds.nudge != null && elapsed >= thresholds.nudge && !nudgeFired) {
         return {
             action: "block",
             severity: "nudge",
