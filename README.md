@@ -162,19 +162,22 @@ Every subagent is verified by hooks before the workflow advances. The agent cann
 
 Hooks fall into four categories: **verificators** that block completion until checks pass, **context refreshers** that surface easy-to-forget concerns at stop time, **autofixers** that correct issues before validation, and **guards** that enforce constraints on every tool call. If any check fails, the problems are fed back to the agent for correction — not reported as a final failure.
 
-### Validators ([README](src/hooks/post-agent-checks/README.md))
+### Validators ([README](src/hooks/post-agent-validation/README.md))
 
 Block a subagent's completion until its deliverables meet structural and quality checks.
 
 | Agent                               | Checks                                                                                                                                                                                                                     |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `feature-coder` / `fix-coder`       | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
-| `feature-planner`                   | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
+| `feature-coder` / `fix-coder`       | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage, context-refresh |
+| `feature-planner` / `fix-planner`   | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
 | `plan-gate`                         | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
 | `domain-mapper`                     | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
 | `evidence-researcher`               | evidence findings file exists                                                                                                                                                                                              |
 | `placement-gate`                    | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                               |
+| `challenge-arbiter`                 | verdict file exists, contains a `## Status` section with "Approved" or "Revision required"                                                                                                                                |
 | `feature-reviewer` / `fix-reviewer` | verification results exist, results cover every acceptance criterion from the slice                                                                                                                                        |
+| `simplify`                          | build, lint, tests, no-file-disable, import-guard                                                                                                                                                                         |
+| `document`                          | format-fix, lint-fix (autofix only — no blocking checks)                                                                                                                                                                  |
 
 ### Context refreshers
 
@@ -198,6 +201,7 @@ Constraints that apply to every tool call, regardless of which agent is running.
 | `block-windows-cmd`       | Bash             | Blocks `cmd` / `cmd.exe` invocations on Windows                                 |
 | `block-node-modules-read` | Bash, Read, Glob | Blocks reading `node_modules` source (`.d.ts` type definitions are allowed)     |
 | `block-env-write`         | Edit, Write      | Blocks modifications to `.env` and `.env.*` files — secrets must not be touched |
+| `block-workflow-write`    | Edit, Write      | Blocks modifications to `.github/workflows/` — CI workflows are managed outside the harness |
 | `agent-browser-rewrite`   | Bash             | Rewrites bare `agent-browser` to `pnpm exec agent-browser`                      |
 
 ### Pre-commit gate ([README](src/hooks/pre-commit/README.md))
