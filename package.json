@@ -7,8 +7,6 @@
     "author": "Patrick Lafrance",
     "type": "module",
     "scripts": {
-        "run-adlc-feat": "pnpm exec adlc feat",
-        "run-adlc-fix": "pnpm exec adlc fix",
         "build-adlc": "turbo run build --filter=@patlaf/adlc",
         "test-adlc": "turbo run test-adlc",
         "dev-app": "turbo run dev --filter=@apps/host",
@@ -29,7 +27,7 @@
         "lint": "turbo run lint --continue",
         "typecheck": "tsgo",
         "lint-check": "oxlint --deny-warnings --react-plugin --import-plugin --jsx-a11y-plugin --react-perf-plugin --promise-plugin --vitest-plugin",
-        "lint-fix": "oxlint --fix --deny-warnings --react-plugin --import-plugin --jsx-a11y-plugin --react-perf-plugin --promise-plugin --vitest-plugin",
+        "lint-fix": "pnpm run lint-check --fix",
         "format-check": "oxfmt --check",
         "format-fix": "oxfmt",
         "knip": "knip",

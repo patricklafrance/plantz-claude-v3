@@ -45,9 +45,12 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
         event.timestamp = Date.now();
         applyEventToState(state, event);
 
-        // Track agent name
+        // Track agent name and per-agent start time
         if (!state.agentName) {
             state.agentName = agentName;
+        }
+        if (agentName && !state.agentStartedAt[agentName]) {
+            state.agentStartedAt[agentName] = event.timestamp;
         }
 
         // 2. Wall-clock — highest priority
@@ -56,6 +59,9 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
         if (wallClockResult) {
             if (wallClockResult.severity === "nudge") {
                 state.wallClock.nudgeFired = true;
+                if (agentName) {
+                    state.wallClock.nudgeFiredPerAgent[agentName] = true;
+                }
             }
 
             return blockOutput(wallClockResult.reason);

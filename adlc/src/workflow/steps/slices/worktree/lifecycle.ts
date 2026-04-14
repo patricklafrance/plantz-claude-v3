@@ -41,11 +41,35 @@ interface WorktreeInfo {
     sliceName: string;
 }
 
+/** Check whether a local git branch already exists. */
+function branchExists(name: string, cwd: string): boolean {
+    try {
+        execSync(`git rev-parse --verify "refs/heads/${name}"`, { cwd, stdio: "ignore" });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/** Pick a branch name, appending a numeric suffix if the base name is taken. */
+function pickBranch(baseName: string, cwd: string): string {
+    if (!branchExists(baseName, cwd)) {
+        return baseName;
+    }
+    for (let i = 2; i <= 99; i++) {
+        const candidate = `${baseName}-${i}`;
+        if (!branchExists(candidate, cwd)) {
+            return candidate;
+        }
+    }
+    throw new Error(`Could not create branch "${baseName}" — all suffixes up to -99 are taken.`);
+}
+
 /** Create a git worktree for a slice under `.adlc/{runDir}/worktrees/`. */
 export function createWorktree(sliceName: string, baseBranch: string, cwd: string, runDir: string): WorktreeInfo {
     const worktreeBase = resolve(runDir, "worktrees");
     const worktreePath = resolve(worktreeBase, sliceName);
-    const branch = `adlc/${sliceName}`;
+    const branch = pickBranch(`adlc/${sliceName}`, cwd);
 
     // Create the worktree directory if needed
     mkdirSync(worktreeBase, { recursive: true });

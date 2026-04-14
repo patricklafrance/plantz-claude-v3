@@ -213,6 +213,11 @@ function formatToolArgs(toolName: string, input: Record<string, unknown> | undef
     if (!input) {
         return toolName;
     }
+    // Show spawned agent name for Agent tool calls: "Agent (placement-gate) description"
+    if (toolName === "Agent" && typeof input.name === "string") {
+        const desc = typeof input.description === "string" ? ` ${input.description}` : "";
+        return `Agent (${input.name})${desc}`;
+    }
     for (const key of TOOL_DISPLAY_KEYS) {
         const raw = input[key];
         if (typeof raw !== "string") {
@@ -362,6 +367,8 @@ export async function runAgent(
                 if (blockType === "tool_use") {
                     activeToolName = event.content_block?.name ?? null;
                     activeToolInput = "";
+                    // Keep spinner alive while tool input streams (can be lengthy for Agent calls)
+                    progress?.resumeSpinner();
 
                     // Track Agent sub-agent spawns (main agent only)
                     if (!parentId && activeToolName === "Agent" && event.content_block?.id) {

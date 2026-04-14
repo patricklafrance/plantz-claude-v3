@@ -16,6 +16,8 @@ export interface TestState {
 
 export interface WallClockState {
     nudgeFired: boolean;
+    /** Per-agent nudge tracking so nudges don't leak across agents in the same session. */
+    nudgeFiredPerAgent: Record<string, boolean>;
 }
 
 export interface SupervisorEvent {
@@ -47,6 +49,8 @@ export interface SupervisorState {
     browser: BrowserState;
     test: TestState;
     startedAt: number | null;
+    /** Per-agent start times — wall-clock thresholds are measured from when each agent first acts. */
+    agentStartedAt: Record<string, number>;
     wallClock: WallClockState;
     installBypass: InstallBypass | null;
 }
@@ -71,8 +75,10 @@ export function createDefaultState(): SupervisorState {
             editsSinceRecovery: 0
         },
         startedAt: null,
+        agentStartedAt: {},
         wallClock: {
-            nudgeFired: false
+            nudgeFired: false,
+            nudgeFiredPerAgent: {}
         },
         installBypass: null
     };
