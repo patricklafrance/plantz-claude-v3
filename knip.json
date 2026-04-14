@@ -3,7 +3,7 @@
     "workspaces": {
         ".": {
             "entry": ["scripts/*.ts", "adlc.config.ts", ".claude/hooks/post-compact.mjs"],
-            "ignoreDependencies": ["netlify-cli", "agent-browser"]
+            "ignoreDependencies": ["netlify-cli"]
         },
         "apps/host": {
             "entry": ["src/index.tsx", "rsbuild.build.ts", "rsbuild.dev.ts"],
@@ -49,11 +49,11 @@
             "entry": ["src/today/index.ts"]
         },
         "packages/components": {
-            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs"],
+            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs", "src/index.ts"],
             "ignoreDependencies": ["@tailwindcss/postcss"]
         },
         "adlc": {
-            "entry": ["rslib.build.ts"],
+            "entry": ["rslib.build.ts", "src/cli.ts", "src/index.ts"],
             "ignoreDependencies": ["@rsbuild/core"]
         },
         "apps/storybook-packages": {

@@ -1,2 +1,2 @@
 export { todayPlantHandlers } from "./plantHandlers.ts";
-export { createTodayPlantHandlers } from "./createHandlers.ts";
+export { createTodayPlantHandlers, createCareEventsHandler } from "./createHandlers.ts";
