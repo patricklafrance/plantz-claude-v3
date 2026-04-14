@@ -16,6 +16,17 @@ export interface TestState {
     editsSinceRecovery: number;
 }
 
+export interface FileState {
+    currentHotFile: string | null;
+    sameFileHits: number;
+    /** Cumulative edits to the gated file across recovery cycles. Unlike sameFileHits, this does NOT reset when the agent edits a different file. */
+    gatedFileLifetimeHits: number;
+    recoveryTier: number;
+    differentFilesSinceRecovery: number;
+    /** The file that triggered recovery — edits to this file don't count toward the gate. */
+    gatedFile: string | null;
+}
+
 export interface WallClockState {
     nudgeFired: boolean;
     /** Per-agent nudge tracking so nudges don't leak across agents in the same session. */
@@ -50,6 +61,7 @@ export interface SupervisorState {
     recentEvents: SupervisorEvent[];
     browser: BrowserState;
     test: TestState;
+    file: FileState;
     startedAt: number | null;
     /** Per-agent start times — wall-clock thresholds are measured from when each agent first acts. */
     agentStartedAt: Record<string, number>;
@@ -76,6 +88,14 @@ export function createDefaultState(): SupervisorState {
             totalCalls: 0,
             recoveryTier: 0,
             editsSinceRecovery: 0
+        },
+        file: {
+            currentHotFile: null,
+            sameFileHits: 0,
+            gatedFileLifetimeHits: 0,
+            recoveryTier: 0,
+            differentFilesSinceRecovery: 0,
+            gatedFile: null
         },
         startedAt: null,
         agentStartedAt: {},
@@ -109,6 +129,14 @@ export function resetAgentLocalState(state: SupervisorState, incomingAgent?: str
         totalCalls: 0,
         recoveryTier: 0,
         editsSinceRecovery: 0
+    };
+    state.file = {
+        currentHotFile: null,
+        sameFileHits: 0,
+        gatedFileLifetimeHits: 0,
+        recoveryTier: 0,
+        differentFilesSinceRecovery: 0,
+        gatedFile: null
     };
     state.recentEvents = [];
     state.installBypass = null;
@@ -170,6 +198,27 @@ export function applyEventToState(state: SupervisorState, event: SupervisorEvent
         state.browser.sameTargetCalls = 0;
         state.test.consecutiveWithoutEdit = 0;
         state.test.editsSinceRecovery += 1;
+
+        // File-thrash tracking: count consecutive Edit/Write to the same file.
+        const filePath = event.targetPath ?? "";
+        if (filePath && filePath === state.file.currentHotFile) {
+            state.file.sameFileHits += 1;
+        } else if (filePath) {
+            // Different file — reset consecutive counter, track as progress.
+            // Only count toward the gate if this file is NOT the gated file
+            // (editing the gated file again is not "progress").
+            if (state.file.currentHotFile != null && filePath !== state.file.gatedFile) {
+                state.file.differentFilesSinceRecovery += 1;
+            }
+            state.file.currentHotFile = filePath;
+            state.file.sameFileHits = 1;
+        }
+
+        // Track lifetime hits for the gated file across recovery cycles.
+        // This counter persists across file switches so the budget cap works.
+        if (filePath && state.file.gatedFile && filePath === state.file.gatedFile) {
+            state.file.gatedFileLifetimeHits += 1;
+        }
     }
 
     if (event.toolName === "Bash" && event.isTestCommand) {

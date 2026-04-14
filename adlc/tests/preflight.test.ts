@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, afterEach } from "vitest";
 
-import { type ExecBinary, validateRepository } from "../src/preflight.js";
+import { type ExecBinary, type ExecCommand, validateCleanState, validateRepository } from "../src/preflight.js";
 
 const noopExec: ExecBinary = () => {};
 
@@ -141,5 +141,105 @@ describe("validateRepository", () => {
         );
 
         expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).not.toThrow();
+    });
+});
+
+describe("validateCleanState", () => {
+    const noopExecCommand: ExecCommand = () => "";
+
+    it("passes when both commands succeed", () => {
+        expect(() => validateCleanState("/tmp", noopExecCommand)).not.toThrow();
+    });
+
+    it("throws when pnpm lint fails", () => {
+        const failLint: ExecCommand = (command: string) => {
+            if (command === "pnpm lint") {
+                const err = new Error("lint failed") as Error & { stdout: string; stderr: string };
+                err.stdout = "some lint output";
+                err.stderr = "Error: unused export found";
+                throw err;
+            }
+
+            return "";
+        };
+
+        expect(() => validateCleanState("/tmp", failLint)).toThrow(/Preflight check failed: `pnpm lint` exited with errors/);
+    });
+
+    it("throws when pnpm test fails", () => {
+        const failTest: ExecCommand = (command: string) => {
+            if (command === "pnpm test") {
+                const err = new Error("test failed") as Error & { stdout: string; stderr: string };
+                err.stdout = "";
+                err.stderr = "FAIL src/foo.test.ts";
+                throw err;
+            }
+
+            return "";
+        };
+
+        expect(() => validateCleanState("/tmp", failTest)).toThrow(/Preflight check failed: `pnpm test` exited with errors/);
+    });
+
+    it("error message includes the failing command name and output", () => {
+        const failWithOutput: ExecCommand = () => {
+            const err = new Error("command failed") as Error & { stdout: string; stderr: string };
+            err.stdout = "stdout content here";
+            err.stderr = "stderr content here";
+            throw err;
+        };
+
+        expect(() => validateCleanState("/tmp", failWithOutput)).toThrow(/stdout content herestderr content here/);
+    });
+
+    it("does not run test if lint fails", () => {
+        const executedCommands: string[] = [];
+
+        const trackingExec: ExecCommand = (command: string) => {
+            executedCommands.push(command);
+
+            if (command === "pnpm lint") {
+                throw new Error("lint failed");
+            }
+
+            return "";
+        };
+
+        expect(() => validateCleanState("/tmp", trackingExec)).toThrow();
+        expect(executedCommands).toEqual(["pnpm lint"]);
+    });
+
+    it("runs commands in order: lint first, then test", () => {
+        const executedCommands: string[] = [];
+
+        const trackingExec: ExecCommand = (command: string) => {
+            executedCommands.push(command);
+
+            return "";
+        };
+
+        validateCleanState("/tmp", trackingExec);
+        expect(executedCommands).toEqual(["pnpm lint", "pnpm test"]);
+    });
+
+    it("truncates output to 2000 characters", () => {
+        const longOutput = "x".repeat(3000);
+        const failWithLongOutput: ExecCommand = () => {
+            const err = new Error("command failed") as Error & { stdout: string; stderr: string };
+            err.stdout = longOutput;
+            err.stderr = "";
+            throw err;
+        };
+
+        try {
+            validateCleanState("/tmp", failWithLongOutput);
+            // Should not reach here.
+            expect.unreachable("Expected validateCleanState to throw");
+        } catch (e) {
+            const message = (e as Error).message;
+            // The output section should contain exactly 2000 'x' characters, not 3000.
+            const outputSection = message.split("Output:\n")[1];
+            expect(outputSection).toHaveLength(2000);
+        }
     });
 });

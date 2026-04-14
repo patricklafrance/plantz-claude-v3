@@ -1,12 +1,13 @@
 /**
  * Supervisor PreToolUse hook — applies policy functions in priority order:
- * wall-clock, install-gate, browser-thrash, test-thrash.
+ * wall-clock, install-gate, browser-thrash, test-thrash, file-thrash.
  * The first policy that returns a block wins.
  */
 
 import type { HookJSONOutput, PreToolUseHookInput } from "../types.ts";
 import checkBrowserThrash from "./browser-thrash.ts";
 import { buildPreToolEvent } from "./event-builder.ts";
+import checkFileThrash from "./file-thrash.ts";
 import {
     checkInstallGate,
     clearExpiredInstallBypass,
@@ -132,6 +133,27 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
             }
 
             return blockOutput(testResult.reason);
+        }
+
+        // 6. File thrash
+        const fileResult = checkFileThrash(event, state);
+        if (fileResult) {
+            if (fileResult.severity === "recovery") {
+                state.file.recoveryTier = fileResult.tier!;
+                state.file.differentFilesSinceRecovery = 0;
+                state.file.gatedFile = state.file.currentHotFile;
+            }
+            if (fileResult.severity === "gate") {
+                // Gate-blocked calls never reach the file — undo the
+                // file counters that applyEventToState already set.
+                state.file.sameFileHits -= 1;
+                if (state.file.gatedFileLifetimeHits > 0) {
+                    state.file.gatedFileLifetimeHits -= 1;
+                }
+                state.recentEvents = state.recentEvents.filter(e => e.index !== event.index);
+            }
+
+            return blockOutput(fileResult.reason);
         }
 
         return PASS;

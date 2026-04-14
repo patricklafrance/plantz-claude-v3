@@ -6,7 +6,7 @@ import { loadConfig, resolveConfig } from "../config.ts";
 import { buildProjectContext, contextToPreamble } from "../context.ts";
 import { createHooks } from "../hooks/create-hooks.ts";
 import { getRunDirName, initRunDir } from "../hooks/post-agent-validation/metrics.ts";
-import { validateRepository } from "../preflight.ts";
+import { validateCleanState, validateRepository } from "../preflight.ts";
 import { Progress } from "../progress.ts";
 import { classifyReferenceDocs, loadAllAgents } from "./agents.ts";
 import { runDocument } from "./steps/document.ts";
@@ -88,6 +88,10 @@ export async function run(options: OrchestratorOptions): Promise<void> {
         const doneValidate = progress.start("init", "Validating repository");
         validateRepository(cwd, resolve(cwd, config.structure.reference));
         doneValidate();
+
+        const doneClean = progress.start("init", "Checking lint & test baseline");
+        validateCleanState(cwd);
+        doneClean();
 
         const doneDirs = progress.start("init", "Preparing workspace");
         runDir = initRunDir(cwd);

@@ -26,6 +26,16 @@ const REQUIRED_BINARIES = ["agent-browser"] as const;
 
 export type ExecBinary = (name: string, cwd: string) => void;
 
+export type ExecCommand = (command: string, cwd: string) => string;
+
+function defaultExecCommand(command: string, cwd: string): string {
+    return execSync(command, {
+        cwd,
+        stdio: "pipe",
+        timeout: 120_000
+    }).toString();
+}
+
 function defaultExecBinary(name: string, cwd: string): void {
     // Use execSync with a string command — execFileSync cannot resolve .cmd/.ps1
     // shims on Windows, causing ENOENT even when pnpm is on PATH.
@@ -109,6 +119,43 @@ export function validateRepository(cwd: string, referenceDir: string, execBinary
                 }
                 // Malformed JSON — ignore, not our concern here.
             }
+        }
+    }
+}
+
+const CLEAN_STATE_COMMANDS = ["pnpm lint", "pnpm test"] as const;
+
+/**
+ * Run `pnpm lint` and `pnpm test` to ensure the codebase has no
+ * pre-existing errors before starting an ADLC run.
+ * Throws on the first command that fails, with a clear error message
+ * including the first 2000 characters of output.
+ *
+ * @param cwd - Repository root directory.
+ * @param execCommand - Optional injectable command executor (for testing).
+ */
+export function validateCleanState(cwd: string, execCommand: ExecCommand = defaultExecCommand): void {
+    for (const command of CLEAN_STATE_COMMANDS) {
+        try {
+            execCommand(command, cwd);
+        } catch (err: unknown) {
+            let output = "";
+
+            if (err && typeof err === "object") {
+                const e = err as { stdout?: Buffer | string; stderr?: Buffer | string; message?: string };
+                const stdout = e.stdout ? e.stdout.toString() : "";
+                const stderr = e.stderr ? e.stderr.toString() : "";
+                output = (stdout + stderr) || e.message || "";
+            }
+
+            const truncated = output.slice(0, 2000);
+
+            throw new Error(
+                `Preflight check failed: \`${command}\` exited with errors.\n` +
+                "The ADLC pipeline requires a clean codebase before starting.\n" +
+                "Fix the issues above, then re-run.\n\n" +
+                `Output:\n${truncated}`
+            );
         }
     }
 }
