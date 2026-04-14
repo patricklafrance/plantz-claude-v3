@@ -27,10 +27,9 @@ Implement the slice.
 
 ### 1. Load context
 
-- Read ALL of the following in a single parallel batch (one Read call per file, all in the same response): `plan-header.md` (in the ADLC run directory), `current-slice.md`, the `architecture` reference doc, the `adr` reference doc, the `placement` reference doc, the `api` reference doc, the `storybook` reference doc, the `components` reference doc, the `styling` reference doc, the `browser` reference doc.
-- Read `current-explorer-summary.md` for pre-surveyed reference patterns. Only Read source files when you need exact code to **edit** or the summary doesn't cover it.
+- Read the following in a single parallel batch: `plan-header.md` (in the ADLC run directory), `current-slice.md`, `current-explorer-summary.md`.
 - Read all files in `implementation-notes/` for workarounds and decisions from prior slices.
-- Scan the reference docs listed in the Project context section above for any additional docs relevant to the slice.
+- Do NOT bulk-read reference docs up front. The explorer summary already contains the patterns you need. Read individual reference docs on-demand during implementation only when the explorer summary doesn't cover a specific detail you need.
 
 ### 2. Scaffold
 

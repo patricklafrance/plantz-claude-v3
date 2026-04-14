@@ -81,10 +81,7 @@ export async function runSlices(
 
     // Create a dedicated integration branch for this run so slices
     // merge into it instead of directly into the base branch (e.g. main).
-    let featureBranch = options.featureBranch ?? `adlc/${runDirName}`;
-    if (!options.featureBranch) {
-        featureBranch = checkoutNewBranch(featureBranch, cwd);
-    }
+    const featureBranch = options.featureBranch ?? checkoutNewBranch(`adlc/${runDirName}`, cwd);
     const { hooks } = createHooks({ cwd });
     progress?.log("execution", `Feature branch: ${featureBranch}`);
 

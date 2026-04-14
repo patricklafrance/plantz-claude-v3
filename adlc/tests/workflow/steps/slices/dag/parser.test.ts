@@ -51,10 +51,7 @@ describe("parseSliceDependencies", () => {
     it("parses multiple slices with mixed dependencies", () => {
         writeFileSync(join(slicesDir, "01-shared-types.md"), "# Slice 1 — Shared Types\n\nDefine shared types.\n");
         writeFileSync(join(slicesDir, "02-api-client.md"), "# Slice 2 — API Client\n\n> **Depends on:** Slice 1\n\nBuild the API client.\n");
-        writeFileSync(
-            join(slicesDir, "03-ui-components.md"),
-            "# Slice 3 — UI Components\n\n> **Depends on:** Slice 1\n\nBuild UI components.\n"
-        );
+        writeFileSync(join(slicesDir, "03-ui-components.md"), "# Slice 3 — UI Components\n\n> **Depends on:** Slice 1\n\nBuild UI components.\n");
         writeFileSync(
             join(slicesDir, "04-integration.md"),
             "# Slice 4 — Integration\n\n> **Depends on:** Slice 2, Slice 3\n\nIntegrate everything.\n"
