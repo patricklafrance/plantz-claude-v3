@@ -5,6 +5,36 @@ import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
 
+/**
+ * Kill every process whose executable lives under the given directory.
+ *
+ * On Windows, running `.exe` files are locked by the OS, which prevents
+ * rimraf / `rm` from deleting them. This is the typical blocker when
+ * tearing down worktrees that ran `agent-browser` or similar native
+ * binaries via `node_modules/.bin`.
+ */
+async function killProcessesUnder(dir: string): Promise<void> {
+    if (process.platform !== "win32") {
+        return;
+    }
+
+    const normalizedDir = dir.replace(/\//g, "\\");
+
+    try {
+        const { stdout } = await execAsync(
+            `powershell -NoProfile -Command "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith('${normalizedDir}', [System.StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue; $_.Id }"`,
+            { timeout: 10_000 }
+        );
+
+        if (stdout.trim()) {
+            // Brief pause so Windows releases file handles after process exit.
+            await new Promise(r => setTimeout(r, 500));
+        }
+    } catch {
+        // Ignore — best-effort cleanup.
+    }
+}
+
 interface WorktreeInfo {
     path: string;
     branch: string;
@@ -35,6 +65,10 @@ export function createWorktree(sliceName: string, baseBranch: string, cwd: strin
  * doesn't block the main pipeline.
  */
 export async function removeWorktreeAsync(worktreePath: string, cwd: string): Promise<void> {
+    // Kill any processes whose executable lives inside the worktree (e.g.
+    // agent-browser .exe) before deleting, otherwise Windows will EPERM.
+    await killProcessesUnder(worktreePath);
+
     const nodeModules = resolve(worktreePath, "node_modules");
     await execAsync(`pnpm dlx rimraf "${nodeModules}"`, { cwd }).catch(() => {});
     await execAsync(`git worktree remove "${worktreePath}" --force`, { cwd });
