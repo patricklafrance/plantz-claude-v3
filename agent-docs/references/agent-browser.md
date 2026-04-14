@@ -1,10 +1,10 @@
 # agent-browser
 
-CLI tool for browser automation, installed as a workspace devDependency. Load the `agent-browser` skill to learn the commands.
+CLI tool for browser automation. Load the `agent-browser` skill to learn the commands.
 
 ## When to use
 
-After implementing UI changes — before reporting a task complete, verify that your changes render correctly in the browser.
+After implementing UI changes — verify that your changes render correctly in the browser.
 
 You do NOT need agent-browser for:
 
@@ -14,60 +14,37 @@ You do NOT need agent-browser for:
 
 ## Dev servers
 
-| Target            | Command              | Port | URL                     |
-| ----------------- | -------------------- | ---- | ----------------------- |
-| Host app          | `pnpm dev-host`      | 8080 | `http://localhost:8080` |
-| Unified storybook | `pnpm dev-storybook` | 6006 | `http://localhost:6006` |
+| Target            | Command              | Default port |
+| ----------------- | -------------------- | ------------ |
+| Unified storybook | `pnpm dev-storybook` | 6006         |
+| Host app          | `pnpm dev-app`       | 8080         |
 
-Use the **host app** for route-based verification (page navigation, login flows, cross-module interactions). Use the **unified storybook** for story-based verification (component variants, visual states).
+Use the **host app** for route-based verification. Use the **unified storybook** for story-based verification.
 
-### Starting dev servers
+### Starting and detecting the port
 
-Start servers in the background **without piping through `head`** — piped commands kill the server when the pipe closes:
-
-```bash
-# CORRECT — redirect output, run_in_background handles backgrounding:
-pnpm dev-storybook > /dev/null 2>&1
-pnpm dev-host > /dev/null 2>&1
-
-# WRONG — head exits after N lines, breaking the pipe and killing the server:
-pnpm dev-storybook 2>&1 | head -5    # ← server dies
-```
-
-### Waiting for dev servers
-
-After starting a dev server, use the readiness check instead of manual `sleep && curl` polling:
+Start dev servers in the background. The server picks an available port automatically and prints it in stdout. Parse the URL to get the actual port:
 
 ```bash
-node .claude/agents/scripts/wait-for-dev-server.mjs --port 6006 --name Storybook
-node .claude/agents/scripts/wait-for-dev-server.mjs --port 8080 --name "Host app"
+# Start in background — do NOT pipe through head (kills the server):
+pnpm dev-storybook > /tmp/sb-output.log 2>&1 &
+
+# Wait for the "ready" line and extract the port:
+timeout 90 grep -m1 "localhost:" /tmp/sb-output.log
+# Output: http://localhost:6006/  (or a different port if 6006 was taken)
 ```
 
-Options: `--port <port>` (required), `--timeout 90` (seconds, default), `--name <label>`. Exit codes: 0 = ready, 1 = timed out. On timeout, the script reports whether the port is listening (server stuck) or not (server not running). Do NOT use `sleep N && curl` loops — they waste tool calls and wall-clock time.
-
-### Stopping dev servers
-
-Always stop the dev server when done:
-
-```bash
-# Linux:
-kill -9 $(lsof -ti :8080) 2>/dev/null   # host
-kill -9 $(lsof -ti :6006) 2>/dev/null   # storybook
-# Windows:
-netstat -ano | grep :<PORT> | grep LISTENING
-taskkill //PID <PID> //T //F
-```
+The same pattern works for the host app (`pnpm dev-app`).
 
 ## Browser verification
 
-Key commands:
+Key commands (load the `agent-browser` skill for full docs):
 
 | Command                             | Use for                               |
 | ----------------------------------- | ------------------------------------- |
 | `diff snapshot`                     | See what changed after an action      |
 | `eval --stdin`                      | Batch multiple DOM checks in one call |
 | `is visible <sel>`                  | Boolean element check                 |
-| `is enabled <sel>`                  | Boolean element check                 |
 | `find role button click --name "X"` | One-step locate + action              |
 | `batch --json`                      | Combine open + wait + snapshot        |
 | `snapshot -i -c`                    | Compact interactive snapshot          |
@@ -93,10 +70,10 @@ The host app requires login. Demo credentials: `alice@example.com` / `password`.
 Stories are addressed by their kebab-cased title and story name:
 
 ```
-http://localhost:6006/?path=/story/{kebab-title}--{story-name}
+http://localhost:<port>/?path=/story/{kebab-title}--{story-name}
 ```
 
-Example: a story with title `Management/Plants/Pages/PlantsPage` and export `Default` maps to:
+Example: a story with title `Management/Plants/Pages/PlantsPage` and export `Default`:
 
 ```
 http://localhost:6006/?path=/story/management-plants-pages-plantspage--default

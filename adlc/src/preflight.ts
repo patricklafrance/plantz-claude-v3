@@ -4,7 +4,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 export const REQUIRED_SCRIPTS = [
@@ -80,5 +80,33 @@ export function validateRepository(cwd: string, referenceDir: string, execBinary
         throw new Error(
             `Reference docs directory not found at \`${referenceDir}\`. Create it or set \`structure.reference\` in adlc.config.ts to point to your docs directory.`
         );
+    }
+
+    // Verify no Storybook dev scripts contain hardcoded port flags.
+    // The ADLC pipeline requires dynamic port assignment — hardcoded ports
+    // cause conflicts when parallel worktrees run dev servers simultaneously.
+    const appsDir = join(cwd, "apps");
+    if (existsSync(appsDir)) {
+        const storybookDirs = readdirSync(appsDir).filter(d => d.startsWith("storybook"));
+        for (const dir of storybookDirs) {
+            const sbPkgPath = join(appsDir, dir, "package.json");
+            if (!existsSync(sbPkgPath)) {
+                continue;
+            }
+            try {
+                const sbPkg = JSON.parse(readFileSync(sbPkgPath, "utf-8")) as { scripts?: Record<string, string> };
+                const devScript = sbPkg.scripts?.dev ?? "";
+                if (/-p\s+\d+/.test(devScript)) {
+                    throw new Error(
+                        `Dev script in apps/${dir}/package.json contains a hardcoded port flag (${devScript.match(/-p\s+\d+/)![0]}). Remove the -p flag — the ADLC pipeline requires dynamic port assignment.`
+                    );
+                }
+            } catch (e) {
+                if (e instanceof Error && e.message.includes("hardcoded port flag")) {
+                    throw e;
+                }
+                // Malformed JSON — ignore, not our concern here.
+            }
+        }
     }
 }

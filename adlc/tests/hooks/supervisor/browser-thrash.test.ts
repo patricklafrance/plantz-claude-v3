@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import checkBrowserThrash, {
+    BROWSER_CONSECUTIVE_FAILURE_THRESHOLD,
     BROWSER_DENSITY_MIN_CALLS,
     BROWSER_TOTAL_BUDGET,
     SAME_TARGET_THRESHOLD
 } from "../../../src/hooks/supervisor/browser-thrash.js";
+import { isBrowserFailure } from "../../../src/hooks/supervisor/create-supervisor-post-tool-hook.js";
 import type { SupervisorEvent, SupervisorState } from "../../../src/hooks/supervisor/state.js";
 import { createDefaultState } from "../../../src/hooks/supervisor/state.js";
 
@@ -249,6 +251,46 @@ describe("browser-thrash policy", () => {
         expect(checkBrowserThrash(event, state)).toBeNull();
     });
 
+    // --- Consecutive failure detection ---
+
+    it("returns recovery when consecutiveFailures reaches threshold", () => {
+        const state = createDefaultState();
+        state.browser.consecutiveFailures = BROWSER_CONSECUTIVE_FAILURE_THRESHOLD;
+        state.browser.totalCalls = 2; // Below density min
+        const event = makeBrowserEvent();
+
+        const result = checkBrowserThrash(event, state);
+        expect(result).not.toBeNull();
+        expect(result!.action).toBe("block");
+        expect(result!.severity).toBe("recovery");
+        expect(result!.tier).toBe(1);
+        expect(result!.reason).toContain("failing repeatedly");
+        expect(result!.reason).toContain("browser-recovery");
+    });
+
+    it("does not trigger consecutive failure below threshold", () => {
+        const state = createDefaultState();
+        state.browser.consecutiveFailures = BROWSER_CONSECUTIVE_FAILURE_THRESHOLD - 1;
+        state.browser.totalCalls = 2;
+        const event = makeBrowserEvent();
+
+        expect(checkBrowserThrash(event, state)).toBeNull();
+    });
+
+    it("escalates to tier 2 on consecutive failure when already in tier 1", () => {
+        const state = createDefaultState();
+        state.browser.recoveryTier = 1;
+        state.browser.nonBrowserSinceRecovery = 10; // Gate satisfied
+        state.browser.consecutiveFailures = BROWSER_CONSECUTIVE_FAILURE_THRESHOLD;
+        state.browser.totalCalls = 2;
+        const event = makeBrowserEvent();
+
+        const result = checkBrowserThrash(event, state);
+        expect(result).not.toBeNull();
+        expect(result!.severity).toBe("recovery");
+        expect(result!.tier).toBe(2);
+    });
+
     // --- Priority ordering ---
 
     it("gate takes priority over density", () => {
@@ -263,6 +305,28 @@ describe("browser-thrash policy", () => {
         expect(result!.severity).toBe("gate");
     });
 
+    it("gate takes priority over consecutive failure", () => {
+        const state = createDefaultState();
+        state.browser.recoveryTier = 1;
+        state.browser.nonBrowserSinceRecovery = 0;
+        state.browser.consecutiveFailures = BROWSER_CONSECUTIVE_FAILURE_THRESHOLD;
+        const event = makeBrowserEvent();
+
+        const result = checkBrowserThrash(event, state);
+        expect(result).not.toBeNull();
+        expect(result!.severity).toBe("gate");
+    });
+
+    it("consecutive failure takes priority over density", () => {
+        const state = makeHighDensityState();
+        state.browser.consecutiveFailures = BROWSER_CONSECUTIVE_FAILURE_THRESHOLD;
+        const event = makeBrowserEvent();
+
+        const result = checkBrowserThrash(event, state);
+        expect(result).not.toBeNull();
+        expect(result!.reason).toContain("failing repeatedly");
+    });
+
     it("density takes priority over repetition", () => {
         const state = makeHighDensityState();
         state.browser.currentTarget = "http://localhost:3000";
@@ -273,5 +337,32 @@ describe("browser-thrash policy", () => {
         expect(result).not.toBeNull();
         // Should be recovery from density, not repetition
         expect(result!.reason).toContain("Browser stuck detected");
+    });
+});
+
+describe("isBrowserFailure", () => {
+    it("detects OS error patterns", () => {
+        expect(isBrowserFailure("Failed to read: A connection attempt failed (os error 10060)")).toBe(true);
+        expect(isBrowserFailure("os error 2")).toBe(true);
+    });
+
+    it("detects connection/daemon failures", () => {
+        expect(isBrowserFailure("Failed to connect: Connection refused")).toBe(true);
+        expect(isBrowserFailure("Failed to read: something")).toBe(true);
+        expect(isBrowserFailure("Failed to start daemon")).toBe(true);
+        expect(isBrowserFailure("Daemon failed to start")).toBe(true);
+        expect(isBrowserFailure("ECONNREFUSED")).toBe(true);
+        expect(isBrowserFailure("ETIMEDOUT")).toBe(true);
+    });
+
+    it("detects timeout messages", () => {
+        expect(isBrowserFailure("Operation timed out")).toBe(true);
+        expect(isBrowserFailure("connection attempt failed because the connected party")).toBe(true);
+    });
+
+    it("does not match normal browser output", () => {
+        expect(isBrowserFailure("Page loaded successfully")).toBe(false);
+        expect(isBrowserFailure("Snapshot saved to /tmp/screenshot.png")).toBe(false);
+        expect(isBrowserFailure("")).toBe(false);
     });
 });

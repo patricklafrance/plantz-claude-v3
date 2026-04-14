@@ -47,13 +47,11 @@ vi.mock("../../../../src/hooks/post-agent-validation/metrics.js", () => ({
 // ── Import under test ───────────────────────────────────────────────────────
 
 import { resolveConfig } from "../../../../src/config.js";
-import type { Ports } from "../../../../src/ports.js";
 import { runAgent } from "../../../../src/workflow/agents.js";
 import { runSlicePipeline } from "../../../../src/workflow/steps/slices/revision-loop.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const defaultPorts: Ports = { storybook: 6100, hostApp: 8100, browser: 9200 };
 const defaultConfig = resolveConfig({});
 const defaultPreamble = "";
 
@@ -82,39 +80,37 @@ describe("runSlicePipeline", () => {
     });
 
     it("delegates to feature-slice-coordinator agent by default", async () => {
-        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(runAgent).toHaveBeenCalledOnce();
         expect(getRunAgentCall().agentName).toBe("feature-slice-coordinator");
     });
 
     it("accepts a custom coordinator agent name", async () => {
-        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd", undefined, "fix-slice-coordinator");
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd", undefined, "fix-slice-coordinator");
 
         expect(runAgent).toHaveBeenCalledOnce();
         expect(getRunAgentCall().agentName).toBe("fix-slice-coordinator");
     });
 
     it("passes slice name in the prompt", async () => {
-        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(getRunAgentCall().prompt).toContain("plant-list");
     });
 
-    it("passes port env variables to the coordinator", async () => {
-        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+    it("passes AGENT_BROWSER_SESSION env to the coordinator", async () => {
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
-        expect(getRunAgentCall().env).toEqual({
-            STORYBOOK_PORT: "6100",
-            HOST_APP_PORT: "8100",
-            BROWSER_PORT: "9200"
-        });
+        expect(getRunAgentCall().env).toEqual(expect.objectContaining({
+            AGENT_BROWSER_SESSION: "plant-list"
+        }));
     });
 
     it("returns success when coordinator completes normally", async () => {
         vi.mocked(runAgent).mockResolvedValue({ result: "Slice passed verification", sessionId: "s1" });
 
-        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(result).toEqual({ success: true });
     });
@@ -122,7 +118,7 @@ describe("runSlicePipeline", () => {
     it("returns success for any non-failure coordinator result", async () => {
         vi.mocked(runAgent).mockResolvedValue({ result: "All done, everything looks good", sessionId: "s1" });
 
-        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(result).toEqual({ success: true });
     });
@@ -130,7 +126,7 @@ describe("runSlicePipeline", () => {
     it("returns failure when coordinator reports max revision attempts exceeded", async () => {
         vi.mocked(runAgent).mockResolvedValue({ result: "Max revision attempts exceeded: tests broken", sessionId: "s1" });
 
-        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(result).toEqual({ success: false, reason: "Max revision attempts exceeded: tests broken" });
     });
@@ -138,7 +134,7 @@ describe("runSlicePipeline", () => {
     it("returns failure with default reason when coordinator returns empty result", async () => {
         vi.mocked(runAgent).mockResolvedValue({ result: "", sessionId: "s1" });
 
-        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+        const result = await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(result).toEqual({ success: false, reason: "coordinator reported failure" });
     });
@@ -146,13 +142,13 @@ describe("runSlicePipeline", () => {
     it("propagates when runAgent throws", async () => {
         vi.mocked(runAgent).mockRejectedValue(new Error("SDK connection lost"));
 
-        await expect(runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd")).rejects.toThrow(
+        await expect(runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd")).rejects.toThrow(
             "SDK connection lost"
         );
     });
 
     it("forwards hooks from createHooks to the coordinator", async () => {
-        await runSlicePipeline("plant-list", "/tmp/wt", defaultPorts, defaultPreamble, defaultConfig, "/tmp/cwd");
+        await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
         expect(getRunAgentCall().hooks).toBe(mockHooksSentinel);
     });

@@ -11,7 +11,7 @@ import type { AdlcConfig } from "../src/config.js";
 
 describe("defineConfig", () => {
     it("returns the config object unchanged (identity helper)", () => {
-        const input: AdlcConfig = { ports: { storybook: 6006 } };
+        const input: AdlcConfig = { structure: { apps: "./apps" } };
         expect(defineConfig(input)).toBe(input);
     });
 
@@ -42,19 +42,13 @@ describe("resolveConfig", () => {
                 referenceModule: undefined,
                 referenceStorybook: undefined
             },
-            ports: {
-                storybook: 6100,
-                hostApp: 8100,
-                browser: 9200
-            },
             agents: {}
         });
     });
 
     it("preserves partial overrides while filling remaining defaults", () => {
         const resolved = resolveConfig({
-            structure: { apps: "./applications", hostApp: "web" },
-            ports: { storybook: 6006 }
+            structure: { apps: "./applications", hostApp: "web" }
         });
 
         expect(resolved.structure.apps).toBe("./applications");
@@ -62,8 +56,6 @@ describe("resolveConfig", () => {
         expect(resolved.structure.modules).toBe("./modules");
         expect(resolved.structure.packages).toBe("./packages");
         expect(resolved.structure.reference).toBe("./agent-docs");
-        expect(resolved.ports.storybook).toBe(6006);
-        expect(resolved.ports.hostApp).toBe(8100);
     });
 
     it("preserves full overrides", () => {
@@ -80,7 +72,6 @@ describe("resolveConfig", () => {
                 referenceModule: "dashboard",
                 referenceStorybook: "storybook-dashboard"
             },
-            ports: { storybook: 9000, hostApp: 9001 }
         });
 
         expect(resolved.structure.apps).toBe("./a");
@@ -92,8 +83,6 @@ describe("resolveConfig", () => {
         expect(resolved.scaffolding.packageMeta.author).toBe("Test");
         expect(resolved.scaffolding.referenceModule).toBe("dashboard");
         expect(resolved.scaffolding.referenceStorybook).toBe("storybook-dashboard");
-        expect(resolved.ports.storybook).toBe(9000);
-        expect(resolved.ports.hostApp).toBe(9001);
     });
 });
 
@@ -127,10 +116,10 @@ describe("loadConfig", () => {
 
     it("loads adlc.config.mjs with default export", async () => {
         const dir = makeTmpDir();
-        writeFileSync(join(dir, "adlc.config.mjs"), `export default { ports: { storybook: 7777 } };`);
+        writeFileSync(join(dir, "adlc.config.mjs"), `export default { structure: { apps: "./custom" } };`);
 
         const config = await loadConfig(dir);
-        expect(config).toEqual({ ports: { storybook: 7777 } });
+        expect(config).toEqual({ structure: { apps: "./custom" } });
     });
 
     it("returns empty config when module has no default export", async () => {

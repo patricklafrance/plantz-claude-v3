@@ -97,6 +97,7 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
                 state.browser.recoveryTier = browserResult.tier!;
                 state.browser.nonBrowserSinceRecovery = 0;
                 state.browser.sameTargetCalls = 0;
+                state.browser.consecutiveFailures = 0;
                 // Clear the rolling window so stale browser events don't
                 // immediately re-trigger density after the gate is cleared.
                 state.recentEvents = [];

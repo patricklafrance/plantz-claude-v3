@@ -323,7 +323,7 @@ export async function runAgent(
             includePartialMessages: true,
             ...(hooks ? { hooks } : {}),
             ...(resumeSessionId ? { resume: resumeSessionId } : {}),
-            ...(env ? { env } : {})
+            ...(env ? { env: { ...process.env, ...env } } : {})
         }
     });
 

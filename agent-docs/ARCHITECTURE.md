@@ -66,7 +66,7 @@ Each module has its own Storybook at `apps/storybook-<name>/` with independent C
 - **storybook-management** — Stories for the management module (`apps/storybook-management/`)
 - **storybook-watering** — Stories for the watering module (`apps/storybook-watering/`)
 
-A packages-layer Storybook (`apps/storybook-packages/`, `@apps/storybook-packages`) is purely a runner for shared package stories — it contains no exported utilities. Storybook infrastructure (MSW via `msw-storybook-addon`, Squide runtime via `@squide/firefly-storybook`, `QueryClientProvider`) is configured per-module in each module's `storybook.setup.tsx`. A unified Storybook (`apps/storybook/`) aggregates all stories across the entire repo and is the sole target for browser verification (`pnpm dev-storybook`). Per-module storybooks are used for Chromatic visual regression, a11y tests, and developer workflow.
+A packages-layer Storybook (`apps/storybook-packages/`, `@apps/storybook-packages`) is purely a runner for shared package stories — it contains no exported utilities. Storybook infrastructure (MSW via `msw-storybook-addon`, Squide runtime via `@squide/firefly-storybook`, `QueryClientProvider`) is configured per-module in each module's `storybook.setup.tsx`. A unified Storybook (`apps/storybook/`) aggregates all stories across the entire repo and is the sole target for browser verification. See `agent-docs/references/agent-browser.md` for dev server startup instructions. Per-module storybooks are used for Chromatic visual regression, a11y tests, and developer workflow.
 
 See [ADR-0002](adr/0002-domain-scoped-storybooks.md) for rationale.
 
@@ -119,8 +119,8 @@ Scripts in root `package.json` follow a prefix convention: `dev-*` (local dev se
 Set `MODULES` to load only specific modules during development:
 
 ```bash
-cross-env MODULES=management pnpm dev-host    # only management
-cross-env MODULES=watering pnpm dev-host      # only watering
+cross-env MODULES=management pnpm dev-app    # only management
+cross-env MODULES=watering pnpm dev-app      # only watering
 ```
 
 Omit `MODULES` to load all modules. The value maps to the module's directory name under `modules/`.

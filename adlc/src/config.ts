@@ -2,8 +2,6 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { Ports } from "./ports.ts";
-
 // ── Model resolution ─────────────────────────────────────
 
 /** Model aliases → full model IDs. */
@@ -20,15 +18,6 @@ export function resolveModel(alias: string | undefined): string | undefined {
     }
     return MODEL_IDS[alias as keyof typeof MODEL_IDS] ?? alias;
 }
-
-// ── Orchestrator defaults ────────────────────────────────
-
-/** Port allocation base for parallel worktrees. */
-const PORT_BASE = {
-    storybook: 6100,
-    hostApp: 8100,
-    browser: 9200
-} as const;
 
 // ── ADLC config types ────────────────────────────────────
 
@@ -47,11 +36,6 @@ export interface AdlcConfig {
         };
         referenceModule?: string;
         referenceStorybook?: string;
-    };
-    ports?: {
-        storybook?: number;
-        hostApp?: number;
-        browser?: number;
     };
     /** Per-agent overrides, keyed by agent name. */
     agents?: Record<
@@ -79,7 +63,6 @@ export interface ResolvedConfig {
         referenceModule?: string;
         referenceStorybook?: string;
     };
-    ports: Ports;
     /** Per-agent overrides, keyed by agent name. */
     agents: Record<
         string,
@@ -111,11 +94,6 @@ export function resolveConfig(partial: AdlcConfig): ResolvedConfig {
             },
             referenceModule: partial.scaffolding?.referenceModule,
             referenceStorybook: partial.scaffolding?.referenceStorybook
-        },
-        ports: {
-            storybook: partial.ports?.storybook ?? PORT_BASE.storybook,
-            hostApp: partial.ports?.hostApp ?? PORT_BASE.hostApp,
-            browser: partial.ports?.browser ?? PORT_BASE.browser
         },
         agents: Object.fromEntries(Object.entries(partial.agents ?? {}).map(([name, agent]) => [name, { skills: agent.skills ?? [] }]))
     };

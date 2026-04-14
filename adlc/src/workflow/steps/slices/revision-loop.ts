@@ -3,14 +3,12 @@
 import type { ResolvedConfig } from "../../../config.ts";
 import { createHooks } from "../../../hooks/create-hooks.ts";
 import { getRunDirName } from "../../../hooks/post-agent-validation/metrics.ts";
-import type { Ports } from "../../../ports.ts";
 import type { Progress } from "../../../progress.ts";
 import { loadAllAgents, runAgent } from "../../agents.ts";
 
 export async function runSlicePipeline(
     sliceName: string,
     worktreePath: string,
-    ports: Ports,
     preamble: string,
     config: ResolvedConfig,
     cwd: string,
@@ -30,7 +28,7 @@ export async function runSlicePipeline(
         progress,
         hooks,
         undefined,
-        { STORYBOOK_PORT: String(ports.storybook), HOST_APP_PORT: String(ports.hostApp), BROWSER_PORT: String(ports.browser) }
+        { AGENT_BROWSER_SESSION: sliceName }
     );
 
     // The coordinator completed without SDK error, and all sub-agent validation

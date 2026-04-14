@@ -335,7 +335,6 @@ describe("runSlices", () => {
         expect(runSlicePipeline).toHaveBeenCalledWith(
             "alpha",
             expect.any(String),
-            expect.any(Object),
             "",
             config,
             tmpDir,

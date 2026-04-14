@@ -116,4 +116,30 @@ describe("validateRepository", () => {
 
         expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/Reference docs directory not found/);
     });
+
+    it("throws when storybook dev script contains a hardcoded port", () => {
+        const dir = makeTmpDir();
+        setupValidRepo(dir);
+        const sbDir = join(dir, "apps", "storybook");
+        mkdirSync(sbDir, { recursive: true });
+        writeFileSync(
+            join(sbDir, "package.json"),
+            JSON.stringify({ scripts: { dev: "storybook dev -p 6006 --no-open" } })
+        );
+
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/hardcoded port flag/);
+    });
+
+    it("passes when storybook dev script has no hardcoded port", () => {
+        const dir = makeTmpDir();
+        setupValidRepo(dir);
+        const sbDir = join(dir, "apps", "storybook");
+        mkdirSync(sbDir, { recursive: true });
+        writeFileSync(
+            join(sbDir, "package.json"),
+            JSON.stringify({ scripts: { dev: "storybook dev --no-open --disable-telemetry --ci" } })
+        );
+
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).not.toThrow();
+    });
 });

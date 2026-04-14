@@ -14,12 +14,13 @@
  * Edit/Write" counter would false-positive on every reviewer run. The URL-change
  * reset on repetition and the rolling window on density prevent this.
  *
- * Five checks in priority order:
+ * Six checks in priority order:
  * 1. Gate enforcement — blocks browser calls until non-browser work is done
- * 2. Density detection — catches cross-page spirals, escalates through tiers
- * 3. Repetition detection — catches same-page probing loops
- * 4. Total budget — hard cap on browser calls per run
- * 5. Screenshot nudge — one-time suggestion on first screenshot
+ * 2. Consecutive failure — catches slow failure patterns (timeouts, connection errors)
+ * 3. Density detection — catches cross-page spirals, escalates through tiers
+ * 4. Repetition detection — catches same-page probing loops
+ * 5. Total budget — hard cap on browser calls per run
+ * 6. Screenshot nudge — one-time suggestion on first screenshot
  */
 
 import type { SupervisorEvent, SupervisorState } from "./state.ts";
@@ -45,6 +46,11 @@ export const SAME_TARGET_THRESHOLD = 8;
 // Density threshold: when this fraction of recent events are browser commands,
 // the agent is likely stuck. 0.75 = 9 out of 12 events.
 const BROWSER_DENSITY_THRESHOLD = 0.75;
+
+// Consecutive browser command failures (timeouts, connection errors) before
+// triggering recovery. Lower than density/repetition thresholds because each
+// failure wastes 15-30s of wall time.
+export const BROWSER_CONSECUTIVE_FAILURE_THRESHOLD = 3;
 
 // Minimum total browser calls before density detection activates. Prevents
 // false positives during initial browser setup where several calls in a row
@@ -139,6 +145,19 @@ function repetitionMessage(sameTargetCalls: number, currentTarget: string | null
     ].join("\n");
 }
 
+function consecutiveFailureMessage(failures: number): string {
+    return [
+        `[runtime-supervisor] Browser commands are failing repeatedly (${failures} consecutive failures — likely a daemon or connection issue).`,
+        "",
+        "Stop retrying the same approach. Load the browser-recovery skill",
+        "(node_modules/@patlaf/adlc/skills/browser-recovery/SKILL.md) to diagnose",
+        "and plan alternative approaches such as Playwright CLI screenshots,",
+        "source code inspection, or test-based verification.",
+        "",
+        `Your next browser command will be allowed after ${TIER_GATES[1]} non-browser tool calls.`
+    ].join("\n");
+}
+
 function totalBudgetMessage(totalCalls: number): string {
     return [
         `[runtime-supervisor] Browser call budget exceeded (${totalCalls}/${BROWSER_TOTAL_BUDGET}).`,
@@ -173,7 +192,22 @@ export default function checkBrowserThrash(event: SupervisorEvent, state: Superv
         // Gate satisfied — fall through to density/budget checks.
     }
 
-    // 2. Density-based detection — catches cross-page eval spirals where the
+    // 2. Consecutive failure detection — catches slow failure patterns where
+    //    each browser call times out (15-30s) with a connection error. The
+    //    density/repetition checks miss these because failures are too slow
+    //    and infrequent to cross their thresholds.
+    if (state.browser.consecutiveFailures >= BROWSER_CONSECUTIVE_FAILURE_THRESHOLD) {
+        const nextTier = Math.min((state.browser.recoveryTier ?? 0) + 1, 2);
+
+        return {
+            action: "block",
+            severity: "recovery",
+            tier: nextTier,
+            reason: consecutiveFailureMessage(state.browser.consecutiveFailures)
+        };
+    }
+
+    // 3. Density-based detection — catches cross-page eval spirals where the
     //    agent jumps between URLs (resetting the repetition counter each time).
     //    Only after enough calls to be meaningful.
     if (state.browser.totalCalls >= BROWSER_DENSITY_MIN_CALLS) {
@@ -187,7 +221,7 @@ export default function checkBrowserThrash(event: SupervisorEvent, state: Superv
         }
     }
 
-    // 3. Same-target repetition — catches probing loops that evade density
+    // 4. Same-target repetition — catches probing loops that evade density
     //    (e.g., screenshot → Read → screenshot → Read on the same page).
     if (state.browser.currentTarget != null && state.browser.sameTargetCalls >= SAME_TARGET_THRESHOLD) {
         const nextTier = Math.min((state.browser.recoveryTier ?? 0) + 1, 2);
@@ -200,12 +234,12 @@ export default function checkBrowserThrash(event: SupervisorEvent, state: Superv
         };
     }
 
-    // 4. Total budget — hard cap, triggers tier 2 recovery.
+    // 5. Total budget — hard cap, triggers tier 2 recovery.
     if (state.browser.totalCalls > BROWSER_TOTAL_BUDGET) {
         return { action: "block", severity: "recovery", tier: 2, reason: totalBudgetMessage(state.browser.totalCalls) };
     }
 
-    // 5. Screenshot nudge — one-time suggestion on first screenshot.
+    // 6. Screenshot nudge — one-time suggestion on first screenshot.
     if (event.isScreenshotCommand && !state.browser.screenshotNudgeFired) {
         return { action: "block", severity: "nudge", reason: SCREENSHOT_MESSAGE };
     }

@@ -120,7 +120,7 @@ flowchart TD
 
 ---
 
-Slices declare dependencies in their plan files. Independent slices run in parallel — each in its own git worktree with isolated `.adlc/` state, ports, and branch. After completion, results merge back to the feature branch sequentially.
+Slices declare dependencies in their plan files. Independent slices run in parallel — each in its own git worktree with isolated `.adlc/` state and branch. Dev servers pick available ports dynamically. After completion, results merge back to the feature branch sequentially.
 
 All inter-agent coordination goes through files in `.adlc/` — plan-header, slices, verification-results, implementation-notes, domain-mapping. This makes handoffs explicit and debuggable.
 
@@ -401,11 +401,6 @@ export default defineConfig({
         },
         referenceModule: "modules/management",
         referenceStorybook: "apps/storybook-management"
-    },
-    ports: {
-        storybook: 6100, // base port — offset per worktree
-        hostApp: 8100,
-        browser: 9200
     },
     agents: {
         "feature-coder": {

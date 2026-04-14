@@ -5,6 +5,8 @@ export interface BrowserState {
     nonBrowserSinceRecovery: number;
     currentTarget: string | null;
     sameTargetCalls: number;
+    /** Consecutive browser commands that failed (timeout, connection error, etc.). Reset to 0 on success. */
+    consecutiveFailures: number;
 }
 
 export interface TestState {
@@ -66,7 +68,8 @@ export function createDefaultState(): SupervisorState {
             recoveryTier: 0,
             nonBrowserSinceRecovery: 0,
             currentTarget: null,
-            sameTargetCalls: 0
+            sameTargetCalls: 0,
+            consecutiveFailures: 0
         },
         test: {
             consecutiveWithoutEdit: 0,
@@ -98,7 +101,8 @@ export function resetAgentLocalState(state: SupervisorState, incomingAgent?: str
         recoveryTier: 0,
         nonBrowserSinceRecovery: 0,
         currentTarget: null,
-        sameTargetCalls: 0
+        sameTargetCalls: 0,
+        consecutiveFailures: 0
     };
     state.test = {
         consecutiveWithoutEdit: 0,

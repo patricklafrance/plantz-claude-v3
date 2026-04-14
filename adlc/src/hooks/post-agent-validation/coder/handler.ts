@@ -8,7 +8,6 @@
  *   3 -- kill dev server ports (always)
  */
 
-import { loadConfig, resolveConfig } from "../../../config.ts";
 import { buildCheck } from "../build-check.ts";
 import { formatFix } from "../format-fix.ts";
 import { crossBoundaryImportsCheck } from "../import-check.ts";
@@ -19,7 +18,7 @@ import { testsCheck } from "../tests-check.ts";
 import { getChangedFiles } from "../utils.ts";
 import { contextRefreshCheck } from "./context-refresh.ts";
 import { implementationNotesCheck } from "./implementation-notes-check.ts";
-import { killPorts } from "./kill-ports.ts";
+import { killDevServers } from "./kill-dev-servers.ts";
 import { noSecretsCheck } from "./no-secrets-check.ts";
 import { storyCoverageCheck } from "./story-coverage-check.ts";
 
@@ -43,10 +42,8 @@ export async function handleCoder(cwd: string, markers: Record<string, boolean>)
         Promise.resolve(contextRefreshCheck(cwd, markers))
     ]);
 
-    // Phase 3: kill dev server ports from config
-    const config = resolveConfig(await loadConfig(cwd));
-    const portsToKill = Object.values(config.ports).filter((p): p is number => p !== undefined);
-    killPorts(portsToKill);
+    // Phase 3: kill dev servers by process pattern (not port — ports are dynamic)
+    killDevServers(cwd);
 
     return [...formatProblems, ...lintFixProblems, ...results.flat()];
 }

@@ -8,7 +8,6 @@ import { promisify } from "node:util";
 import type { ResolvedConfig } from "../../../config.ts";
 import { createHooks } from "../../../hooks/create-hooks.ts";
 import { getRunDirName } from "../../../hooks/post-agent-validation/metrics.ts";
-import { allocatePorts } from "../../../ports.ts";
 import type { Progress } from "../../../progress.ts";
 import { runAgent, loadAllAgents } from "../../agents.ts";
 import type { OrchestratorOptions } from "../../orchestrator.ts";
@@ -120,12 +119,11 @@ export async function runSlices(
             );
 
             // Run slices in parallel
-            const ports = waveItems.map((_, i) => allocatePorts(i, config.ports));
             // eslint-disable-next-line no-await-in-loop
             const results = await Promise.allSettled(
-                waveItems.map(({ slice, wt }, i) => {
+                waveItems.map(({ slice, wt }) => {
                     progress?.slice(slice.name, "pipeline", "starting");
-                    return runSlicePipeline(slice.name, wt.path, ports[i], preamble, config, cwd, progress, coordinatorAgent);
+                    return runSlicePipeline(slice.name, wt.path, preamble, config, cwd, progress, coordinatorAgent);
                 })
             );
 

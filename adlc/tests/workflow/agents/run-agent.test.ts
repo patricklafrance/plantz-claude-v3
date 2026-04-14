@@ -99,11 +99,11 @@ describe("runAgent", () => {
     });
 
     it("forwards env to the SDK query call when provided", async () => {
-        const env = { STORYBOOK_PORT: "6100", HOST_APP_PORT: "8100" };
+        const env = { AGENT_BROWSER_SESSION: "plant-list" };
         await runAgent("feature-coder", "Implement feature", "/tmp/test", mockAgents, undefined, undefined, undefined, env);
 
         expect(queryCallLog).toHaveLength(1);
-        expect(queryCallLog[0].options.env).toEqual(env);
+        expect(queryCallLog[0].options.env).toEqual(expect.objectContaining(env));
     });
 
     it("omits env from SDK query when not provided", async () => {
