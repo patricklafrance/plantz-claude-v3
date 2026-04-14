@@ -13,6 +13,7 @@
     "dependencies": {
         "@packages/api": "workspace:*",
         "@packages/components": "workspace:*",
+        "@packages/core-module": "workspace:*",
         "@tanstack/react-virtual": "^3.13.23",
         "date-fns": "^4.1.0",
         "lucide-react": "^1.8.0"

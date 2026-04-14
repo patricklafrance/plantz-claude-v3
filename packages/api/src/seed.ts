@@ -1,3 +1,5 @@
+import { careEventsDb } from "./db/care-events/careEventsDb.ts";
+import { defaultSeedCareEvents } from "./db/care-events/seedData.ts";
 import { householdMembersDb } from "./db/household/householdMembersDb.ts";
 import { householdsDb } from "./db/household/householdsDb.ts";
 import { invitationsDb } from "./db/household/invitationsDb.ts";
@@ -10,4 +12,5 @@ export function seedDatabase() {
     householdsDb.reset(defaultSeedHouseholds);
     householdMembersDb.reset(defaultSeedMembers);
     invitationsDb.reset(defaultSeedInvitations);
+    careEventsDb.reset(defaultSeedCareEvents);
 }

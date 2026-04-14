@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { createTodayPlantHandlers } from "@packages/api/handlers/today";
-import { makePlant, FAR_PAST, FAR_FUTURE } from "@packages/api/test-utils";
+import { createTodayPlantHandlers, createCareEventHandlers } from "@packages/api/handlers/today";
+import { makePlant, makeCareEvent, FAR_PAST, FAR_FUTURE } from "@packages/api/test-utils";
 
 import { LandingPage } from "./LandingPage.tsx";
 import { queryDecorator, fireflyDecorator } from "./storybook.setup.tsx";
+
+const FIXED_TIMESTAMP = new Date(2025, 2, 15, 10, 0, 0, 0);
 
 const meta = {
     title: "Watering/Today/Pages/LandingPage",
@@ -32,13 +34,16 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
     parameters: {
         msw: {
-            handlers: createTodayPlantHandlers([
-                makePlant({ id: "due-1", name: "Aloe Vera", nextWateringDate: FAR_PAST }),
-                makePlant({ id: "due-2", name: "Boston Fern", nextWateringDate: FAR_PAST }),
-                makePlant({ id: "not-due-1", name: "Cactus", nextWateringDate: FAR_FUTURE }),
-                makePlant({ id: "due-3", name: "Dracaena", nextWateringDate: FAR_PAST }),
-                makePlant({ id: "not-due-2", name: "Echeveria", nextWateringDate: FAR_FUTURE })
-            ])
+            handlers: [
+                ...createTodayPlantHandlers([
+                    makePlant({ id: "due-1", name: "Aloe Vera", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "due-2", name: "Boston Fern", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "not-due-1", name: "Cactus", nextWateringDate: FAR_FUTURE }),
+                    makePlant({ id: "due-3", name: "Dracaena", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "not-due-2", name: "Echeveria", nextWateringDate: FAR_FUTURE })
+                ]),
+                ...createCareEventHandlers("empty")
+            ]
         }
     }
 };
@@ -47,11 +52,14 @@ export const Default: Story = {
 export const NoPlantsDue: Story = {
     parameters: {
         msw: {
-            handlers: createTodayPlantHandlers([
-                makePlant({ id: "future-1", name: "Monstera", nextWateringDate: FAR_FUTURE }),
-                makePlant({ id: "future-2", name: "Pothos", nextWateringDate: FAR_FUTURE }),
-                makePlant({ id: "future-3", name: "Snake Plant", nextWateringDate: FAR_FUTURE })
-            ])
+            handlers: [
+                ...createTodayPlantHandlers([
+                    makePlant({ id: "future-1", name: "Monstera", nextWateringDate: FAR_FUTURE }),
+                    makePlant({ id: "future-2", name: "Pothos", nextWateringDate: FAR_FUTURE }),
+                    makePlant({ id: "future-3", name: "Snake Plant", nextWateringDate: FAR_FUTURE })
+                ]),
+                ...createCareEventHandlers("empty")
+            ]
         }
     }
 };
@@ -60,13 +68,16 @@ export const NoPlantsDue: Story = {
 export const AllDueForWatering: Story = {
     parameters: {
         msw: {
-            handlers: createTodayPlantHandlers([
-                makePlant({ id: "due-1", name: "Aloe Vera", nextWateringDate: FAR_PAST }),
-                makePlant({ id: "due-2", name: "Boston Fern", nextWateringDate: FAR_PAST }),
-                makePlant({ id: "due-3", name: "Calathea", nextWateringDate: FAR_PAST }),
-                makePlant({ id: "due-4", name: "Dracaena", nextWateringDate: FAR_PAST }),
-                makePlant({ id: "due-5", name: "English Ivy", nextWateringDate: FAR_PAST })
-            ])
+            handlers: [
+                ...createTodayPlantHandlers([
+                    makePlant({ id: "due-1", name: "Aloe Vera", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "due-2", name: "Boston Fern", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "due-3", name: "Calathea", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "due-4", name: "Dracaena", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "due-5", name: "English Ivy", nextWateringDate: FAR_PAST })
+                ]),
+                ...createCareEventHandlers("empty")
+            ]
         }
     }
 };
@@ -74,27 +85,52 @@ export const AllDueForWatering: Story = {
 export const SinglePlant: Story = {
     parameters: {
         msw: {
-            handlers: createTodayPlantHandlers([
-                makePlant({
-                    id: "single-1",
-                    name: "Monstera Deliciosa",
-                    description: "A tropical plant with large fenestrated leaves.",
-                    family: "Araceae",
-                    nextWateringDate: FAR_PAST
-                })
-            ])
+            handlers: [
+                ...createTodayPlantHandlers([
+                    makePlant({
+                        id: "single-1",
+                        name: "Monstera Deliciosa",
+                        description: "A tropical plant with large fenestrated leaves.",
+                        family: "Araceae",
+                        nextWateringDate: FAR_PAST
+                    })
+                ]),
+                ...createCareEventHandlers("empty")
+            ]
+        }
+    }
+};
+
+export const WithCareEventAttribution: Story = {
+    parameters: {
+        msw: {
+            handlers: [
+                ...createTodayPlantHandlers([
+                    makePlant({ id: "due-1", name: "Aloe Vera", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "due-2", name: "Boston Fern", nextWateringDate: FAR_PAST }),
+                    makePlant({ id: "due-3", name: "Dracaena", nextWateringDate: FAR_PAST })
+                ]),
+                ...createCareEventHandlers([
+                    makeCareEvent({ id: "ce-1", plantId: "due-1", actorId: "user-bob", actorName: "Bob", timestamp: FIXED_TIMESTAMP }),
+                    makeCareEvent({ id: "ce-2", plantId: "due-3", actorId: "user-bob", actorName: "Bob", timestamp: FIXED_TIMESTAMP })
+                ])
+            ]
         }
     }
 };
 
 export const Empty: Story = {
     parameters: {
-        msw: { handlers: createTodayPlantHandlers([]) }
+        msw: {
+            handlers: [...createTodayPlantHandlers([]), ...createCareEventHandlers("empty")]
+        }
     }
 };
 
 export const Loading: Story = {
     parameters: {
-        msw: { handlers: createTodayPlantHandlers("loading") }
+        msw: {
+            handlers: [...createTodayPlantHandlers("loading"), ...createCareEventHandlers("empty")]
+        }
     }
 };

@@ -31,7 +31,8 @@ export async function registerTodayLandingPage(runtime: FireflyRuntime) {
     registerRoutes(runtime);
 
     if (runtime.isMswEnabled) {
-        const { todayPlantHandlers } = await import("@packages/api/handlers/today");
+        const { todayPlantHandlers, todayCareEventHandlers } = await import("@packages/api/handlers/today");
         runtime.registerRequestHandlers(todayPlantHandlers);
+        runtime.registerRequestHandlers(todayCareEventHandlers);
     }
 }

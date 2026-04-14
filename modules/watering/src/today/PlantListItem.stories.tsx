@@ -3,9 +3,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CareEvent } from "@packages/api/entities/care-events";
 import type { Plant } from "@packages/api/entities/plants";
 
-import { PlantDetailDialog } from "./PlantDetailDialog.tsx";
+import { PlantListItem } from "./PlantListItem.tsx";
 
 const FAR_PAST = new Date(2020, 0, 1, 0, 0, 0, 0);
+const FAR_FUTURE = new Date(2099, 0, 1, 0, 0, 0, 0);
 const FIXED_CREATION = new Date(2025, 0, 1, 0, 0, 0, 0);
 const FIXED_TIMESTAMP = new Date(2025, 2, 15, 10, 0, 0, 0);
 
@@ -20,11 +21,10 @@ function makePlant(overrides: Partial<Plant> = {}): Plant {
         luminosity: "medium",
         mistLeaves: true,
         soilType: "Well-draining mix",
-        isShared: false,
         wateringFrequency: "1-week",
         wateringQuantity: "200ml",
         wateringType: "surface",
-        nextWateringDate: FAR_PAST,
+        nextWateringDate: FAR_FUTURE,
         creationDate: FIXED_CREATION,
         lastUpdateDate: FIXED_CREATION,
         ...overrides
@@ -36,7 +36,7 @@ function makeCareEvent(overrides: Partial<CareEvent> = {}): CareEvent {
         id: "care-1",
         plantId: "test-1",
         actorId: "user-bob",
-        actorName: "Alex",
+        actorName: "Bob",
         eventType: "watered",
         timestamp: FIXED_TIMESTAMP,
         ...overrides
@@ -44,8 +44,8 @@ function makeCareEvent(overrides: Partial<CareEvent> = {}): CareEvent {
 }
 
 const meta = {
-    title: "Watering/Today/Components/PlantDetailDialog",
-    component: PlantDetailDialog,
+    title: "Watering/Today/Components/PlantListItem",
+    component: PlantListItem,
     parameters: {
         chromatic: {
             modes: {
@@ -59,10 +59,9 @@ const meta = {
         }
     },
     args: {
-        open: true,
-        onOpenChange: () => {}
+        onClick: () => {}
     }
-} satisfies Meta<typeof PlantDetailDialog>;
+} satisfies Meta<typeof PlantListItem>;
 
 export default meta;
 
@@ -74,53 +73,38 @@ export const Default: Story = {
     }
 };
 
-export const MinimalFields: Story = {
+export const DueForWatering: Story = {
     args: {
-        plant: makePlant({
-            description: undefined,
-            family: undefined,
-            soilType: undefined
-        })
+        plant: makePlant({ nextWateringDate: FAR_PAST })
     }
 };
 
-export const LongValues: Story = {
-    args: {
-        plant: makePlant({
-            name: "Philodendron Birkin Variegated Extra Special Limited Edition",
-            description:
-                "A rare variegated cultivar of the Philodendron Birkin with stunning white pinstripe patterns on dark green leaves. Requires consistent humidity and indirect light.",
-            wateringQuantity: "500ml every other day when soil is dry"
-        })
-    }
-};
-
-export const WithMarkWatered: Story = {
+export const WithSelection: Story = {
     args: {
         plant: makePlant(),
-        onMarkWatered: () => {}
+        onToggleSelect: () => {},
+        selected: false
     }
 };
 
-export const WithCareEventAttribution: Story = {
+export const Selected: Story = {
+    args: {
+        plant: makePlant(),
+        onToggleSelect: () => {},
+        selected: true
+    }
+};
+
+export const WithCareAttribution: Story = {
     args: {
         plant: makePlant(),
         recentCareEvent: makeCareEvent()
     }
 };
 
-export const WithMarkWateredAndAttribution: Story = {
+export const WithCareAttributionDue: Story = {
     args: {
-        plant: makePlant(),
-        onMarkWatered: () => {},
+        plant: makePlant({ nextWateringDate: FAR_PAST }),
         recentCareEvent: makeCareEvent()
-    }
-};
-
-export const MarkWateredLoading: Story = {
-    args: {
-        plant: makePlant(),
-        onMarkWatered: () => {},
-        isMarkingWatered: true
     }
 };
