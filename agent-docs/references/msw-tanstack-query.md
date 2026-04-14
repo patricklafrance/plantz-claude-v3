@@ -20,11 +20,14 @@ Query hooks live in the module that uses them, co-located with components:
 // modules/management/src/inventory/useManagementPlants.ts
 import { useManagementPlants, useCreatePlant, useUpdatePlant } from "./useManagementPlants.ts";
 
+// modules/management/src/household/useHousehold.ts
+import { useHousehold, useHouseholdMembers, useCreateHousehold, useInvitations, useSendInvitation } from "./useHousehold.ts";
+
 // modules/watering/src/today/useTodayPlants.ts
-import { useTodayPlants, useMarkWatered } from "./useTodayPlants.ts";
+import { useTodayPlants, useMarkWatered, useCareEvents, useAllCareEvents } from "./useTodayPlants.ts";
 ```
 
-Hooks import `parsePlant()` and entity types from `@packages/api/entities/plants`. Query keys and fetch URLs are encapsulated inside each hook file.
+Hooks import parse functions and entity types from `@packages/api/entities/*`. Query keys and fetch URLs are encapsulated inside each hook file.
 
 ## Query Hook Pattern
 
@@ -76,13 +79,13 @@ Key patterns:
 
 ## API Package vs. Module Boundary
 
-| Concern                                | Where it lives                                | Why                                                       |
-| -------------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
-| Entity types (`Plant`, `User`)         | `@packages/api/entities/*`                    | Shared contract — used by handlers, hooks, and test utils |
-| MSW handlers                           | `@packages/api/handlers/*`                    | Backend simulation — framework-agnostic, no React         |
-| DB singletons + seed                   | `@packages/api/db/*` (internal)               | Shared state across modules                               |
-| Test factories (`makePlant`)           | `@packages/api/test-utils`                    | Shared across storybooks                                  |
-| Query hooks (`useQuery`/`useMutation`) | Module-local (e.g., `useManagementPlants.ts`) | React hooks — consumers of the API, not part of it        |
+| Concern                                                        | Where it lives                                | Why                                                       |
+| -------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
+| Entity types (`Plant`, `User`, `Household`, `CareEvent`, etc.) | `@packages/api/entities/*`                    | Shared contract — used by handlers, hooks, and test utils |
+| MSW handlers                                                   | `@packages/api/handlers/*`                    | Backend simulation — framework-agnostic, no React         |
+| DB singletons + seed                                           | `@packages/api/db/*` (internal)               | Shared state across modules                               |
+| Test factories (`makePlant`)                                   | `@packages/api/test-utils`                    | Shared across storybooks                                  |
+| Query hooks (`useQuery`/`useMutation`)                         | Module-local (e.g., `useManagementPlants.ts`) | React hooks — consumers of the API, not part of it        |
 
 The API package has zero React dependency — it's a pure data/handler package. React hooks live in modules next to the components that use them.
 
@@ -107,7 +110,7 @@ export async function registerTodayLandingPage(runtime: FireflyRuntime) {
 
 ## Centralized Handlers
 
-All MSW handlers live in `@packages/api/handlers/<module-name>/`. Handlers are self-contained — they use entity types and internal DB singletons, never importing from module feature code. Auth handlers live in `@packages/api/handlers/auth`. Module endpoints follow `/api/<domain>/<entity>`. Handlers share state through internal DB singletons (`plantsDb`, `usersDb`). MSW handlers read `sessionStorage` directly for user identity — no `Authorization` headers.
+All MSW handlers live in `@packages/api/handlers/<module-name>/`. Handlers are self-contained — they use entity types and internal DB singletons, never importing from module feature code. Auth handlers live in `@packages/api/handlers/auth`. Module endpoints follow `/api/<domain>/<entity>`. Handlers share state through internal DB singletons (`plantsDb`, `usersDb`, `householdsDb`, `careEventsDb`, etc.). MSW handlers read `sessionStorage` directly for user identity — no `Authorization` headers.
 
 ## Storybook Setup
 

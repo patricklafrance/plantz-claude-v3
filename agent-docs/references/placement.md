@@ -7,17 +7,17 @@
 3. **TanStack Query hook (useQuery/useMutation)?** → The module that uses it (co-located with components)
 4. **Auth, session, layout, or app shell?** → `@packages/core-module` (or `@packages/core-module/shell`)
 5. **Reusable UI with no feature logic?** → `@packages/components`
-6. **Plant inventory, plant configuration, or user account?** → `@modules/management`
-7. **Daily watering tasks?** → `@modules/watering`
+6. **Plant inventory, plant configuration, household management, or user account?** → `@modules/management`
+7. **Daily watering tasks, shared care coordination, or responsibility assignments?** → `@modules/watering`
 
 **Consistency over ceremony:** Every data operation must use the same pattern — TanStack Query hooks through MSW-intercepted endpoints. No plain `fetch()` in components, no client-side-only mutations.
 
 ## Modules
 
-| Module                | Scope                                                                                 | Subfolders               |
-| --------------------- | ------------------------------------------------------------------------------------- | ------------------------ |
-| `@modules/management` | Plant identity, ownership, configuration, and user account/preferences.               | `inventory/`, `account/` |
-| `@modules/watering`   | Daily care execution — what needs the user's attention now (plants due for watering). | `today/`                 |
+| Module                | Scope                                                                                                                        | Subfolders                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `@modules/management` | Plant identity, ownership, configuration, household management (members, invitations), and user account/preferences.         | `inventory/`, `account/`, `household/` |
+| `@modules/watering`   | Daily care execution — what needs the user's attention now. Shared task grouping, responsibility assignments, care tracking. | `today/`                               |
 
 The **host** (`apps/host/`) is not a module — it's a thin bootstrap wiring `registerShell` with modules.
 
@@ -25,20 +25,21 @@ The **host** (`apps/host/`) is not a module — it's a thin bootstrap wiring `re
 
 Within a module, pick the subfolder by asking: _Which area of concern does this feature serve?_
 
-- **management/inventory/** — Plant CRUD, plant details, plant list views
+- **management/inventory/** — Plant CRUD, plant details, plant list views, sharing toggle
 - **management/account/** — User profile, preferences, settings
-- **watering/today/** — Daily care dashboard, watering actions
+- **management/household/** — Household CRUD, member listing, invitation management
+- **watering/today/** — Daily care dashboard, watering actions, shared task grouping, responsibility assignments, care event attribution
 
 Subfolders are internal organizational boundaries — they share the same package scope, build config, and registration function.
 
 ## Packages
 
-| Package                 | Responsibility                                                                                                                                                                                                      | Anti-scope                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `@packages/core`        | Cross-cutting foundation: shared utilities, types, and constants importable by any other package. Bottom of the dependency graph.                                                                                   | No domain-specific logic. No React components. No MSW/DB code.               |
-| `@packages/api`         | API layer: entity types and date parsing (`./entities/plants`, `./entities/auth`), MSW handlers (`./handlers/*`), test factories (`./test-utils`). DB singletons and seed data are internal. Zero React dependency. | No routing. No React hooks. Handlers do not import from module feature code. |
-| `@packages/core-module` | Session management, current user identity, auth error handling, shell UI (layout, navigation, login).                                                                                                               | No entity types. No DB singletons. No MSW handlers (those are in `api`).     |
-| `@packages/components`  | Reusable design-system primitives (shadcn/ui) with zero feature logic.                                                                                                                                              | No data fetching. No feature types. No business logic.                       |
+| Package                 | Responsibility                                                                                                                                                                                                                                                        | Anti-scope                                                                   |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `@packages/core`        | Cross-cutting foundation: shared utilities, types, and constants importable by any other package. Bottom of the dependency graph.                                                                                                                                     | No domain-specific logic. No React components. No MSW/DB code.               |
+| `@packages/api`         | API layer: entity types and date parsing (`./entities/plants`, `./entities/auth`, `./entities/household`, `./entities/care-events`), MSW handlers (`./handlers/*`), test factories (`./test-utils`). DB singletons and seed data are internal. Zero React dependency. | No routing. No React hooks. Handlers do not import from module feature code. |
+| `@packages/core-module` | Session management, current user identity, auth error handling, shell UI (layout, navigation, login).                                                                                                                                                                 | No entity types. No DB singletons. No MSW handlers (those are in `api`).     |
+| `@packages/components`  | Reusable design-system primitives (shadcn/ui) with zero feature logic.                                                                                                                                                                                                | No data fetching. No feature types. No business logic.                       |
 
 ## Module Isolation
 
