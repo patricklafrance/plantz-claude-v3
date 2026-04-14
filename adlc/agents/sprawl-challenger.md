@@ -57,7 +57,7 @@ Share your proposals with the cohesion challenger and defend against their count
 
 ## Output
 
-No standalone file. The arbiter synthesizes the final verdict from team messages.
+Write your challenges to `challenges/sprawl-challenge.md` **in the ADLC run directory** before messaging the arbiter. The arbiter reads this file as the primary input — team messages are supplementary for the cross-examination phase.
 
 <sprawl-challenges-template>
 

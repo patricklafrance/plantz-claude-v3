@@ -56,4 +56,90 @@ describe("challenge-arbiter handler", () => {
         expect(problems).toHaveLength(1);
         expect(problems[0]).toContain("Unresolved");
     });
+
+    // ── Rubber-stamp detection ─────────────────────────────────
+
+    it("fails when domain mapping has create decisions but verdict lists all as no challenge", () => {
+        writeFileSync(
+            join(tmp, ".adlc/domain-mapping.md"),
+            "# Domain Mapping\n\n| Concern | Decision |\n| --- | --- |\n| household | create |"
+        );
+        writeFileSync(
+            join(tmp, ".adlc/current-challenge-verdict.md"),
+            [
+                "# Challenge Verdict",
+                "",
+                "## Summary",
+                "",
+                "| Concern | Sprawl position | Cohesion position | Verdict | Confidence |",
+                "| --- | --- | --- | --- | --- |",
+                "| household | no challenge | no challenge | create | high |",
+                "",
+                "## Status",
+                "",
+                "Approved"
+            ].join("\n")
+        );
+
+        const problems = handleChallengeArbiter(tmp);
+        expect(problems).toHaveLength(1);
+        expect(problems[0]).toContain("Rubber-stamp");
+    });
+
+    it("passes when verdict has at least one contested row", () => {
+        writeFileSync(
+            join(tmp, ".adlc/domain-mapping.md"),
+            "# Domain Mapping\n\n| Concern | Decision |\n| --- | --- |\n| household | create |"
+        );
+        writeFileSync(
+            join(tmp, ".adlc/current-challenge-verdict.md"),
+            [
+                "# Challenge Verdict",
+                "",
+                "## Summary",
+                "",
+                "| Concern | Sprawl position | Cohesion position | Verdict | Confidence |",
+                "| --- | --- | --- | --- | --- |",
+                "| household | extend management | no issue | create | high |",
+                "",
+                "## Status",
+                "",
+                "Approved"
+            ].join("\n")
+        );
+
+        const problems = handleChallengeArbiter(tmp);
+        expect(problems).toEqual([]);
+    });
+
+    it("passes when domain mapping has no create decisions", () => {
+        writeFileSync(
+            join(tmp, ".adlc/domain-mapping.md"),
+            "# Domain Mapping\n\n| Concern | Decision |\n| --- | --- |\n| watering | extend |"
+        );
+        writeFileSync(
+            join(tmp, ".adlc/current-challenge-verdict.md"),
+            [
+                "# Challenge Verdict",
+                "",
+                "## Summary",
+                "",
+                "| Concern | Sprawl position | Cohesion position | Verdict | Confidence |",
+                "| --- | --- | --- | --- | --- |",
+                "| watering | no challenge | no issue | extend | high |",
+                "",
+                "## Status",
+                "",
+                "Approved"
+            ].join("\n")
+        );
+
+        const problems = handleChallengeArbiter(tmp);
+        expect(problems).toEqual([]);
+    });
+
+    it("passes when no domain mapping file exists", () => {
+        writeFileSync(join(tmp, ".adlc/current-challenge-verdict.md"), "# Challenge Verdict\n\n## Status\n\nApproved");
+        expect(handleChallengeArbiter(tmp)).toEqual([]);
+    });
 });

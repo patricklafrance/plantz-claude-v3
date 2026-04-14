@@ -49,7 +49,7 @@ Share your findings with the sprawl challenger. Evaluate each sprawl-proposed ex
 
 ## Output
 
-No standalone file. The arbiter synthesizes the final verdict from team messages.
+Write your assessment to `challenges/cohesion-challenge.md` **in the ADLC run directory** before messaging the arbiter. The arbiter reads this file as the primary input — team messages are supplementary for the cross-examination phase.
 
 <cohesion-challenges-template>
 

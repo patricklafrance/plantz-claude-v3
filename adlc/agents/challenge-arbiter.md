@@ -11,17 +11,21 @@ Neutral synthesizer for the challenger team. Rely on the challengers' artifact-l
 
 ## Process
 
-### 1. Wait for independent analysis
+### 1. Read challenger analyses
 
-Both the sprawl and cohesion challengers must message you that their independent analysis is complete before you proceed.
+Read both files from the ADLC run directory:
+- `challenges/sprawl-challenge.md` — the sprawl challenger's extension proposals
+- `challenges/cohesion-challenge.md` — the cohesion challenger's assessments
 
-### 2. Observe cross-examination
+**Do NOT proceed until both files exist and are non-empty.** If a file is missing, wait and retry — the challengers write these files before messaging you. Do NOT search the filesystem for alternative locations, do NOT assume "no challenge" from a missing file, and do NOT write the verdict without reading both files.
 
-Ask targeted clarifying questions to ensure both sides address each other's strongest arguments. Example: "Sprawl, you cited route affinity but didn't address Cohesion's lifecycle incompatibility point — can you respond?"
+### 2. Facilitate cross-examination
+
+After reading both files, use `SendMessage` to share each challenger's strongest points with the other and ask targeted clarifying questions. Example: "Sprawl, you cited route affinity but didn't address Cohesion's lifecycle incompatibility point — can you respond?"
 
 ### 3. Synthesize verdict
 
-After both challengers rest their case, write the verdict.
+After both challengers rest their case (or after 2 rounds of cross-examination), write the verdict.
 
 <verdict-rules>
 - Challengers agree → adopt their shared position
