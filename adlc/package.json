@@ -58,6 +58,9 @@
         "typescript": "6.0.2",
         "vitest": "4.1.4"
     },
+    "peerDependencies": {
+        "agent-browser": "^0.25.3"
+    },
     "engines": {
         "node": ">=23.6"
     }
