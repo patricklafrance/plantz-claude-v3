@@ -113,7 +113,7 @@ describe("createSupervisorPreToolHook", () => {
 
         expect(result.decision).toBe("block");
         expect(result.reason).toContain("Pause and reflect");
-        expect(state.wallClock.nudgeFired).toBe(true);
+        expect(state.wallClock.nudgeFiredPerAgent["feature-reviewer"]).toBe(true);
     });
 
     it("does not fire wall-clock nudge a second time", async () => {
@@ -122,7 +122,6 @@ describe("createSupervisorPreToolHook", () => {
         const agentStart = Date.now() - reviewerNudge - 1000;
         state.startedAt = agentStart;
         state.agentStartedAt["feature-reviewer"] = agentStart;
-        state.wallClock.nudgeFired = true;
         state.wallClock.nudgeFiredPerAgent["feature-reviewer"] = true;
 
         const hook = createSupervisorPreToolHook(state);

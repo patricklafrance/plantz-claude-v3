@@ -15,36 +15,17 @@ import type { OrchestratorOptions } from "../../orchestrator.ts";
 import { buildDAG } from "./dag/scheduler.ts";
 import { runSlicePipeline } from "./revision-loop.ts";
 import { collectResults } from "./worktree/collector.ts";
-import { createWorktree, removeWorktreeAsync } from "./worktree/lifecycle.ts";
+import { createWorktree, pickBranch, removeWorktreeAsync } from "./worktree/lifecycle.ts";
 import { attemptMerge, completeMerge, abortMerge } from "./worktree/merger.ts";
 import { seedAdlc } from "./worktree/seeder.ts";
 
 const execAsync = promisify(exec);
 
-/** Check whether a local git branch already exists. */
-function branchExists(name: string, cwd: string): boolean {
-    try {
-        execSync(`git rev-parse --verify "refs/heads/${name}"`, { cwd, stdio: "ignore" });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 /** Create and checkout a new branch, appending a numeric suffix if the name is taken. */
 function checkoutNewBranch(baseName: string, cwd: string): string {
-    if (!branchExists(baseName, cwd)) {
-        execSync(`git checkout -b "${baseName}"`, { cwd });
-        return baseName;
-    }
-    for (let i = 2; i <= 99; i++) {
-        const candidate = `${baseName}-${i}`;
-        if (!branchExists(candidate, cwd)) {
-            execSync(`git checkout -b "${candidate}"`, { cwd });
-            return candidate;
-        }
-    }
-    throw new Error(`Could not create branch "${baseName}" — all suffixes up to -99 are taken.`);
+    const branch = pickBranch(baseName, cwd);
+    execSync(`git checkout -b "${branch}"`, { cwd });
+    return branch;
 }
 
 interface RunSlicesOptions extends OrchestratorOptions {
@@ -81,10 +62,7 @@ export async function runSlices(
 
     // Create a dedicated integration branch for this run so slices
     // merge into it instead of directly into the base branch (e.g. main).
-    let featureBranch = options.featureBranch ?? `adlc/${runDirName}`;
-    if (!options.featureBranch) {
-        featureBranch = checkoutNewBranch(featureBranch, cwd);
-    }
+    const featureBranch = options.featureBranch ?? checkoutNewBranch(`adlc/${runDirName}`, cwd);
     const { hooks } = createHooks({ cwd });
     progress?.log("execution", `Feature branch: ${featureBranch}`);
 

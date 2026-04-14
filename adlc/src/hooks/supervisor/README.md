@@ -83,9 +83,9 @@ Purpose:
 
 Behavior:
 
-- on first PreToolUse event, store `startedAt` timestamp in state
-- on every subsequent event, compute elapsed time
-- **nudge (T1):** block ONE tool call with a reflection prompt, set `nudgeFired` flag, allow subsequent calls
+- on first PreToolUse event per agent, store `agentStartedAt[agentName]` timestamp in state
+- on every subsequent event, compute elapsed time relative to that agent's start
+- **nudge (T1):** block ONE tool call with a reflection prompt, set `nudgeFiredPerAgent[agentName]` flag, allow subsequent calls
 - **hard stop (T2):** block ALL tool calls, agent returns to coordinator
 - different thresholds per agent type
 - state resets naturally between agent runs (new `createDefaultState()` call)

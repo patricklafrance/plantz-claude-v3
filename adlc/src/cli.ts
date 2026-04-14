@@ -74,7 +74,9 @@ try {
             const description = positionals.slice(1).join(" ");
             if (!description) {
                 // eslint-disable-next-line no-console
-                console.error(`${pc.red("Error:")} adlc fix requires a description (e.g. adlc fix "Fix the broken color picker" or adlc fix --pr 42)`);
+                console.error(
+                    `${pc.red("Error:")} adlc fix requires a description (e.g. adlc fix "Fix the broken color picker" or adlc fix --pr 42)`
+                );
                 process.exit(1);
             }
             input = { type: "fix-text", description };

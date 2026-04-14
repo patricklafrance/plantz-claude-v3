@@ -45,10 +45,6 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
         event.timestamp = Date.now();
         applyEventToState(state, event);
 
-        // Track agent name and per-agent start time
-        if (!state.agentName) {
-            state.agentName = agentName;
-        }
         if (agentName && !state.agentStartedAt[agentName]) {
             state.agentStartedAt[agentName] = event.timestamp;
         }
@@ -57,11 +53,8 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
         const wallClockResult = checkWallClock({ agentName, timestamp: event.timestamp }, state);
 
         if (wallClockResult) {
-            if (wallClockResult.severity === "nudge") {
-                state.wallClock.nudgeFired = true;
-                if (agentName) {
-                    state.wallClock.nudgeFiredPerAgent[agentName] = true;
-                }
+            if (wallClockResult.severity === "nudge" && agentName) {
+                state.wallClock.nudgeFiredPerAgent[agentName] = true;
             }
 
             return blockOutput(wallClockResult.reason);

@@ -52,7 +52,7 @@ function branchExists(name: string, cwd: string): boolean {
 }
 
 /** Pick a branch name, appending a numeric suffix if the base name is taken. */
-function pickBranch(baseName: string, cwd: string): string {
+export function pickBranch(baseName: string, cwd: string): string {
     if (!branchExists(baseName, cwd)) {
         return baseName;
     }
@@ -71,10 +71,7 @@ export function createWorktree(sliceName: string, baseBranch: string, cwd: strin
     const worktreePath = resolve(worktreeBase, sliceName);
     const branch = pickBranch(`adlc/${sliceName}`, cwd);
 
-    // Create the worktree directory if needed
     mkdirSync(worktreeBase, { recursive: true });
-
-    // Create worktree with new branch from baseBranch
     execSync(`git worktree add -b "${branch}" "${worktreePath}" "${baseBranch}"`, { cwd });
 
     return { path: worktreePath, branch, sliceName };

@@ -1,6 +1,6 @@
 # Watering Module
 
-Daily plant care features: today (landing page with watering actions).
+Daily plant care features: today (landing page with watering actions, shared care coordination, responsibility assignments, actor-tracked care events, and grouped Today view).
 
 ## Stories
 
@@ -28,9 +28,16 @@ Story globs in `.storybook/main.ts` must include every subfolder in this module.
 
 This module's API surface lives under `/api/today/`. Data access uses TanStack Query hooks co-located with the components that use them:
 
-- `src/today/useTodayPlants.ts` — Query hooks (`useTodayPlants`, `useMarkWatered`). Hooks encapsulate query keys, fetch calls, and `parsePlant()` date coercion.
-- `@packages/api/entities/plants` — `Plant` type and `parsePlant()` for date coercion.
-- `@packages/api/handlers/today` — MSW handlers (runtime + storybook factories).
+- `src/today/useTodayPlants.ts` — Query hooks (`useTodayPlants`, `useMarkWatered`, `usePlantCareEvents`). Hooks encapsulate query keys, fetch calls, and `parsePlant()` date coercion. Mutation invalidates care-events query on watering success.
+- `src/today/useAssignment.ts` — Query hooks (`useAssignment`, `useUpdateAssignment`) for responsibility assignments per plant.
+- `src/today/useHouseholdMembers.ts` — Query hook (`useHouseholdMembers`) for listing household members (used in assignment selectors).
+- `src/today/useAssignments.ts` — Batch query hook (`useSharedAssignments`) for fetching assignments for all shared plants.
+- `src/today/useCareEvents.ts` — Query hook for bulk care event fetching across multiple plants.
+- `src/today/useHouseholdInfo.ts` — Query hook for the current user's household context (used to determine grouped vs flat view).
+- `@packages/api/entities/plants` — `Plant` type (with optional `householdId`) and `parsePlant()` for date coercion.
+- `@packages/api/entities/household` — `HouseholdMember`, `ResponsibilityAssignment`, `HouseholdInfo` types.
+- `@packages/api/entities/care-events` — `CareEvent` type and `parseCareEvent()`.
+- `@packages/api/handlers/today` — MSW handlers (runtime + storybook factories) for plants, assignments, care events, and household info.
 
 Components read with `useQuery` hooks and write with `useMutation` hooks.
 

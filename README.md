@@ -107,16 +107,16 @@ flowchart TD
 
 ### Key differences
 
-| Aspect        | Feature (`adlc feat`)                                    | Fix (`adlc fix`)                                                   |
-| ------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
-| Input         | Text description or `--issue <N>`                        | Text description or `--pr <N>` (issues auto-gathered)              |
-| Gather        | Writes input file (text) or fetches GitHub issue (agent) | Writes input file (text) or fetches linked adlc-fix issues (agent) |
-| Placement     | Domain mapping + gate                                    | Skipped                                                            |
-| Planning      | Feature planner + gate + challenge                       | Fix planner (1:1 issue-to-slice)                                   |
-| Execution     | `feature-slice-coordinator` + `feature-coder` + `feature-reviewer` | `fix-slice-coordinator` + `fix-coder` + `fix-reviewer`       |
-| Documentation | Updates reference docs                                   | Skipped                                                            |
-| PR            | Creates new PR                                           | Appends fix section to existing PR                                 |
-| Steps         | 8 (0–7)                                                  | 6 (0–5)                                                            |
+| Aspect        | Feature (`adlc feat`)                                              | Fix (`adlc fix`)                                                   |
+| ------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Input         | Text description or `--issue <N>`                                  | Text description or `--pr <N>` (issues auto-gathered)              |
+| Gather        | Writes input file (text) or fetches GitHub issue (agent)           | Writes input file (text) or fetches linked adlc-fix issues (agent) |
+| Placement     | Domain mapping + gate                                              | Skipped                                                            |
+| Planning      | Feature planner + gate + challenge                                 | Fix planner (1:1 issue-to-slice)                                   |
+| Execution     | `feature-slice-coordinator` + `feature-coder` + `feature-reviewer` | `fix-slice-coordinator` + `fix-coder` + `fix-reviewer`             |
+| Documentation | Updates reference docs                                             | Skipped                                                            |
+| PR            | Creates new PR                                                     | Appends fix section to existing PR                                 |
+| Steps         | 8 (0–7)                                                            | 6 (0–5)                                                            |
 
 ---
 
@@ -128,31 +128,31 @@ All inter-agent coordination goes through files in `.adlc/` — plan-header, sli
 
 Twenty-three agents form the pipeline. Each is defined as a markdown file with YAML frontmatter in [`agents/`](agents/), loaded at runtime by `src/workflow/agents.ts`.
 
-| Agent                   | Workflow | What it does                                                                            |
-| ----------------------- | -------- | --------------------------------------------------------------------------------------- |
-| `gather`                | both     | Fetches input from a PM tool (GitHub) and writes a structured input file (Haiku agent)  |
-| `placement-coordinator` | feat     | Orchestrates placement mapping: mapper, evidence, challenge team, and gate              |
-| `domain-mapper`         | feat     | Analyzes feature terms against existing modules, writes placement decisions             |
-| `evidence-researcher`   | feat     | Resolves mapper evidence gaps by inspecting code artifacts                              |
-| `placement-gate`        | feat     | Holistic quality gate — reviews the entire mapping for architectural coherence          |
-| `sprawl-challenger`     | feat     | Challenges create decisions with concrete extension proposals                           |
-| `cohesion-challenger`   | feat     | Checks extend decisions for god-module risk                                             |
-| `challenge-arbiter`     | feat     | Synthesizes challenger debate into unified verdict                                      |
-| `plan-coordinator`      | feat     | Orchestrates plan drafting: feature-planner and plan-gate review loop                   |
-| `feature-planner`       | feat     | Drafts a multi-slice plan with acceptance criteria per slice                            |
-| `plan-gate`             | feat     | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
-| `fix-planner`           | fix      | Generates one fix slice per GitHub issue — scoped corrections, no gate                  |
-| `feature-slice-coordinator` | feat | Orchestrates slice execution: explorer, coder, and reviewer retry loop                  |
-| `fix-slice-coordinator`     | fix  | Orchestrates fix slice execution: conditional explorer, fix-coder/fix-reviewer loop     |
-| `explorer`              | both     | Surveys reference packages for a slice, returns patterns summary for the coder          |
-| `feature-coder`         | feat     | Implements a single slice — code, MSW handlers, Storybook stories                       |
-| `feature-reviewer`      | feat     | Verifies acceptance criteria via Storybook stories and host app sanity checks           |
-| `fix-coder`             | fix      | Fixes a single issue — fewer skills, updates existing stories instead of creating new   |
-| `fix-reviewer`          | fix      | Verifies fix criteria via host app first, conditional Storybook and dark mode           |
-| `simplify`              | both     | Reviews changed code for reuse, quality, and efficiency, then fixes issues              |
-| `document`              | feat     | Updates module docs and architecture references to reflect what was built               |
-| `pr`                    | both     | Creates new PR (feat) or appends fix section to existing PR (fix)                       |
-| `monitor`               | both     | Polls CI workflows, auto-fixes failures (lint, Chromatic, Lighthouse)                   |
+| Agent                       | Workflow | What it does                                                                            |
+| --------------------------- | -------- | --------------------------------------------------------------------------------------- |
+| `gather`                    | both     | Fetches input from a PM tool (GitHub) and writes a structured input file (Haiku agent)  |
+| `placement-coordinator`     | feat     | Orchestrates placement mapping: mapper, evidence, challenge team, and gate              |
+| `domain-mapper`             | feat     | Analyzes feature terms against existing modules, writes placement decisions             |
+| `evidence-researcher`       | feat     | Resolves mapper evidence gaps by inspecting code artifacts                              |
+| `placement-gate`            | feat     | Holistic quality gate — reviews the entire mapping for architectural coherence          |
+| `sprawl-challenger`         | feat     | Challenges create decisions with concrete extension proposals                           |
+| `cohesion-challenger`       | feat     | Checks extend decisions for god-module risk                                             |
+| `challenge-arbiter`         | feat     | Synthesizes challenger debate into unified verdict                                      |
+| `plan-coordinator`          | feat     | Orchestrates plan drafting: feature-planner and plan-gate review loop                   |
+| `feature-planner`           | feat     | Drafts a multi-slice plan with acceptance criteria per slice                            |
+| `plan-gate`                 | feat     | Structural review gate — flags wrong boundaries, missing denormalization, weak criteria |
+| `fix-planner`               | fix      | Generates one fix slice per GitHub issue — scoped corrections, no gate                  |
+| `feature-slice-coordinator` | feat     | Orchestrates slice execution: explorer, coder, and reviewer retry loop                  |
+| `fix-slice-coordinator`     | fix      | Orchestrates fix slice execution: conditional explorer, fix-coder/fix-reviewer loop     |
+| `explorer`                  | both     | Surveys reference packages for a slice, returns patterns summary for the coder          |
+| `feature-coder`             | feat     | Implements a single slice — code, MSW handlers, Storybook stories                       |
+| `feature-reviewer`          | feat     | Verifies acceptance criteria via Storybook stories and host app sanity checks           |
+| `fix-coder`                 | fix      | Fixes a single issue — fewer skills, updates existing stories instead of creating new   |
+| `fix-reviewer`              | fix      | Verifies fix criteria via host app first, conditional Storybook and dark mode           |
+| `simplify`                  | both     | Reviews changed code for reuse, quality, and efficiency, then fixes issues              |
+| `document`                  | feat     | Updates module docs and architecture references to reflect what was built               |
+| `pr`                        | both     | Creates new PR (feat) or appends fix section to existing PR (fix)                       |
+| `monitor`                   | both     | Polls CI workflows, auto-fixes failures (lint, Chromatic, Lighthouse)                   |
 
 ---
 
@@ -166,15 +166,15 @@ Hooks fall into four categories: **verificators** that block completion until ch
 
 Block a subagent's completion until its deliverables meet structural and quality checks.
 
-| Agent                 | Checks                                                                                                                                                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `feature-coder` / `fix-coder` | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
-| `feature-planner`     | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
-| `plan-gate`           | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
-| `domain-mapper`       | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
-| `evidence-researcher` | evidence findings file exists                                                                                                                                                                                              |
-| `placement-gate`      | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                               |
-| `feature-reviewer` / `fix-reviewer` | verification results exist, results cover every acceptance criterion from the slice                                                                                                                        |
+| Agent                               | Checks                                                                                                                                                                                                                     |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `feature-coder` / `fix-coder`       | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage |
+| `feature-planner`                   | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
+| `plan-gate`                         | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
+| `domain-mapper`                     | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
+| `evidence-researcher`               | evidence findings file exists                                                                                                                                                                                              |
+| `placement-gate`                    | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                               |
+| `feature-reviewer` / `fix-reviewer` | verification results exist, results cover every acceptance criterion from the slice                                                                                                                                        |
 
 ### Context refreshers
 

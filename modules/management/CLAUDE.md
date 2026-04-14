@@ -1,6 +1,6 @@
 # Management Module
 
-Plant management features: inventory (plants CRUD) and account (user profile).
+Plant management features: inventory (plants CRUD, sharing toggle), account (user profile), and household (CRUD, members, invitations).
 
 ## Stories
 
@@ -12,7 +12,8 @@ Every page and component must have a co-located `.stories.tsx` file. A feature w
 
 - Title prefix: `Management/Inventory/` for inventory subfolder (e.g., `Management/Inventory/Pages/PlantsPage`, `Management/Inventory/Components/FilterBar`).
 - Title prefix: `Management/Account/` for account subfolder (e.g., `Management/Account/Pages/UserPage`).
-- Reference: `modules/management/src/inventory/FilterBar.stories.tsx` (presentational component), `modules/management/src/inventory/PlantsPage.stories.tsx` (page with query + firefly decorators).
+- Title prefix: `Management/Household/` for household subfolder (e.g., `Management/Household/Pages/HouseholdPage`).
+- Reference: `modules/management/src/inventory/FilterBar.stories.tsx` (presentational component), `modules/management/src/inventory/PlantsPage.stories.tsx` (page with query + firefly decorators), `modules/management/src/household/HouseholdPage.stories.tsx` (page with household handlers).
 - Storybook dev command: `pnpm dev-storybook-management`.
 
 ## Storybook Setup
@@ -30,8 +31,11 @@ Story globs in `.storybook/main.ts` must include every subfolder in this module.
 This module's API surface lives under `/api/management/`. Data access uses TanStack Query hooks co-located with the components that use them:
 
 - `src/inventory/useManagementPlants.ts` — Query hooks (`useManagementPlants`, `useCreatePlant`, `useUpdatePlant`, `useDeletePlant`, `useDeletePlants`). Hooks encapsulate query keys, fetch calls, and `parsePlant()` date coercion.
+- `src/inventory/useHouseholdMembership.ts` — Query hook (`useHouseholdMembership`) for checking the current user's household membership (used by the sharing toggle).
+- `src/household/` — Query hooks for household CRUD, members, and invitations (`useHousehold`, `useHouseholdMembers`, `useHouseholdInvitations`, `useCreateHousehold`, `useSendInvitation`).
 - `@packages/api/entities/plants` — `Plant` type and `parsePlant()` for date coercion.
-- `@packages/api/handlers/management` — MSW handlers (runtime + storybook factories).
+- `@packages/api/entities/household` — `Household`, `HouseholdMember`, `Invitation`, `HouseholdMembership` types.
+- `@packages/api/handlers/management` — MSW handlers (runtime + storybook factories) for plants, household, and membership.
 
 Components read with `useQuery` hooks and write with `useMutation` hooks.
 
