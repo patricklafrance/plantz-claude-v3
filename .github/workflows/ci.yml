@@ -84,20 +84,20 @@ jobs:
                       pnpm build-storybook
                   fi
 
-            - name: Oxfmt
+            - name: Format check
               run: |
                   if [ "${{ github.event_name }}" == "pull_request" ]; then
-                      pnpm turbo run oxfmt --continue --filter=...[${{ github.event.pull_request.base.sha }}]
+                      pnpm turbo run format-check --continue --filter=...[${{ github.event.pull_request.base.sha }}]
                   else
-                      pnpm turbo run oxfmt
+                      pnpm format-check
                   fi
 
             - name: Oxlint
               run: |
                   if [ "${{ github.event_name }}" == "pull_request" ]; then
-                      pnpm turbo run oxlint --continue --filter=...[${{ github.event.pull_request.base.sha }}]
+                      pnpm turbo run lint-check --continue --filter=...[${{ github.event.pull_request.base.sha }}]
                   else
-                      pnpm turbo run oxlint
+                      pnpm lint-check
                   fi
 
             - name: Typecheck
