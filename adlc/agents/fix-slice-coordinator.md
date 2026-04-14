@@ -49,8 +49,18 @@ Read `verification-results.md` (in the ADLC run directory) **semantically**:
 - Distinguish real failures from incidental use of words like "fail" in descriptions
 - A file that only contains passing criteria means the slice passed
 
-**If passed:** Return `"Slice passed verification"`.
+**If passed:** Commit all changes, then return `"Slice passed verification"` (see step 4).
 **If failed:** Extract the specific failure details. If cycles remain, go to step 3a with the failure summary. If this was the last cycle, return `"Max revision attempts exceeded: {failure details}"`.
+
+### 4. Commit
+
+After the reviewer confirms the slice passed, commit all changes in the worktree so the pipeline can merge the branch into the integration branch. Use Bash:
+
+```bash
+git add -A && git commit -m "fix: {slice name}"
+```
+
+Do this **before** returning. If the commit fails (e.g., nothing to commit), return `"Slice passed verification"` anyway — the pipeline will handle the empty merge gracefully.
 
 ## Constraints
 
