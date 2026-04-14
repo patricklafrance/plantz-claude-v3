@@ -1,4 +1,4 @@
-import { Check, Droplets, Pencil, Trash2 } from "lucide-react";
+import { Check, Droplets, Pencil, Share2, Trash2 } from "lucide-react";
 import { memo, useCallback } from "react";
 
 import type { Plant } from "@packages/api/entities/plants";
@@ -49,6 +49,12 @@ export const PlantListItem = memo(function PlantListItem({
             )}
             <div className="flex min-w-0 items-center gap-2">
                 <span className="truncate text-sm font-semibold">{plant.name}</span>
+                {plant.householdId && (
+                    <>
+                        <Share2 className="text-botanical size-3.5 shrink-0" aria-hidden="true" />
+                        <span className="sr-only">Shared with household</span>
+                    </>
+                )}
                 {due && (
                     <>
                         <Droplets className="text-terracotta size-3.5 shrink-0" aria-hidden="true" />
