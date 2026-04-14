@@ -46,12 +46,12 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
         applyEventToState(state, event);
 
         // Track agent name and per-agent start time.
-        // When a new agent starts, reset browser/test counters so the
-        // coder's browser usage doesn't poison the reviewer's budget.
+        // When a new agent starts, reset all per-agent state so the
+        // previous agent's counters don't poison the new agent's budget.
         if (!state.agentName) {
             state.agentName = agentName;
         } else if (agentName && agentName !== state.agentName) {
-            resetAgentLocalState(state);
+            resetAgentLocalState(state, agentName);
             state.agentName = agentName;
         }
         if (agentName && !state.agentStartedAt[agentName]) {

@@ -85,11 +85,13 @@ export function createDefaultState(): SupervisorState {
 }
 
 /**
- * Reset browser and test counters when a new agent starts within the same
- * session. Prevents the coder's browser usage from poisoning the reviewer's
- * budget. Wall-clock and install state are intentionally preserved.
+ * Reset per-agent state when a new agent starts within the same session.
+ *
+ * Resets: browser counters, test counters, recent events, install bypass,
+ * and wall-clock tracking for the incoming agent (so retries of the same
+ * agent type get a fresh clock and nudge budget).
  */
-export function resetAgentLocalState(state: SupervisorState): void {
+export function resetAgentLocalState(state: SupervisorState, incomingAgent?: string): void {
     state.browser = {
         totalCalls: 0,
         screenshotNudgeFired: false,
@@ -105,6 +107,13 @@ export function resetAgentLocalState(state: SupervisorState): void {
         editsSinceRecovery: 0
     };
     state.recentEvents = [];
+    state.installBypass = null;
+
+    // Clear wall-clock for the incoming agent so retries get a fresh clock.
+    if (incomingAgent) {
+        delete state.agentStartedAt[incomingAgent];
+        delete state.wallClock.nudgeFiredPerAgent[incomingAgent];
+    }
 }
 
 const RECENT_EVENT_WINDOW = 12;

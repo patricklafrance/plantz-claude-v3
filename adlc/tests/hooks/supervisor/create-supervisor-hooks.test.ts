@@ -209,6 +209,46 @@ describe("createSupervisorPreToolHook", () => {
         expect(state.test.totalCalls).toBe(0);
     });
 
+    it("clears install bypass when agent changes", async () => {
+        const state = createDefaultState();
+        const hook = createSupervisorPreToolHook(state);
+
+        await hook(makePreToolInput({ agent_type: "feature-coder", tool_input: { command: "git status" } }));
+        state.installBypass = {
+            active: true,
+            reason: "missing-dependency-evidence",
+            matchedPattern: "ERR_PNPM_OUTDATED_LOCKFILE",
+            sourceCommand: "pnpm turbo run build",
+            createdAt: new Date().toISOString(),
+            remainingUses: 1,
+            expiresAfterEvent: state.eventCount + 5
+        };
+
+        // Switch to reviewer — install bypass should be cleared
+        await hook(makePreToolInput({ agent_type: "feature-reviewer", tool_input: { command: "git status" } }));
+
+        expect(state.installBypass).toBeNull();
+    });
+
+    it("resets wall-clock for same agent type on retry", async () => {
+        const state = createDefaultState();
+        const hook = createSupervisorPreToolHook(state);
+
+        // First reviewer run
+        await hook(makePreToolInput({ agent_type: "feature-coder", tool_input: { command: "git status" } }));
+        await hook(makePreToolInput({ agent_type: "feature-reviewer", tool_input: { command: "git status" } }));
+        const firstStart = state.agentStartedAt["feature-reviewer"];
+        state.wallClock.nudgeFiredPerAgent["feature-reviewer"] = true;
+
+        // Switch back to coder then to reviewer again (retry)
+        await hook(makePreToolInput({ agent_type: "feature-coder", tool_input: { command: "git status" } }));
+        await hook(makePreToolInput({ agent_type: "feature-reviewer", tool_input: { command: "git status" } }));
+
+        // Second reviewer should get a fresh start time and fresh nudge budget
+        expect(state.agentStartedAt["feature-reviewer"]).toBeGreaterThanOrEqual(firstStart);
+        expect(state.wallClock.nudgeFiredPerAgent["feature-reviewer"]).toBeUndefined();
+    });
+
     it("does not reset state when same agent continues", async () => {
         const state = createDefaultState();
         const hook = createSupervisorPreToolHook(state);
