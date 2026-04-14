@@ -15,13 +15,17 @@ export interface Plant {
     creationDate: Date;
     householdId?: string | null;
     lastUpdateDate: Date;
+    lastCareEvent?: { actorName: string; performedDate: Date } | null;
 }
 
 export function parsePlant(data: Record<string, unknown>): Plant {
+    const lastCareEvent = data.lastCareEvent as { actorName: string; performedDate: string } | null | undefined;
+
     return {
         ...data,
         nextWateringDate: new Date(data.nextWateringDate as string),
         creationDate: new Date(data.creationDate as string),
-        lastUpdateDate: new Date(data.lastUpdateDate as string)
+        lastUpdateDate: new Date(data.lastUpdateDate as string),
+        lastCareEvent: lastCareEvent ? { actorName: lastCareEvent.actorName, performedDate: new Date(lastCareEvent.performedDate) } : lastCareEvent
     } as Plant;
 }

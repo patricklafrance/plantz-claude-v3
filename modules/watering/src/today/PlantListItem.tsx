@@ -36,14 +36,17 @@ export const PlantListItem = memo(function PlantListItem({ plant, selected = fal
                     <Checkbox checked={selected} onCheckedChange={handleToggleSelect} aria-label={`Select ${plant.name}`} />
                 </span>
             )}
-            <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-semibold">{plant.name}</span>
-                {due && (
-                    <>
-                        <Droplets className="text-terracotta size-3.5 shrink-0" aria-hidden="true" />
-                        <span className="sr-only">Due for watering</span>
-                    </>
-                )}
+            <div className="flex min-w-0 flex-col">
+                <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold">{plant.name}</span>
+                    {due && (
+                        <>
+                            <Droplets className="text-terracotta size-3.5 shrink-0" aria-hidden="true" />
+                            <span className="sr-only">Due for watering</span>
+                        </>
+                    )}
+                </div>
+                {plant.lastCareEvent && <span className="text-muted-foreground truncate text-xs">Last: {plant.lastCareEvent.actorName}</span>}
             </div>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{plant.wateringQuantity}</span>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{getOptionLabel(wateringTypes, plant.wateringType)}</span>

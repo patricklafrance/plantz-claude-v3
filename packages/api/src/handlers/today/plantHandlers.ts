@@ -1,6 +1,8 @@
 import { http, HttpResponse } from "msw";
 
 import { getUserId } from "../../db/auth/getUserId.ts";
+import { usersDb } from "../../db/auth/usersDb.ts";
+import { careEventsDb } from "../../db/care-events/careEventsDb.ts";
 import { plantsDb } from "../../db/plants/plantsDb.ts";
 
 export const todayPlantHandlers = [
@@ -25,7 +27,44 @@ export const todayPlantHandlers = [
             return new HttpResponse(null, { status: 404 });
         }
 
-        return HttpResponse.json(plant);
+        const actorId = getUserId();
+        let lastCareEvent: { actorName: string; performedDate: Date } | null = null;
+
+        if (actorId) {
+            careEventsDb.insert({
+                id: crypto.randomUUID(),
+                plantId: id as string,
+                userId: actorId,
+                action: "watered",
+                performedDate: new Date()
+            });
+
+            const actor = usersDb.getById(actorId);
+
+            if (actor) {
+                lastCareEvent = { actorName: actor.name, performedDate: new Date() };
+            }
+        }
+
+        return HttpResponse.json({ ...plant, lastCareEvent });
+    }),
+
+    http.get("/api/today/plants/:id/care-events", ({ params }) => {
+        const { id } = params;
+        const events = careEventsDb.getByPlant(id as string).slice(0, 5);
+
+        const resolved = events.map(e => {
+            const actor = usersDb.getById(e.userId);
+
+            return {
+                id: e.id,
+                action: e.action,
+                performedDate: e.performedDate,
+                actorName: actor?.name ?? "Unknown"
+            };
+        });
+
+        return HttpResponse.json({ events: resolved });
     }),
 
     http.delete("/api/today/plants/:id", ({ params }) => {

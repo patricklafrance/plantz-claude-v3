@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { Droplets } from "lucide-react";
 
 import type { Plant } from "@packages/api/entities/plants";
@@ -6,6 +6,7 @@ import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 
 import { locations, luminosities, wateringFrequencies, wateringTypes } from "./constants.ts";
 import { getOptionLabel } from "./plantUtils.ts";
+import { useCareEvents } from "./useCareEvents.ts";
 
 interface PlantDetailDialogProps {
     plant: Plant | null;
@@ -24,6 +25,10 @@ function DetailField({ label, value }: { label: string; value: string }) {
 }
 
 export function PlantDetailDialog({ plant, open, onOpenChange, onMarkWatered }: PlantDetailDialogProps) {
+    const { data: careEventsData } = useCareEvents(plant?.id ?? null);
+    const careEvents = careEventsData?.events ?? [];
+    const mostRecentEvent = careEvents[0];
+
     if (!plant) {
         return null;
     }
@@ -59,6 +64,19 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onMarkWatered }: 
                             <DetailField label="Next watering" value={format(plant.nextWateringDate, "PPP")} />
                         </dl>
                     </section>
+
+                    {mostRecentEvent && (
+                        <>
+                            <Separator />
+
+                            <section>
+                                <h3 className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">Recent Activity</h3>
+                                <p className="text-sm">
+                                    Watered by {mostRecentEvent.actorName} {formatDistanceToNow(mostRecentEvent.performedDate, { addSuffix: true })}
+                                </p>
+                            </section>
+                        </>
+                    )}
 
                     <Separator />
 
