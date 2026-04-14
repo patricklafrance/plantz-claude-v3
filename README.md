@@ -166,18 +166,18 @@ Hooks fall into four categories: **verificators** that block completion until ch
 
 Block a subagent's completion until its deliverables meet structural and quality checks.
 
-| Agent                               | Checks                                                                                                                                                                                                                     |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent                               | Checks                                                                                                                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `feature-coder` / `fix-coder`       | build, lint (linter + formatter + typecheck + syncpack + knip), tests (Vitest + Storybook a11y), no-file-disable, no-secrets (gitleaks), import-guard (4-layer boundary enforcement), implementation-notes, story-coverage, context-refresh |
-| `feature-planner` / `fix-planner`   | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                  |
-| `plan-gate`                         | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                           |
-| `domain-mapper`                     | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                             |
-| `evidence-researcher`               | evidence findings file exists                                                                                                                                                                                              |
-| `placement-gate`                    | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                               |
-| `challenge-arbiter`                 | verdict file exists, contains a `## Status` section with "Approved" or "Revision required"                                                                                                                                |
-| `feature-reviewer` / `fix-reviewer` | verification results exist, results cover every acceptance criterion from the slice                                                                                                                                        |
-| `simplify`                          | build, lint, tests, no-file-disable, import-guard                                                                                                                                                                         |
-| `document`                          | format-fix, lint-fix (autofix only — no blocking checks)                                                                                                                                                                  |
+| `feature-planner` / `fix-planner`   | plan-header exists, at least one slice file, every slice has `- [ ]` acceptance criteria and a Reference Packages section                                                                                                                   |
+| `plan-gate`                         | no plan file mutations (read-only review), revision must reference specific slices with evidence                                                                                                                                            |
+| `domain-mapper`                     | mapping file exists, every medium+ confidence challenge has a resolution entry                                                                                                                                                              |
+| `evidence-researcher`               | evidence findings file exists                                                                                                                                                                                                               |
+| `placement-gate`                    | no plan file mutations, revision must contain `ISSUE` blocks                                                                                                                                                                                |
+| `challenge-arbiter`                 | verdict file exists, contains a `## Status` section with "Approved" or "Revision required"                                                                                                                                                  |
+| `feature-reviewer` / `fix-reviewer` | verification results exist, results cover every acceptance criterion from the slice                                                                                                                                                         |
+| `simplify`                          | build, lint, tests, no-file-disable, import-guard                                                                                                                                                                                           |
+| `document`                          | format-fix, lint-fix (autofix only — no blocking checks)                                                                                                                                                                                    |
 
 ### Context refreshers
 
@@ -195,14 +195,14 @@ On every agent completion, the SubagentStop hook parses the agent's transcript J
 
 Constraints that apply to every tool call, regardless of which agent is running.
 
-| Guard                     | Trigger          | What it does                                                                    |
-| ------------------------- | ---------------- | ------------------------------------------------------------------------------- |
-| `block-npm`               | Bash             | Blocks `npm`, `npx`, `pnpx`, `pnpm dlx` — only `pnpm` allowed                   |
-| `block-windows-cmd`       | Bash             | Blocks `cmd` / `cmd.exe` invocations on Windows                                 |
-| `block-node-modules-read` | Bash, Read, Glob | Blocks reading `node_modules` source (`.d.ts` type definitions are allowed)     |
-| `block-env-write`         | Edit, Write      | Blocks modifications to `.env` and `.env.*` files — secrets must not be touched |
+| Guard                     | Trigger          | What it does                                                                                |
+| ------------------------- | ---------------- | ------------------------------------------------------------------------------------------- |
+| `block-npm`               | Bash             | Blocks `npm`, `npx`, `pnpx`, `pnpm dlx` — only `pnpm` allowed                               |
+| `block-windows-cmd`       | Bash             | Blocks `cmd` / `cmd.exe` invocations on Windows                                             |
+| `block-node-modules-read` | Bash, Read, Glob | Blocks reading `node_modules` source (`.d.ts` type definitions are allowed)                 |
+| `block-env-write`         | Edit, Write      | Blocks modifications to `.env` and `.env.*` files — secrets must not be touched             |
 | `block-workflow-write`    | Edit, Write      | Blocks modifications to `.github/workflows/` — CI workflows are managed outside the harness |
-| `agent-browser-rewrite`   | Bash             | Rewrites bare `agent-browser` to `pnpm exec agent-browser`                      |
+| `agent-browser-rewrite`   | Bash             | Rewrites bare `agent-browser` to `pnpm exec agent-browser`                                  |
 
 ### Pre-commit gate ([README](src/hooks/pre-commit/README.md))
 

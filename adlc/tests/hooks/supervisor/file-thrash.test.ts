@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import checkFileThrash, { FILE_TOTAL_BUDGET, SAME_FILE_THRESHOLD } from "../../../src/hooks/supervisor/file-thrash.js";
 import type { SupervisorEvent, SupervisorState } from "../../../src/hooks/supervisor/state.js";
 import { applyEventToState, createDefaultState } from "../../../src/hooks/supervisor/state.js";
-import checkFileThrash, { FILE_TOTAL_BUDGET, SAME_FILE_THRESHOLD } from "../../../src/hooks/supervisor/file-thrash.js";
 
 const HOT_FILE = "C:/project/knip.json";
 const OTHER_FILE = "C:/project/src/fix.tsx";
@@ -21,20 +21,6 @@ function makeEditEvent(path = HOT_FILE): SupervisorEvent {
         index: eventIndex,
         timestamp: Date.now(),
         toolName: "Edit",
-        targetPath: path,
-        isBrowserCommand: false,
-        isScreenshotCommand: false,
-        isTestCommand: false
-    };
-}
-
-function makeWriteEvent(path = HOT_FILE): SupervisorEvent {
-    eventIndex += 1;
-
-    return {
-        index: eventIndex,
-        timestamp: Date.now(),
-        toolName: "Write",
         targetPath: path,
         isBrowserCommand: false,
         isScreenshotCommand: false,

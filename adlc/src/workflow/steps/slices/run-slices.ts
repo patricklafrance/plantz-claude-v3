@@ -136,8 +136,8 @@ export async function runSlices(
                 if (result.status === "fulfilled" && result.value.reason?.startsWith("supervisor:")) {
                     throw new Error(
                         `Run aborted: supervisor killed agent during slice "${slice.name}". ` +
-                        `Reason: ${result.value.reason}. ` +
-                        `Continuing would waste tokens on dependent slices that cannot succeed.`
+                            `Reason: ${result.value.reason}. ` +
+                            `Continuing would waste tokens on dependent slices that cannot succeed.`
                     );
                 }
             }

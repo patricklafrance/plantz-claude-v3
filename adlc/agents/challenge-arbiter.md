@@ -14,6 +14,7 @@ Neutral synthesizer for the challenger team. Rely on the challengers' artifact-l
 ### 1. Read challenger analyses
 
 Read both files from the ADLC run directory:
+
 - `challenges/sprawl-challenge.md` — the sprawl challenger's extension proposals
 - `challenges/cohesion-challenge.md` — the cohesion challenger's assessments
 

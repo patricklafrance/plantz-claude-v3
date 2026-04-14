@@ -332,15 +332,7 @@ describe("runSlices", () => {
 
         await runSlices(tmpDir, config, "", fixOptions);
 
-        expect(runSlicePipeline).toHaveBeenCalledWith(
-            "alpha",
-            expect.any(String),
-            "",
-            config,
-            tmpDir,
-            undefined,
-            "fix-slice-coordinator"
-        );
+        expect(runSlicePipeline).toHaveBeenCalledWith("alpha", expect.any(String), "", config, tmpDir, undefined, "fix-slice-coordinator");
     });
 
     it("aborts entire run when a slice returns a supervisor kill reason", async () => {
@@ -354,9 +346,9 @@ describe("runSlices", () => {
             reason: "supervisor: wall-clock hard-stop: feature-coder exceeded time limit"
         });
 
-        await expect(
-            runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir })
-        ).rejects.toThrow(/Run aborted: supervisor killed agent during slice "alpha"/);
+        await expect(runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir })).rejects.toThrow(
+            /Run aborted: supervisor killed agent during slice "alpha"/
+        );
 
         // Beta should never have been attempted (it's in wave 2).
         expect(vi.mocked(runSlicePipeline)).toHaveBeenCalledTimes(1);
@@ -375,9 +367,7 @@ describe("runSlices", () => {
             return { success: true };
         });
 
-        await expect(
-            runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir })
-        ).rejects.toThrow(/Run aborted.*alpha/);
+        await expect(runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir })).rejects.toThrow(/Run aborted.*alpha/);
     });
 
     it("uses fix-coder for merge conflict resolution in fix mode", async () => {

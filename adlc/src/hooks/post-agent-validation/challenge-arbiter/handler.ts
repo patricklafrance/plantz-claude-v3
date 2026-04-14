@@ -75,9 +75,9 @@ function rubberStampCheck(cwd: string): string[] {
     const allUncontested = dataRows.every(row => /no challenge/i.test(row));
     if (allUncontested) {
         return [
-            "Rubber-stamp verdict detected: the domain mapping has `create` decisions but the verdict lists every concern as \"no challenge.\" " +
-            "Read `challenges/sprawl-challenge.md` and `challenges/cohesion-challenge.md` — the challengers wrote their analyses there. " +
-            "Rewrite the verdict incorporating the challenger arguments."
+            'Rubber-stamp verdict detected: the domain mapping has `create` decisions but the verdict lists every concern as "no challenge." ' +
+                "Read `challenges/sprawl-challenge.md` and `challenges/cohesion-challenge.md` — the challengers wrote their analyses there. " +
+                "Rewrite the verdict incorporating the challenger arguments."
         ];
     }
 

@@ -71,7 +71,7 @@ describe("resolveConfig", () => {
                 packageMeta: { license: "MIT", author: "Test" },
                 referenceModule: "dashboard",
                 referenceStorybook: "storybook-dashboard"
-            },
+            }
         });
 
         expect(resolved.structure.apps).toBe("./a");

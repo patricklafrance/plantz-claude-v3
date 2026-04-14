@@ -22,6 +22,12 @@ import { runSlices } from "./steps/slices/run-slices.ts";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "utf-8")) as { version: string };
 
+function assertNoSupervisorKill(stepName: string, fatalReason: string | null): void {
+    if (fatalReason) {
+        throw new Error(`Run aborted: supervisor killed agent during "${stepName}". Reason: ${fatalReason}`);
+    }
+}
+
 export type { PipelineInput };
 
 export interface FixTarget {
@@ -119,12 +125,6 @@ export async function run(options: OrchestratorOptions): Promise<void> {
         // After each step, check if the supervisor killed the agent and abort.
         function freshHooks() {
             return createHooks({ cwd });
-        }
-
-        function assertNoSupervisorKill(stepName: string, fatalReason: string | null): void {
-            if (fatalReason) {
-                throw new Error(`Run aborted: supervisor killed agent during "${stepName}". Reason: ${fatalReason}`);
-            }
         }
 
         function warnSupervisorKill(stepName: string, fatalReason: string | null): void {

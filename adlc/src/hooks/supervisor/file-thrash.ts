@@ -103,10 +103,7 @@ export default function checkFileThrash(event: SupervisorEvent, state: Superviso
     // 2. Same-file detection — consecutive Edit/Write to the same file.
     if (state.file.sameFileHits >= SAME_FILE_THRESHOLD) {
         const nextTier = Math.min((state.file.recoveryTier ?? 0) + 1, 2);
-        const message =
-            nextTier === 1
-                ? nudgeMessage(state.file.sameFileHits, filename)
-                : escalationMessage(state.file.sameFileHits, filename);
+        const message = nextTier === 1 ? nudgeMessage(state.file.sameFileHits, filename) : escalationMessage(state.file.sameFileHits, filename);
 
         return { action: "block", severity: "recovery", tier: nextTier, reason: message };
     }

@@ -105,9 +105,11 @@ describe("runSlicePipeline", () => {
     it("passes AGENT_BROWSER_SESSION env to the coordinator", async () => {
         await runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd");
 
-        expect(getRunAgentCall().env).toEqual(expect.objectContaining({
-            AGENT_BROWSER_SESSION: "plant-list"
-        }));
+        expect(getRunAgentCall().env).toEqual(
+            expect.objectContaining({
+                AGENT_BROWSER_SESSION: "plant-list"
+            })
+        );
     });
 
     it("returns success when coordinator completes normally", async () => {
@@ -145,9 +147,7 @@ describe("runSlicePipeline", () => {
     it("propagates when runAgent throws", async () => {
         vi.mocked(runAgent).mockRejectedValue(new Error("SDK connection lost"));
 
-        await expect(runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd")).rejects.toThrow(
-            "SDK connection lost"
-        );
+        await expect(runSlicePipeline("plant-list", "/tmp/wt", defaultPreamble, defaultConfig, "/tmp/cwd")).rejects.toThrow("SDK connection lost");
     });
 
     it("forwards hooks from createHooks to the coordinator", async () => {

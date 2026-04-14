@@ -8,6 +8,41 @@ import { type ExecBinary, type ExecCommand, validateCleanState, validateReposito
 
 const noopExec: ExecBinary = () => {};
 
+const failingExec: ExecBinary = () => {
+    throw new Error("not found");
+};
+
+const noopExecCommand: ExecCommand = () => "";
+
+const failLint: ExecCommand = (command: string) => {
+    if (command === "pnpm lint") {
+        const err = new Error("lint failed") as Error & { stdout: string; stderr: string };
+        err.stdout = "some lint output";
+        err.stderr = "Error: unused export found";
+        throw err;
+    }
+
+    return "";
+};
+
+const failTest: ExecCommand = (command: string) => {
+    if (command === "pnpm test") {
+        const err = new Error("test failed") as Error & { stdout: string; stderr: string };
+        err.stdout = "";
+        err.stderr = "FAIL src/foo.test.ts";
+        throw err;
+    }
+
+    return "";
+};
+
+const failWithOutput: ExecCommand = () => {
+    const err = new Error("command failed") as Error & { stdout: string; stderr: string };
+    err.stdout = "stdout content here";
+    err.stderr = "stderr content here";
+    throw err;
+};
+
 describe("validateRepository", () => {
     const tmpBase = join(tmpdir(), "adlc-preflight-test");
     const dirs: string[] = [];
@@ -86,10 +121,6 @@ describe("validateRepository", () => {
         const dir = makeTmpDir();
         setupValidRepo(dir);
 
-        const failingExec: ExecBinary = () => {
-            throw new Error("not found");
-        };
-
         expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), failingExec)).toThrow(
             /`agent-browser` is declared in devDependencies but not executable/
         );
@@ -122,10 +153,7 @@ describe("validateRepository", () => {
         setupValidRepo(dir);
         const sbDir = join(dir, "apps", "storybook");
         mkdirSync(sbDir, { recursive: true });
-        writeFileSync(
-            join(sbDir, "package.json"),
-            JSON.stringify({ scripts: { dev: "storybook dev -p 6006 --no-open" } })
-        );
+        writeFileSync(join(sbDir, "package.json"), JSON.stringify({ scripts: { dev: "storybook dev -p 6006 --no-open" } }));
 
         expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/hardcoded port flag/);
     });
@@ -135,60 +163,26 @@ describe("validateRepository", () => {
         setupValidRepo(dir);
         const sbDir = join(dir, "apps", "storybook");
         mkdirSync(sbDir, { recursive: true });
-        writeFileSync(
-            join(sbDir, "package.json"),
-            JSON.stringify({ scripts: { dev: "storybook dev --no-open --disable-telemetry --ci" } })
-        );
+        writeFileSync(join(sbDir, "package.json"), JSON.stringify({ scripts: { dev: "storybook dev --no-open --disable-telemetry --ci" } }));
 
         expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).not.toThrow();
     });
 });
 
 describe("validateCleanState", () => {
-    const noopExecCommand: ExecCommand = () => "";
-
     it("passes when both commands succeed", () => {
         expect(() => validateCleanState("/tmp", noopExecCommand)).not.toThrow();
     });
 
     it("throws when pnpm lint fails", () => {
-        const failLint: ExecCommand = (command: string) => {
-            if (command === "pnpm lint") {
-                const err = new Error("lint failed") as Error & { stdout: string; stderr: string };
-                err.stdout = "some lint output";
-                err.stderr = "Error: unused export found";
-                throw err;
-            }
-
-            return "";
-        };
-
         expect(() => validateCleanState("/tmp", failLint)).toThrow(/Preflight check failed: `pnpm lint` exited with errors/);
     });
 
     it("throws when pnpm test fails", () => {
-        const failTest: ExecCommand = (command: string) => {
-            if (command === "pnpm test") {
-                const err = new Error("test failed") as Error & { stdout: string; stderr: string };
-                err.stdout = "";
-                err.stderr = "FAIL src/foo.test.ts";
-                throw err;
-            }
-
-            return "";
-        };
-
         expect(() => validateCleanState("/tmp", failTest)).toThrow(/Preflight check failed: `pnpm test` exited with errors/);
     });
 
     it("error message includes the failing command name and output", () => {
-        const failWithOutput: ExecCommand = () => {
-            const err = new Error("command failed") as Error & { stdout: string; stderr: string };
-            err.stdout = "stdout content here";
-            err.stderr = "stderr content here";
-            throw err;
-        };
-
         expect(() => validateCleanState("/tmp", failWithOutput)).toThrow(/stdout content herestderr content here/);
     });
 
@@ -205,7 +199,7 @@ describe("validateCleanState", () => {
             return "";
         };
 
-        expect(() => validateCleanState("/tmp", trackingExec)).toThrow();
+        expect(() => validateCleanState("/tmp", trackingExec)).toThrow(/Preflight check failed/);
         expect(executedCommands).toEqual(["pnpm lint"]);
     });
 

@@ -82,9 +82,7 @@ export function validateRepository(cwd: string, referenceDir: string, execBinary
         try {
             execBinary(name, cwd);
         } catch {
-            throw new Error(
-                `Binary \`${name}\` is declared in devDependencies but not executable. Run \`pnpm install\` in the repository root.`
-            );
+            throw new Error(`Binary \`${name}\` is declared in devDependencies but not executable. Run \`pnpm install\` in the repository root.`);
         }
     }
 
@@ -145,16 +143,17 @@ export function validateCleanState(cwd: string, execCommand: ExecCommand = defau
                 const e = err as { stdout?: Buffer | string; stderr?: Buffer | string; message?: string };
                 const stdout = e.stdout ? e.stdout.toString() : "";
                 const stderr = e.stderr ? e.stderr.toString() : "";
-                output = (stdout + stderr) || e.message || "";
+                output = stdout + stderr || e.message || "";
             }
 
             const truncated = output.slice(0, 2000);
 
             throw new Error(
                 `Preflight check failed: \`${command}\` exited with errors.\n` +
-                "The ADLC pipeline requires a clean codebase before starting.\n" +
-                "Fix the issues above, then re-run.\n\n" +
-                `Output:\n${truncated}`
+                    "The ADLC pipeline requires a clean codebase before starting.\n" +
+                    "Fix the issues above, then re-run.\n\n" +
+                    `Output:\n${truncated}`,
+                { cause: err }
             );
         }
     }
