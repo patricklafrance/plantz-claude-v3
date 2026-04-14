@@ -49,7 +49,9 @@ Acceptance criteria are specifications, not suggestions. Implement each criterio
 - **Draft:** Implement the slice scope to fulfill its acceptance criteria.
 - **Revision:** Read `verification-results.md` for the reviewer's failure report. Fix only what failed. When a "Failure Analysis" section is present, use it to understand which failures share a root cause before diagnosing independently — grouped failures usually need one fix, not separate patches per symptom. The report may include a "Sanity Issues" section — these are host app integration problems found outside of Storybook stories.
 - Every module owns its complete data layer — no partial data layers. Follow the `api` reference doc.
-- For every React component created or updated, create matching Storybook stories following the `storybook` reference doc. Every acceptance criterion must have a corresponding story. For `[interactive]` criteria, create state stories for each stage of the interaction (loading, success, error) using play functions to reach those states — each story is a state snapshot, not an interaction test.
+- For every React component created or updated, create matching Storybook stories following the `storybook` reference doc. For `[interactive]` criteria, create state stories for each stage of the interaction (loading, success, error) using play functions to reach those states — each story is a state snapshot, not an interaction test.
+
+**Completeness gate:** Before moving to implementation notes, verify that every acceptance criterion — `[visual]` and `[interactive]` — has a corresponding story. `[interactive]` criteria are not done until their play function stories exist. Missing stories will fail review and trigger a rework cycle.
 
 ### 4. Record implementation notes
 

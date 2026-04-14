@@ -87,4 +87,37 @@ describe("worktree/collector", () => {
 
         rmSync(emptyWt, { recursive: true, force: true });
     });
+
+    // ── Reconciliation of misplaced flat file ──────────────────────────
+
+    it("overwrites per-slice results with a misplaced flat verification-results.md in the main run dir", async () => {
+        // Simulate: worktree has stale first-reviewer results, main run dir has fresh second-reviewer results
+        const runDir = join(worktreePath, ".adlc", "test-run");
+        writeFileSync(join(runDir, "verification-results.md"), "## Failed\n- [ ] Stale from first reviewer");
+
+        // Place a fresh flat file in the main run dir (written by revision reviewer to the wrong location)
+        writeFileSync(join(mainAdlcPath, "verification-results.md"), "## Passed\n- [x] All criteria pass");
+
+        await collectResults(worktreePath, mainAdlcPath, "shared-today-view", "test-run");
+
+        const dest = join(mainAdlcPath, "verification-results", "shared-today-view.md");
+        expect(readFileSync(dest, "utf-8")).toBe("## Passed\n- [x] All criteria pass");
+    });
+
+    it("removes the flat verification-results.md from the main run dir after reconciliation", async () => {
+        writeFileSync(join(mainAdlcPath, "verification-results.md"), "## Passed\n- [x] Fresh results");
+
+        await collectResults(worktreePath, mainAdlcPath, "slice-1", "test-run");
+
+        expect(existsSync(join(mainAdlcPath, "verification-results.md"))).toBe(false);
+    });
+
+    it("does not fail when no flat verification-results.md exists in the main run dir", async () => {
+        // Default setup has no flat file in mainAdlcPath — should not throw
+        await collectResults(worktreePath, mainAdlcPath, "slice-1", "test-run");
+
+        const dest = join(mainAdlcPath, "verification-results", "slice-1.md");
+        expect(existsSync(dest)).toBe(true);
+        expect(readFileSync(dest, "utf-8")).toBe("## Passed\n- [x] Criterion A");
+    });
 });

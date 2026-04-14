@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -43,6 +43,13 @@ export async function collectResults(worktreePath: string, mainRunDir: string, s
         copyFileSync(resultsFile, join(destDir, `${sliceName}.md`));
     }
 
+    // Reconcile stale per-slice results with a misplaced flat file.
+    // When a slice goes through revision cycles, the revision reviewer sometimes
+    // writes verification-results.md to the main run dir instead of the worktree.
+    // If such a flat file exists AND references this slice, it's the freshest result
+    // — overwrite the per-slice copy and clean up the flat file.
+    reconcileVerificationResults(mainRunDir, sliceName);
+
     // Copy explorer summary → explorer-notes/{sliceName}.md
     const explorerFile = findFile("current-explorer-summary.md", wtRunDir, worktreePath);
     if (explorerFile) {
@@ -50,4 +57,22 @@ export async function collectResults(worktreePath: string, mainRunDir: string, s
         mkdirSync(destDir, { recursive: true });
         copyFileSync(explorerFile, join(destDir, `${sliceName}.md`));
     }
+}
+
+/**
+ * If a flat `verification-results.md` exists in the main run dir, a revision
+ * reviewer likely wrote it there instead of in the worktree. Overwrite the
+ * per-slice file with the flat file (which is the freshest result) and remove
+ * the flat file so it doesn't contaminate future slice collections.
+ */
+function reconcileVerificationResults(mainRunDir: string, sliceName: string): void {
+    const flatFile = join(mainRunDir, "verification-results.md");
+    if (!existsSync(flatFile)) {
+        return;
+    }
+
+    const destDir = join(mainRunDir, "verification-results");
+    mkdirSync(destDir, { recursive: true });
+    copyFileSync(flatFile, join(destDir, `${sliceName}.md`));
+    unlinkSync(flatFile);
 }
