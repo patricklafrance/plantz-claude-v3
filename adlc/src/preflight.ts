@@ -3,7 +3,7 @@
  * to catch misconfiguration early with clear error messages.
  */
 
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -27,7 +27,9 @@ const REQUIRED_BINARIES = ["agent-browser"] as const;
 export type ExecBinary = (name: string, cwd: string) => void;
 
 function defaultExecBinary(name: string, cwd: string): void {
-    execFileSync("pnpm", ["exec", name, "--version"], {
+    // Use execSync with a string command — execFileSync cannot resolve .cmd/.ps1
+    // shims on Windows, causing ENOENT even when pnpm is on PATH.
+    execSync(`pnpm exec ${name} --version`, {
         cwd,
         stdio: "pipe",
         timeout: 10_000
