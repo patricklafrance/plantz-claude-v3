@@ -8,6 +8,7 @@
     "exports": {
         ".": "./src/index.ts",
         "./entities/plants": "./src/entities/plants/index.ts",
+        "./entities/household": "./src/entities/household/index.ts",
         "./seed": "./src/seed.ts",
         "./handlers/management": "./src/handlers/management/index.ts",
         "./handlers/today": "./src/handlers/today/index.ts",
