@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 
 import { getUserId } from "../../db/auth/getUserId.ts";
 import { householdMembersDb } from "../../db/household/householdMembersDb.ts";
+import { responsibilityAssignmentsDb } from "../../db/household/responsibilityAssignmentsDb.ts";
 import { plantsDb } from "../../db/plants/plantsDb.ts";
 
 export const todayPlantHandlers = [
@@ -37,7 +38,12 @@ export const todayPlantHandlers = [
             }
         }
 
-        return HttpResponse.json(ownPlants);
+        // Attach assignment info to each plant
+        const plantsWithAssignments = ownPlants.map(plant =>
+            Object.assign({}, plant, { assignment: responsibilityAssignmentsDb.getByPlant(plant.id) ?? null })
+        );
+
+        return HttpResponse.json(plantsWithAssignments);
     }),
 
     http.put("/api/today/plants/:id", async ({ params, request }) => {

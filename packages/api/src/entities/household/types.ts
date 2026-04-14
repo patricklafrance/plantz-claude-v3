@@ -9,6 +9,7 @@ export interface HouseholdMember {
     id: string;
     householdId: string;
     userId: string;
+    userName?: string;
     role: "owner" | "member";
     joinedDate: Date;
 }
@@ -41,4 +42,22 @@ export function parseInvitation(data: Record<string, unknown>): Invitation {
         ...data,
         creationDate: new Date(data.creationDate as string)
     } as Invitation;
+}
+
+export interface ResponsibilityAssignment {
+    id: string;
+    plantId: string;
+    householdId: string;
+    assignedUserId: string | null;
+    assignedUserName: string | null;
+}
+
+export function parseResponsibilityAssignment(data: Record<string, unknown>): ResponsibilityAssignment {
+    return {
+        id: data.id,
+        plantId: data.plantId,
+        householdId: data.householdId,
+        assignedUserId: data.assignedUserId ?? null,
+        assignedUserName: data.assignedUserName ?? null
+    } as ResponsibilityAssignment;
 }

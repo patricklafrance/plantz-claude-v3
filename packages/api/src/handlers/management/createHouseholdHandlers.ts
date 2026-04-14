@@ -2,9 +2,13 @@ import { delay, http, HttpResponse } from "msw";
 
 import type { Household, HouseholdMember, Invitation } from "../../entities/household/types.ts";
 
+interface HouseholdMemberWithName extends HouseholdMember {
+    userName?: string;
+}
+
 interface HouseholdData {
     household: Household | null;
-    members: HouseholdMember[];
+    members: HouseholdMemberWithName[];
     invitations: Invitation[];
 }
 

@@ -1,10 +1,11 @@
 import { formatDistanceToNow } from "date-fns";
-import { Check, Droplets } from "lucide-react";
+import { Check, Droplets, Loader2 } from "lucide-react";
 import { memo, useCallback } from "react";
 
 import type { CareEvent } from "@packages/api/entities/care-events";
+import type { HouseholdMember, ResponsibilityAssignment } from "@packages/api/entities/household";
 import type { Plant } from "@packages/api/entities/plants";
-import { Checkbox } from "@packages/components";
+import { Checkbox, Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@packages/components";
 
 import { locations, wateringTypes } from "./constants.ts";
 import { PLANT_LIST_GRID } from "./plantListLayout.ts";
@@ -16,13 +17,43 @@ interface PlantListItemProps {
     onClick: (plant: Plant) => void;
     onToggleSelect?: ((id: string) => void) | undefined;
     recentCareEvent?: CareEvent | null;
+    assignment?: ResponsibilityAssignment | null;
+    householdMembers?: HouseholdMember[];
+    onAssignmentChange?: ((plantId: string, userId: string | null) => void) | undefined;
+    isAssignmentPending?: boolean | undefined;
 }
 
-export const PlantListItem = memo(function PlantListItem({ plant, selected = false, onClick, onToggleSelect, recentCareEvent }: PlantListItemProps) {
+export const PlantListItem = memo(function PlantListItem({
+    plant,
+    selected = false,
+    onClick,
+    onToggleSelect,
+    recentCareEvent,
+    assignment,
+    householdMembers,
+    onAssignmentChange,
+    isAssignmentPending = false
+}: PlantListItemProps) {
     const due = isDueForWatering(plant);
 
     const handleToggleSelect = useCallback(() => onToggleSelect?.(plant.id), [onToggleSelect, plant.id]);
     const handleClick = useCallback(() => onClick(plant), [onClick, plant]);
+    const handleAssignmentChange = useCallback(
+        (value: string | null) => {
+            if (value === null) {
+                return;
+            }
+
+            const userId = value === "unassigned" ? null : value;
+            onAssignmentChange?.(plant.id, userId);
+        },
+        [onAssignmentChange, plant.id]
+    );
+
+    const assignedName = assignment?.assignedUserName;
+    const assignedDisplayName = assignment?.assignedUserId
+        ? (householdMembers?.find(m => m.userId === assignment.assignedUserId)?.userName ?? assignment.assignedUserName ?? assignment.assignedUserId)
+        : "Unassigned";
 
     return (
         <div
@@ -54,13 +85,38 @@ export const PlantListItem = memo(function PlantListItem({ plant, selected = fal
                         Watered by {recentCareEvent.actorName} {formatDistanceToNow(recentCareEvent.timestamp, { addSuffix: true })}
                     </span>
                 )}
+                {assignedName && !householdMembers && <span className="text-muted-foreground text-xs">Assigned to {assignedName}</span>}
             </div>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{plant.wateringQuantity}</span>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{getOptionLabel(wateringTypes, plant.wateringType)}</span>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{getOptionLabel(locations, plant.location)}</span>
-            <span className="hidden md:flex md:items-center">
-                {plant.mistLeaves && <Check className="text-muted-foreground size-3.5" aria-label="Mist leaves" />}
-            </span>
+            {householdMembers ? (
+                <span className="relative z-10 hidden md:flex md:items-center">
+                    {isAssignmentPending ? (
+                        <Loader2 className="text-muted-foreground size-4 animate-spin" aria-label="Updating assignment" />
+                    ) : (
+                        <Select value={assignment?.assignedUserId ?? "unassigned"} onValueChange={handleAssignmentChange}>
+                            <SelectTrigger size="sm" aria-label={`Assign ${plant.name}`}>
+                                <SelectValue>{assignedDisplayName}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                                    {householdMembers.map(member => (
+                                        <SelectItem key={member.userId} value={member.userId}>
+                                            {member.userName ?? member.userId}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    )}
+                </span>
+            ) : (
+                <span className="hidden md:flex md:items-center">
+                    {plant.mistLeaves && <Check className="text-muted-foreground size-3.5" aria-label="Mist leaves" />}
+                </span>
+            )}
         </div>
     );
 });

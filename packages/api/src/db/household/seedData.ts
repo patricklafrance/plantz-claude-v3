@@ -1,4 +1,4 @@
-import type { Household, HouseholdMember, Invitation } from "../../entities/household/types.ts";
+import type { Household, HouseholdMember, Invitation, ResponsibilityAssignment } from "../../entities/household/types.ts";
 
 const SEED_DATE = new Date(2025, 0, 15, 0, 0, 0, 0);
 
@@ -38,3 +38,35 @@ export const defaultSeedInvitations: Invitation[] = [
         creationDate: new Date(2025, 1, 1, 0, 0, 0, 0)
     }
 ];
+
+// Assignments are generated dynamically in seed.ts because plant IDs are random.
+// This helper creates assignments for the first N shared plants.
+export function generateSeedAssignments(sharedPlantIds: string[]): ResponsibilityAssignment[] {
+    const assignments: ResponsibilityAssignment[] = [];
+
+    // Assign first 5 shared plants to Alice
+    for (let i = 0; i < Math.min(5, sharedPlantIds.length); i++) {
+        assignments.push({
+            id: `assignment-${i + 1}`,
+            plantId: sharedPlantIds[i]!,
+            householdId: "household-1",
+            assignedUserId: "user-alice",
+            assignedUserName: "Alice"
+        });
+    }
+
+    // Assign next 5 shared plants to Bob
+    for (let i = 5; i < Math.min(10, sharedPlantIds.length); i++) {
+        assignments.push({
+            id: `assignment-${i + 1}`,
+            plantId: sharedPlantIds[i]!,
+            householdId: "household-1",
+            assignedUserId: "user-bob",
+            assignedUserName: "Bob"
+        });
+    }
+
+    // Leave remaining shared plants unassigned (no assignment record)
+
+    return assignments;
+}
