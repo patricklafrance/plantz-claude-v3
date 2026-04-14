@@ -59,6 +59,9 @@ vi.mock("../../../../src/workflow/steps/slices/worktree/lifecycle.js", () => ({
 
 let mockMergeResults: Record<string, { success: boolean; conflictFiles?: string[] }> = {};
 
+let mockHasUnmergedFiles = false;
+let mockBranchDiverged = true;
+
 vi.mock("../../../../src/workflow/steps/slices/worktree/merger.js", () => ({
     attemptMerge: vi.fn<any>((worktreeBranch: string) => {
         mockMergedBranches.push(worktreeBranch);
@@ -66,6 +69,8 @@ vi.mock("../../../../src/workflow/steps/slices/worktree/merger.js", () => ({
     }),
     completeMerge: vi.fn<any>(),
     abortMerge: vi.fn<any>(),
+    hasUnmergedFiles: vi.fn<any>(() => mockHasUnmergedFiles),
+    hasBranchDiverged: vi.fn<any>(() => mockBranchDiverged),
     mergeWorktree: vi.fn<any>((worktreeBranch: string) => {
         mockMergedBranches.push(worktreeBranch);
         return mockMergeResults[worktreeBranch] ?? { success: true };
@@ -123,6 +128,8 @@ describe("runSlices", () => {
         mockRemovedWorktrees.length = 0;
         slicePipelineResults = {};
         mockMergeResults = {};
+        mockHasUnmergedFiles = false;
+        mockBranchDiverged = true;
 
         // Clear mock call history (toHaveBeenCalled assertions need a clean slate).
         vi.clearAllMocks();
@@ -258,6 +265,56 @@ describe("runSlices", () => {
         const { abortMerge, completeMerge } = await import("../../../../src/workflow/steps/slices/worktree/merger.js");
         expect(abortMerge).toHaveBeenCalled();
         expect(completeMerge).not.toHaveBeenCalled();
+    });
+
+    it("skips merge when worktree branch has no new commits", async () => {
+        const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
+        writeFileSync(join(slicesDir, "01-empty.md"), "# Slice 1 -- Empty\nContent.\n");
+
+        mockBranchDiverged = false;
+
+        await runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir });
+
+        expect(mockMergedBranches).toHaveLength(0);
+        expect(mockRemovedWorktrees).toHaveLength(1);
+    });
+
+    it("aborts merge when conflict markers remain after agent resolution", async () => {
+        const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
+        writeFileSync(join(slicesDir, "01-alpha.md"), "# Slice 1 -- Alpha\nContent.\n");
+
+        mockMergeResults["adlc/alpha"] = { success: false, conflictFiles: ["index.ts"] };
+        mockHasUnmergedFiles = true;
+
+        const { runAgent } = await import("../../../../src/workflow/agents.js");
+        vi.mocked(runAgent).mockResolvedValue({ result: "resolved", sessionId: "test-session" });
+
+        await runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir });
+
+        const { abortMerge, completeMerge } = await import("../../../../src/workflow/steps/slices/worktree/merger.js");
+        expect(abortMerge).toHaveBeenCalled();
+        expect(completeMerge).not.toHaveBeenCalled();
+    });
+
+    it("continues merging remaining slices when collectResults throws", async () => {
+        const slicesDir = join(tmpDir, ".adlc", "test-run", "slices");
+        writeFileSync(join(slicesDir, "01-first.md"), "# Slice 1 -- First\nContent.\n");
+        writeFileSync(join(slicesDir, "02-second.md"), "# Slice 2 -- Second\nContent.\n");
+
+        const { collectResults } = await import("../../../../src/workflow/steps/slices/worktree/collector.js");
+        let callCount = 0;
+        vi.mocked(collectResults).mockImplementation(async () => {
+            callCount++;
+            if (callCount === 1) {
+                throw new Error("disk full");
+            }
+        });
+
+        await runSlices(tmpDir, config, "", { ...baseOptions, cwd: tmpDir });
+
+        // Both slices should still be merged even though first collectResults threw.
+        expect(mockMergedBranches).toHaveLength(2);
+        expect(mockRemovedWorktrees).toHaveLength(2);
     });
 
     it("passes fix-slice-coordinator to pipeline in fix mode", async () => {

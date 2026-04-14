@@ -16,7 +16,7 @@ import { buildDAG } from "./dag/scheduler.ts";
 import { runSlicePipeline } from "./revision-loop.ts";
 import { collectResults } from "./worktree/collector.ts";
 import { createWorktree, removeWorktreeAsync } from "./worktree/lifecycle.ts";
-import { attemptMerge, completeMerge, abortMerge } from "./worktree/merger.ts";
+import { attemptMerge, completeMerge, abortMerge, hasUnmergedFiles, hasBranchDiverged } from "./worktree/merger.ts";
 import { seedAdlc } from "./worktree/seeder.ts";
 
 const execAsync = promisify(exec);
@@ -132,34 +132,44 @@ export async function runSlices(
             // Merge sequentially — resolve conflicts with coder agent
             for (const [i, { slice, wt }] of waveItems.entries()) {
                 const result = results[i];
-                if (result.status === "fulfilled" && result.value.success) {
-                    progress?.slice(slice.name, "merge", "merging to feature branch");
-                    const mergeResult = attemptMerge(wt.branch, featureBranch, cwd);
-
-                    if (mergeResult.success) {
-                        // eslint-disable-next-line no-await-in-loop
-                        await collectResults(wt.path, runDir, slice.name, runDirName);
-                        progress?.slice(slice.name, "merge", "merged cleanly");
-                    } else {
-                        // Conflict — attempt agent-assisted resolution
-                        const conflictFiles = mergeResult.conflictFiles ?? [];
-                        progress?.slice(slice.name, "merge", `conflict in ${conflictFiles.join(", ")} — resolving`);
-
-                        // eslint-disable-next-line no-await-in-loop
-                        const resolved = await resolveConflicts(slice.name, conflictFiles, preamble, config, cwd, progress, hooks, coderAgent);
-                        if (resolved) {
-                            completeMerge(cwd, `merge: resolve conflicts for ${slice.name}`);
-                            // eslint-disable-next-line no-await-in-loop
-                            await collectResults(wt.path, runDir, slice.name, runDirName);
-                            progress?.slice(slice.name, "merge", "conflicts resolved");
-                        } else {
-                            abortMerge(cwd);
-                            progress?.slice(slice.name, "merge", `conflict unresolved: ${conflictFiles.join(", ")}`);
-                        }
-                    }
-                } else {
+                if (result.status !== "fulfilled" || !result.value.success) {
                     const reason = result.status === "fulfilled" ? result.value.reason : String((result as PromiseRejectedResult).reason);
                     progress?.slice(slice.name, "merge", `skipped: ${reason}`);
+                    continue;
+                }
+
+                // Guard: skip merge if the worktree branch has no new commits
+                // (coordinator returned success but never committed).
+                if (!hasBranchDiverged(wt.branch, featureBranch, cwd)) {
+                    progress?.slice(slice.name, "merge", "skipped: worktree branch has no new commits");
+                    continue;
+                }
+
+                progress?.slice(slice.name, "merge", "merging to feature branch");
+                const mergeResult = attemptMerge(wt.branch, featureBranch, cwd);
+
+                if (mergeResult.success) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await safeCollectResults(wt.path, runDir, slice.name, runDirName, progress);
+                    progress?.slice(slice.name, "merge", "merged cleanly");
+                } else {
+                    // Conflict — attempt agent-assisted resolution
+                    const conflictFiles = mergeResult.conflictFiles ?? [];
+                    progress?.slice(slice.name, "merge", `conflict in ${conflictFiles.join(", ")} — resolving`);
+
+                    // eslint-disable-next-line no-await-in-loop
+                    const resolved = await resolveConflicts(slice.name, conflictFiles, preamble, config, cwd, progress, hooks, coderAgent);
+
+                    if (resolved && !hasUnmergedFiles(cwd)) {
+                        completeMerge(cwd, `merge: resolve conflicts for ${slice.name}`);
+                        // eslint-disable-next-line no-await-in-loop
+                        await safeCollectResults(wt.path, runDir, slice.name, runDirName, progress);
+                        progress?.slice(slice.name, "merge", "conflicts resolved");
+                    } else {
+                        abortMerge(cwd);
+                        const detail = !resolved ? "agent failed" : "unresolved conflict markers remain";
+                        progress?.slice(slice.name, "merge", `conflict unresolved (${detail}): ${conflictFiles.join(", ")}`);
+                    }
                 }
             }
         } finally {
@@ -169,6 +179,22 @@ export async function runSlices(
                 progress?.slice(slice.name, "worktree", "cleanup started");
             }
         }
+    }
+}
+
+/** Collect results from a worktree, logging a warning instead of crashing if it fails. */
+async function safeCollectResults(
+    worktreePath: string,
+    mainRunDir: string,
+    sliceName: string,
+    runDirName: string,
+    progress?: Progress
+): Promise<void> {
+    try {
+        await collectResults(worktreePath, mainRunDir, sliceName, runDirName);
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        progress?.slice(sliceName, "collect", `warning: failed to collect results — ${msg}`);
     }
 }
 
