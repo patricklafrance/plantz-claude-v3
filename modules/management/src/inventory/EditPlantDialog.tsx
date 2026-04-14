@@ -25,6 +25,7 @@ import {
 } from "@packages/components";
 
 import { locations, luminosities, wateringFrequencies, wateringTypes } from "./constants.ts";
+import { useHouseholdMe } from "./useHouseholdMe.ts";
 import { useUpdatePlant } from "./useManagementPlants.ts";
 
 interface EditPlantDialogProps {
@@ -33,9 +34,11 @@ interface EditPlantDialogProps {
     onOpenChange: (open: boolean) => void;
     onDelete: (plant: Plant) => void;
     onMarkWatered?: (plant: Plant) => void;
+    /** @internal Test-only. Pre-sets sharing state to skip async resolution. */
+    _defaultSharing?: boolean;
 }
 
-export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWatered }: EditPlantDialogProps) {
+export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWatered, _defaultSharing }: EditPlantDialogProps) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [family, setFamily] = useState("");
@@ -46,11 +49,13 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
     const [wateringFrequency, setWateringFrequency] = useState("");
     const [wateringQuantity, setWateringQuantity] = useState("");
     const [wateringType, setWateringType] = useState("");
+    const [isShared, setIsShared] = useState(_defaultSharing ?? false);
     const [saved, setSaved] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const plantIdRef = useRef<string | null>(null);
 
     const updatePlant = useUpdatePlant();
+    const { data: householdData } = useHouseholdMe();
 
     useEffect(() => {
         if (plant) {
@@ -65,9 +70,10 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
             setWateringFrequency(plant.wateringFrequency);
             setWateringQuantity(plant.wateringQuantity);
             setWateringType(plant.wateringType);
+            setIsShared(_defaultSharing ?? !!plant.householdId);
             setSaved(false);
         }
-    }, [plant]);
+    }, [plant, _defaultSharing]);
 
     const saveChanges = useCallback(() => {
         if (!plantIdRef.current) {
@@ -89,7 +95,8 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
                 soilType: soilType.trim() || undefined,
                 wateringFrequency,
                 wateringQuantity: wateringQuantity.trim(),
-                wateringType
+                wateringType,
+                householdId: isShared && householdData ? householdData.id : null
             },
             {
                 onSuccess: () => {
@@ -98,7 +105,21 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
                 }
             }
         );
-    }, [name, description, family, location, luminosity, mistLeaves, soilType, wateringFrequency, wateringQuantity, wateringType, updatePlant]);
+    }, [
+        name,
+        description,
+        family,
+        location,
+        luminosity,
+        mistLeaves,
+        soilType,
+        wateringFrequency,
+        wateringQuantity,
+        wateringType,
+        isShared,
+        householdData,
+        updatePlant
+    ]);
 
     useEffect(() => {
         if (!plant || !open) {
@@ -128,6 +149,7 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
         wateringFrequency,
         wateringQuantity,
         wateringType,
+        isShared,
         plant,
         open,
         saveChanges
@@ -299,6 +321,21 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
                             <DatePicker value={plant.nextWateringDate} disabled aria-label="Next watering date" />
                         </div>
                     </fieldset>
+
+                    {householdData && (
+                        <>
+                            <Separator />
+
+                            {/* Sharing */}
+                            <fieldset className="flex flex-col gap-3">
+                                <legend className="text-muted-foreground mb-1 text-xs font-semibold tracking-wider uppercase">Sharing</legend>
+                                <div className="flex items-center gap-3">
+                                    <Label htmlFor="edit-sharing">Share with household</Label>
+                                    <Switch id="edit-sharing" checked={isShared} onCheckedChange={setIsShared} />
+                                </div>
+                            </fieldset>
+                        </>
+                    )}
 
                     <p className="text-muted-foreground text-xs">
                         Created {format(plant.creationDate, "PPP")} · Updated {format(plant.lastUpdateDate, "PPP")}

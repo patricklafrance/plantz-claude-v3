@@ -13,6 +13,7 @@ export interface Plant {
     wateringType: string;
     nextWateringDate: Date;
     creationDate: Date;
+    householdId?: string | null;
     lastUpdateDate: Date;
 }
 

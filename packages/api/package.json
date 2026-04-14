@@ -12,6 +12,8 @@
         "./handlers/management": "./src/handlers/management/index.ts",
         "./handlers/today": "./src/handlers/today/index.ts",
         "./handlers/auth": "./src/handlers/auth/index.ts",
+        "./handlers/household": "./src/handlers/household/index.ts",
+        "./entities/household": "./src/entities/household/index.ts",
         "./test-utils": "./src/test-utils/index.ts"
     },
     "scripts": {
