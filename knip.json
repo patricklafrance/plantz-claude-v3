@@ -43,17 +43,17 @@
             ]
         },
         "modules/management": {
-            "entry": ["src/inventory/index.ts", "src/account/index.ts"]
+            "entry": ["src/inventory/index.ts", "src/account/index.ts", "src/household/index.ts"]
         },
         "modules/watering": {
             "entry": ["src/today/index.ts"]
         },
         "packages/components": {
-            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs"],
+            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs", "src/index.ts"],
             "ignoreDependencies": ["@tailwindcss/postcss"]
         },
         "adlc": {
-            "entry": ["rslib.build.ts"],
+            "entry": ["rslib.build.ts", "src/cli.ts", "src/index.ts"],
             "ignoreDependencies": ["@rsbuild/core"]
         },
         "apps/storybook-packages": {

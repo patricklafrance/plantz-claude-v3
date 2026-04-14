@@ -1,1 +1,2 @@
 export { makePlant, FAR_FUTURE, FAR_PAST } from "./makePlant.ts";
+export { makeHousehold, makeHouseholdMember, makeInvitation } from "./makeHousehold.ts";
