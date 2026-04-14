@@ -42,6 +42,40 @@ describe("worktree/collector", () => {
         expect(readFileSync(dest, "utf-8")).toBe("## Passed\n- [x] Criterion A");
     });
 
+    it("falls back to worktree root for verification-results.md", async () => {
+        // Remove from ADLC run dir, place at worktree root instead
+        const runDir = join(worktreePath, ".adlc", "test-run");
+        rmSync(join(runDir, "verification-results.md"));
+        writeFileSync(join(worktreePath, "verification-results.md"), "## Passed\n- [x] Fallback");
+
+        await collectResults(worktreePath, mainAdlcPath, "slice-fallback", "test-run");
+
+        const dest = join(mainAdlcPath, "verification-results", "slice-fallback.md");
+        expect(existsSync(dest)).toBe(true);
+        expect(readFileSync(dest, "utf-8")).toBe("## Passed\n- [x] Fallback");
+    });
+
+    it("collects explorer summary as explorer-notes/{sliceName}.md", async () => {
+        const runDir = join(worktreePath, ".adlc", "test-run");
+        writeFileSync(join(runDir, "current-explorer-summary.md"), "## @packages/api\nExplorer findings");
+
+        await collectResults(worktreePath, mainAdlcPath, "slice-1", "test-run");
+
+        const dest = join(mainAdlcPath, "explorer-notes", "slice-1.md");
+        expect(existsSync(dest)).toBe(true);
+        expect(readFileSync(dest, "utf-8")).toBe("## @packages/api\nExplorer findings");
+    });
+
+    it("falls back to worktree root for current-explorer-summary.md", async () => {
+        writeFileSync(join(worktreePath, "current-explorer-summary.md"), "## Fallback explorer");
+
+        await collectResults(worktreePath, mainAdlcPath, "slice-1", "test-run");
+
+        const dest = join(mainAdlcPath, "explorer-notes", "slice-1.md");
+        expect(existsSync(dest)).toBe(true);
+        expect(readFileSync(dest, "utf-8")).toBe("## Fallback explorer");
+    });
+
     it("handles missing source directories gracefully", async () => {
         const emptyWt = mkdtempSync(join(tmpdir(), "collector-empty-"));
 
@@ -49,6 +83,7 @@ describe("worktree/collector", () => {
 
         expect(existsSync(join(mainAdlcPath, "implementation-notes"))).toBe(false);
         expect(existsSync(join(mainAdlcPath, "verification-results"))).toBe(false);
+        expect(existsSync(join(mainAdlcPath, "explorer-notes"))).toBe(false);
 
         rmSync(emptyWt, { recursive: true, force: true });
     });

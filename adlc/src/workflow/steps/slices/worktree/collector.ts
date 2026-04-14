@@ -1,7 +1,25 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-/** Copy implementation-notes and verification-results from a worktree's run dir back to the main run dir. */
+/**
+ * Find a file by checking the ADLC run dir first, then falling back to the
+ * worktree root. Agents sometimes write to the wrong location.
+ */
+function findFile(filename: string, wtRunDir: string, worktreePath: string): string | null {
+    const primary = join(wtRunDir, filename);
+    if (existsSync(primary)) {
+        return primary;
+    }
+
+    const fallback = join(worktreePath, filename);
+    if (existsSync(fallback)) {
+        return fallback;
+    }
+
+    return null;
+}
+
+/** Copy implementation-notes, verification-results, and explorer-notes from a worktree back to the main run dir. */
 export async function collectResults(worktreePath: string, mainRunDir: string, sliceName: string, runDirName: string): Promise<void> {
     const wtRunDir = join(worktreePath, ".adlc", runDirName);
 
@@ -17,11 +35,19 @@ export async function collectResults(worktreePath: string, mainRunDir: string, s
         }
     }
 
-    // Copy verification-results.md file → verification-results/{sliceName}.md
-    const resultsFile = join(wtRunDir, "verification-results.md");
-    if (existsSync(resultsFile)) {
+    // Copy verification-results.md → verification-results/{sliceName}.md
+    const resultsFile = findFile("verification-results.md", wtRunDir, worktreePath);
+    if (resultsFile) {
         const destDir = join(mainRunDir, "verification-results");
         mkdirSync(destDir, { recursive: true });
         copyFileSync(resultsFile, join(destDir, `${sliceName}.md`));
+    }
+
+    // Copy explorer summary → explorer-notes/{sliceName}.md
+    const explorerFile = findFile("current-explorer-summary.md", wtRunDir, worktreePath);
+    if (explorerFile) {
+        const destDir = join(mainRunDir, "explorer-notes");
+        mkdirSync(destDir, { recursive: true });
+        copyFileSync(explorerFile, join(destDir, `${sliceName}.md`));
     }
 }

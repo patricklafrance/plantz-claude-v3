@@ -27,7 +27,7 @@ Delete `current-package-map.md` from the ADLC run directory using Bash when done
 
 ### 2. Write the summary
 
-Synthesize findings and write the result to `current-explorer-summary.md`. Use the template below.
+Synthesize findings and write the result to `current-explorer-summary.md` **in the ADLC run directory** (same directory as `current-slice.md`). Use the template below.
 
 - **Target ~150 lines.** The coder will READ source files before editing — the summary orients, it does not replace.
 - Do NOT include verbatim code blocks. Instead, write "**Read before editing:** `{path}`" directives.
