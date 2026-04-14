@@ -81,6 +81,7 @@ export function CreatePlantDialog({ open, onOpenChange, defaultFirstWateringDate
             location,
             luminosity,
             mistLeaves,
+            isShared: false,
             soilType: soilType.trim() || undefined,
             wateringFrequency,
             wateringQuantity: wateringQuantity.trim(),

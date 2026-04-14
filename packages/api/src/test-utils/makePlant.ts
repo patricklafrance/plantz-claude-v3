@@ -15,6 +15,7 @@ export function makePlant(overrides: Partial<Plant> & { id: string; name: string
         luminosity: "medium",
         mistLeaves: true,
         soilType: undefined,
+        isShared: false,
         wateringFrequency: "1-week",
         wateringQuantity: "200ml",
         wateringType: "surface",
