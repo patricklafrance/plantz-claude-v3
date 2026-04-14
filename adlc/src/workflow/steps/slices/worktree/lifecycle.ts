@@ -1,6 +1,9 @@
-import { execSync } from "node:child_process";
+import { exec, execSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
 
 const WORKTREE_DIR = ".adlc-worktrees";
 
@@ -25,7 +28,16 @@ export function createWorktree(sliceName: string, baseBranch: string, cwd: strin
     return { path: worktreePath, branch, sliceName };
 }
 
-/** Remove a git worktree. */
-export function removeWorktree(worktreePath: string, cwd: string): void {
-    execSync(`git worktree remove "${worktreePath}" --force`, { cwd });
+/**
+ * Remove a git worktree asynchronously.
+ *
+ * Uses `pnpm dlx rimraf` to nuke node_modules first (cross-platform,
+ * handles Windows MAX_PATH), then `git worktree remove --force`.
+ * Returns a promise the caller can ignore (fire-and-forget) so cleanup
+ * doesn't block the main pipeline.
+ */
+export async function removeWorktreeAsync(worktreePath: string, cwd: string): Promise<void> {
+    const nodeModules = resolve(worktreePath, "node_modules");
+    await execAsync(`pnpm dlx rimraf "${nodeModules}"`, { cwd }).catch(() => {});
+    await execAsync(`git worktree remove "${worktreePath}" --force`, { cwd });
 }

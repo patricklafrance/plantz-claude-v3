@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createWorktree, removeWorktree } from "../../../../../src/workflow/steps/slices/worktree/lifecycle.js";
+import { createWorktree, removeWorktreeAsync } from "../../../../../src/workflow/steps/slices/worktree/lifecycle.js";
 
 describe("worktree/lifecycle", () => {
     let repoDir: string;
@@ -46,11 +46,11 @@ describe("worktree/lifecycle", () => {
         expect(list).toContain("slice-a");
     });
 
-    it("removeWorktree removes the worktree cleanly", () => {
+    it("removeWorktreeAsync removes the worktree cleanly", async () => {
         const info = createWorktree("slice-b", "main", repoDir);
         expect(existsSync(info.path)).toBe(true);
 
-        removeWorktree(info.path, repoDir);
+        await removeWorktreeAsync(info.path, repoDir);
 
         expect(existsSync(info.path)).toBe(false);
 

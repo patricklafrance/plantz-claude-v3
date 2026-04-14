@@ -15,7 +15,7 @@ import type { OrchestratorOptions } from "../../orchestrator.ts";
 import { buildDAG } from "./dag/scheduler.ts";
 import { runSlicePipeline } from "./revision-loop.ts";
 import { collectResults } from "./worktree/collector.ts";
-import { createWorktree, removeWorktree } from "./worktree/lifecycle.ts";
+import { createWorktree, removeWorktreeAsync } from "./worktree/lifecycle.ts";
 import { attemptMerge, completeMerge, abortMerge } from "./worktree/merger.ts";
 import { seedAdlc } from "./worktree/seeder.ts";
 
@@ -53,7 +53,12 @@ export async function runSlices(
         return;
     }
 
-    const featureBranch = options.featureBranch ?? execSync("git branch --show-current", { cwd, encoding: "utf8" }).trim();
+    // Create a dedicated integration branch for this run so slices
+    // merge into it instead of directly into the base branch (e.g. main).
+    const featureBranch = options.featureBranch ?? `adlc/${runDirName}`;
+    if (!options.featureBranch) {
+        execSync(`git checkout -b "${featureBranch}"`, { cwd });
+    }
     const { hooks } = createHooks({ cwd });
     progress?.log("execution", `Feature branch: ${featureBranch}`);
 
@@ -136,8 +141,8 @@ export async function runSlices(
             }
         } finally {
             for (const { slice, wt } of waveItems) {
-                removeWorktree(wt.path, cwd);
-                progress?.slice(slice.name, "worktree", "removed");
+                removeWorktreeAsync(wt.path, cwd);
+                progress?.slice(slice.name, "worktree", "cleanup started");
             }
         }
     }
