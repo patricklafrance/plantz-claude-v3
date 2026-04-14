@@ -44,6 +44,14 @@
             "inputs": ["$TURBO_DEFAULT$", "!agent-docs", "!**/README.md", "!**/CLAUDE.md"],
             "outputs": []
         },
+        "//#oxfmt": {
+            "inputs": ["$TURBO_DEFAULT$", "!agent-docs", "!**/README.md", "!**/CLAUDE.md"],
+            "outputs": []
+        },
+        "//#oxlint": {
+            "inputs": ["$TURBO_DEFAULT$", "!agent-docs", "!**/README.md", "!**/CLAUDE.md"],
+            "outputs": []
+        },
         "//#typecheck": {
             "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx", "tsconfig.json", "!apps", "!packages", "!agent-docs"],
             "outputs": ["node_modules/.cache/tsbuildinfo.json"]
