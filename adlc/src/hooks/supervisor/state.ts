@@ -84,6 +84,29 @@ export function createDefaultState(): SupervisorState {
     };
 }
 
+/**
+ * Reset browser and test counters when a new agent starts within the same
+ * session. Prevents the coder's browser usage from poisoning the reviewer's
+ * budget. Wall-clock and install state are intentionally preserved.
+ */
+export function resetAgentLocalState(state: SupervisorState): void {
+    state.browser = {
+        totalCalls: 0,
+        screenshotNudgeFired: false,
+        recoveryTier: 0,
+        nonBrowserSinceRecovery: 0,
+        currentTarget: null,
+        sameTargetCalls: 0
+    };
+    state.test = {
+        consecutiveWithoutEdit: 0,
+        totalCalls: 0,
+        recoveryTier: 0,
+        editsSinceRecovery: 0
+    };
+    state.recentEvents = [];
+}
+
 const RECENT_EVENT_WINDOW = 12;
 
 export function applyEventToState(state: SupervisorState, event: SupervisorEvent): SupervisorState {

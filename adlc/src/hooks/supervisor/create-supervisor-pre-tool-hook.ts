@@ -15,7 +15,7 @@ import {
     isInstallCommand,
     readInstallOverride
 } from "./install-gate.ts";
-import { applyEventToState, type SupervisorState } from "./state.ts";
+import { applyEventToState, resetAgentLocalState, type SupervisorState } from "./state.ts";
 import checkTestThrash from "./test-thrash.ts";
 import checkWallClock from "./wall-clock.ts";
 
@@ -45,8 +45,13 @@ export function createSupervisorPreToolHook(state: SupervisorState) {
         event.timestamp = Date.now();
         applyEventToState(state, event);
 
-        // Track agent name and per-agent start time
+        // Track agent name and per-agent start time.
+        // When a new agent starts, reset browser/test counters so the
+        // coder's browser usage doesn't poison the reviewer's budget.
         if (!state.agentName) {
+            state.agentName = agentName;
+        } else if (agentName && agentName !== state.agentName) {
+            resetAgentLocalState(state);
             state.agentName = agentName;
         }
         if (agentName && !state.agentStartedAt[agentName]) {

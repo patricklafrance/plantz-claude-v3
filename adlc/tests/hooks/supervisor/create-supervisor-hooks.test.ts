@@ -190,6 +190,37 @@ describe("createSupervisorPreToolHook", () => {
         expect(state.browser.sameTargetCalls).toBe(0);
     });
 
+    it("resets browser and test state when agent changes", async () => {
+        const state = createDefaultState();
+        const hook = createSupervisorPreToolHook(state);
+
+        // Simulate coder accumulating browser state
+        await hook(makePreToolInput({ agent_type: "feature-coder", tool_input: { command: "git status" } }));
+        state.browser.totalCalls = 40;
+        state.browser.recoveryTier = 1;
+        state.test.totalCalls = 5;
+
+        // Switch to reviewer — state should reset
+        await hook(makePreToolInput({ agent_type: "feature-reviewer", tool_input: { command: "git status" } }));
+
+        expect(state.agentName).toBe("feature-reviewer");
+        expect(state.browser.totalCalls).toBe(0);
+        expect(state.browser.recoveryTier).toBe(0);
+        expect(state.test.totalCalls).toBe(0);
+    });
+
+    it("does not reset state when same agent continues", async () => {
+        const state = createDefaultState();
+        const hook = createSupervisorPreToolHook(state);
+
+        await hook(makePreToolInput({ agent_type: "feature-coder", tool_input: { command: "git status" } }));
+        state.browser.totalCalls = 10;
+
+        await hook(makePreToolInput({ agent_type: "feature-coder", tool_input: { command: "ls" } }));
+
+        expect(state.browser.totalCalls).toBe(10);
+    });
+
     it("blocks test command when edit gap threshold is exceeded", async () => {
         const state = createDefaultState();
         // Simulate consecutive test runs without edits
