@@ -44,8 +44,8 @@ const mockMergedBranches: string[] = [];
 const mockRemovedWorktrees: string[] = [];
 
 vi.mock("../../../../src/workflow/steps/slices/worktree/lifecycle.js", () => ({
-    createWorktree: vi.fn<any>((sliceName: string, _baseBranch: string, cwd: string) => {
-        const wtPath = join(cwd, ".adlc-worktrees", sliceName);
+    createWorktree: vi.fn<any>((sliceName: string, _baseBranch: string, cwd: string, runDir: string) => {
+        const wtPath = join(runDir, "worktrees", sliceName);
         mkdirSync(wtPath, { recursive: true });
         const wt = { path: wtPath, branch: `adlc/${sliceName}`, sliceName };
         mockWorktrees.push(wt);

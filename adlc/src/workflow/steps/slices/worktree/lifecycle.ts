@@ -5,17 +5,15 @@ import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
 
-const WORKTREE_DIR = ".adlc-worktrees";
-
 interface WorktreeInfo {
     path: string;
     branch: string;
     sliceName: string;
 }
 
-/** Create a git worktree for a slice. */
-export function createWorktree(sliceName: string, baseBranch: string, cwd: string): WorktreeInfo {
-    const worktreeBase = resolve(cwd, WORKTREE_DIR);
+/** Create a git worktree for a slice under `.adlc/{runDir}/worktrees/`. */
+export function createWorktree(sliceName: string, baseBranch: string, cwd: string, runDir: string): WorktreeInfo {
+    const worktreeBase = resolve(runDir, "worktrees");
     const worktreePath = resolve(worktreeBase, sliceName);
     const branch = `adlc/${sliceName}`;
 

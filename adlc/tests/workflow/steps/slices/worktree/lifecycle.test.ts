@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -9,9 +9,12 @@ import { createWorktree, removeWorktreeAsync } from "../../../../../src/workflow
 
 describe("worktree/lifecycle", () => {
     let repoDir: string;
+    let runDir: string;
 
     beforeEach(() => {
         repoDir = mkdtempSync(join(tmpdir(), "lifecycle-test-"));
+        runDir = join(repoDir, ".adlc", "test-run");
+        mkdirSync(runDir, { recursive: true });
 
         // Initialise a bare git repo with one commit so branches work
         execSync("git init", { cwd: repoDir });
@@ -32,12 +35,13 @@ describe("worktree/lifecycle", () => {
     });
 
     it("createWorktree creates a valid git worktree", () => {
-        const info = createWorktree("slice-a", "main", repoDir);
+        const info = createWorktree("slice-a", "main", repoDir, runDir);
 
         expect(info.sliceName).toBe("slice-a");
         expect(info.branch).toBe("adlc/slice-a");
         expect(existsSync(info.path)).toBe(true);
         expect(existsSync(join(info.path, ".git"))).toBe(true);
+        expect(info.path).toContain(join(".adlc", "test-run", "worktrees", "slice-a"));
 
         const list = execSync("git worktree list", {
             cwd: repoDir,
@@ -47,7 +51,7 @@ describe("worktree/lifecycle", () => {
     });
 
     it("removeWorktreeAsync removes the worktree cleanly", async () => {
-        const info = createWorktree("slice-b", "main", repoDir);
+        const info = createWorktree("slice-b", "main", repoDir, runDir);
         expect(existsSync(info.path)).toBe(true);
 
         await removeWorktreeAsync(info.path, repoDir);

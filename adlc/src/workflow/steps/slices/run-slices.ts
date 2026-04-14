@@ -67,7 +67,7 @@ export async function runSlices(
 
         // Create worktrees and zip with their slice metadata for unified access
         const waveItems = wave.slices.map(slice => {
-            const wt = createWorktree(slice.name, featureBranch, cwd);
+            const wt = createWorktree(slice.name, featureBranch, cwd, runDir);
             progress?.slice(slice.name, "worktree", `created at ${wt.path}`);
 
             return { slice, wt };
