@@ -4,7 +4,9 @@ import { join } from "node:path";
 
 import { describe, expect, it, afterEach } from "vitest";
 
-import { validateRepository } from "../src/preflight.js";
+import { type ExecBinary, validateRepository } from "../src/preflight.js";
+
+const noopExec: ExecBinary = () => {};
 
 describe("validateRepository", () => {
     const tmpBase = join(tmpdir(), "adlc-preflight-test");
@@ -58,7 +60,7 @@ describe("validateRepository", () => {
         const dir = makeTmpDir();
         setupValidRepo(dir);
 
-        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).not.toThrow();
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).not.toThrow();
     });
 
     it("throws for missing script", () => {
@@ -68,22 +70,35 @@ describe("validateRepository", () => {
         delete (pkg.scripts as Record<string, string>)["format-fix"];
         writeFileSync(join(dir, "package.json"), JSON.stringify(pkg));
 
-        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Missing script `format-fix`/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/Missing script `format-fix`/);
     });
 
-    it("throws for missing binary", () => {
+    it("throws for missing binary declaration", () => {
         const dir = makeTmpDir();
         setupValidRepo(dir);
         const pkg = { ...validPkg, devDependencies: {} };
         writeFileSync(join(dir, "package.json"), JSON.stringify(pkg));
 
-        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Missing binary `agent-browser`/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/Missing binary `agent-browser`/);
+    });
+
+    it("throws when binary is declared but not executable", () => {
+        const dir = makeTmpDir();
+        setupValidRepo(dir);
+
+        const failingExec: ExecBinary = () => {
+            throw new Error("not found");
+        };
+
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), failingExec)).toThrow(
+            /`agent-browser` is declared in devDependencies but not executable/
+        );
     });
 
     it("throws when package.json is missing", () => {
         const dir = makeTmpDir();
 
-        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Cannot read/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/Cannot read/);
     });
 
     it("error message lists all required scripts", () => {
@@ -92,13 +107,13 @@ describe("validateRepository", () => {
         const pkg = { scripts: {}, devDependencies: validPkg.devDependencies };
         writeFileSync(join(dir, "package.json"), JSON.stringify(pkg));
 
-        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/build, lint, test, typecheck/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/build, lint, test, typecheck/);
     });
 
     it("throws when reference docs directory is missing", () => {
         const dir = makeTmpDir();
         writeFileSync(join(dir, "package.json"), JSON.stringify(validPkg));
 
-        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR))).toThrow(/Reference docs directory not found/);
+        expect(() => validateRepository(dir, join(dir, REFERENCE_DIR), noopExec)).toThrow(/Reference docs directory not found/);
     });
 });
