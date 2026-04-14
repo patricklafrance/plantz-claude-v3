@@ -2,9 +2,11 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useState, useRef, useMemo, useCallback } from "react";
 
 import type { CareEvent } from "@packages/api/entities/care-events";
+import type { HouseholdMember } from "@packages/api/entities/household";
 import type { Plant } from "@packages/api/entities/plants";
 import { getFrequencyDays } from "@packages/api/entities/plants";
 import { Button, toast } from "@packages/components";
+import { useSession } from "@packages/core-module";
 
 import { FilterBar } from "./FilterBar.tsx";
 import { PlantDetailDialog } from "./PlantDetailDialog.tsx";
@@ -12,7 +14,18 @@ import { PlantListHeader } from "./PlantListHeader.tsx";
 import { PlantListItem } from "./PlantListItem.tsx";
 import { applyPlantFilters, isDueForWatering } from "./plantUtils.ts";
 import { usePlantFilters } from "./usePlantFilters.ts";
-import { useTodayPlants, useMarkWatered, useCareEvents, useAllCareEvents } from "./useTodayPlants.ts";
+import {
+    useTodayPlants,
+    useMarkWatered,
+    useCareEvents,
+    useAllCareEvents,
+    useHousehold,
+    useHouseholdMembers,
+    useCreateAssignment,
+    useUpdateAssignment,
+    useDeleteAssignment,
+    type PlantWithAssignment
+} from "./useTodayPlants.ts";
 
 function computeNextWateringDate(plant: Plant): Date {
     const days = getFrequencyDays(plant.wateringFrequency);
@@ -23,14 +36,83 @@ function computeNextWateringDate(plant: Plant): Date {
     return next;
 }
 
+interface PlantSectionProps {
+    title: string;
+    plants: PlantWithAssignment[];
+    selectedIds: Set<string>;
+    careEventsByPlant: Map<string, CareEvent>;
+    onToggleSelect: (id: string) => void;
+    onViewDetail: (plant: Plant) => void;
+    householdMembers?: HouseholdMember[];
+    onAssignmentChange?: (plantId: string, userId: string | null) => void;
+    pendingPlantId?: string | null;
+    emptyMessage?: string;
+}
+
+function PlantSection({
+    title,
+    plants,
+    selectedIds,
+    careEventsByPlant,
+    onToggleSelect,
+    onViewDetail,
+    householdMembers,
+    onAssignmentChange,
+    pendingPlantId,
+    emptyMessage
+}: PlantSectionProps) {
+    return (
+        <div className="flex flex-col gap-2">
+            <h2 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">{title}</h2>
+            {plants.length === 0 ? (
+                <div className="bg-card border-border/50 flex items-center justify-center rounded-lg border p-6">
+                    <p className="text-muted-foreground text-sm">{emptyMessage ?? "No tasks in this section."}</p>
+                </div>
+            ) : (
+                <div className="bg-card border-border/50 overflow-hidden rounded-xl border shadow-sm">
+                    <PlantListHeader selectAllChecked={false} />
+                    <div role="list" aria-label={title}>
+                        {plants.map(plant => (
+                            <div key={plant.id} role="listitem">
+                                <PlantListItem
+                                    plant={plant}
+                                    selected={selectedIds.has(plant.id)}
+                                    onToggleSelect={onToggleSelect}
+                                    onClick={onViewDetail}
+                                    recentCareEvent={careEventsByPlant.get(plant.id)}
+                                    assignment={plant.assignment}
+                                    householdMembers={householdMembers}
+                                    onAssignmentChange={onAssignmentChange}
+                                    isAssignmentPending={pendingPlantId === plant.id}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function LandingPage() {
     const { filters, updateFilter, clearFilters, hasActiveFilters } = usePlantFilters();
     const [detailPlant, setDetailPlant] = useState<Plant | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [pendingPlantId, setPendingPlantId] = useState<string | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
+    const session = useSession();
     const { data: allPlants, isPending, isError } = useTodayPlants();
     const markWatered = useMarkWatered();
+
+    // Household data for partitioned view
+    const { data: household } = useHousehold();
+    const { data: householdMembers } = useHouseholdMembers(household?.id);
+
+    // Assignment mutations
+    const createAssignment = useCreateAssignment();
+    const updateAssignment = useUpdateAssignment();
+    const deleteAssignment = useDeleteAssignment();
 
     // Fetch care events for the detail dialog plant
     const { data: detailCareEvents } = useCareEvents(detailPlant?.id);
@@ -63,11 +145,38 @@ export function LandingPage() {
         const sorted = allPlants.toSorted((a, b) => a.name.localeCompare(b.name));
         const duePlants = sorted.filter(p => isDueForWatering(p));
 
-        return applyPlantFilters(duePlants, filters);
+        return applyPlantFilters(duePlants, filters) as PlantWithAssignment[];
     }, [allPlants, filters]);
 
+    // Partitioned view: split into my tasks, others' tasks, and available
+    const isHouseholdView = !!household && !!session;
+
+    const { myTasks, othersTasks, availableTasks } = useMemo(() => {
+        if (!isHouseholdView) {
+            return { myTasks: [], othersTasks: [], availableTasks: [] };
+        }
+
+        const my: PlantWithAssignment[] = [];
+        const others: PlantWithAssignment[] = [];
+        const available: PlantWithAssignment[] = [];
+
+        for (const plant of plants) {
+            const assignment = plant.assignment;
+
+            if (!assignment || assignment.assignedUserId === null) {
+                available.push(plant);
+            } else if (assignment.assignedUserId === session.id) {
+                my.push(plant);
+            } else {
+                others.push(plant);
+            }
+        }
+
+        return { myTasks: my, othersTasks: others, availableTasks: available };
+    }, [plants, isHouseholdView, session]);
+
     const virtualizer = useWindowVirtualizer({
-        count: plants.length,
+        count: isHouseholdView ? 0 : plants.length,
         estimateSize: () => 49,
         overscan: 10,
         scrollMargin: (listRef.current?.getBoundingClientRect().top ?? 0) + window.scrollY
@@ -136,6 +245,40 @@ export function LandingPage() {
         toast.success(`${count} plant${count !== 1 ? "s" : ""} marked as watered`);
     }, [plants, selectedIds, markWatered]);
 
+    const handleAssignmentChange = useCallback(
+        (plantId: string, userId: string | null) => {
+            if (!household || !householdMembers) {
+                return;
+            }
+
+            setPendingPlantId(plantId);
+
+            // Find the current assignment for this plant
+            const plant = plants.find(p => p.id === plantId);
+            const currentAssignment = plant?.assignment;
+
+            const member = userId ? householdMembers.find(m => m.userId === userId) : null;
+            const userName = member?.userName ?? member?.userId ?? null;
+
+            const onSettled = () => setPendingPlantId(null);
+
+            if (userId === null && currentAssignment) {
+                // Clear assignment: delete it
+                deleteAssignment.mutate(currentAssignment.id, { onSettled });
+            } else if (userId && currentAssignment) {
+                // Update existing assignment
+                updateAssignment.mutate({ id: currentAssignment.id, assignedUserId: userId, assignedUserName: userName }, { onSettled });
+            } else if (userId) {
+                // Create new assignment
+                createAssignment.mutate(
+                    { plantId, householdId: household.id, assignedUserId: userId, assignedUserName: userName ?? userId },
+                    { onSettled }
+                );
+            }
+        },
+        [household, householdMembers, plants, createAssignment, updateAssignment, deleteAssignment]
+    );
+
     const selectedCount = plants.filter(p => selectedIds.has(p.id)).length;
 
     const totalSize = virtualizer.getTotalSize();
@@ -195,7 +338,47 @@ export function LandingPage() {
                 {plants.length} plant{plants.length !== 1 ? "s" : ""} due for watering
             </div>
 
-            {plants.length === 0 ? (
+            {isHouseholdView ? (
+                <div className="flex flex-col gap-6">
+                    <PlantSection
+                        title="My tasks"
+                        plants={myTasks}
+                        selectedIds={selectedIds}
+                        careEventsByPlant={careEventsByPlant}
+                        onToggleSelect={toggleSelect}
+                        onViewDetail={handleViewDetail}
+                        householdMembers={householdMembers}
+                        onAssignmentChange={handleAssignmentChange}
+                        pendingPlantId={pendingPlantId}
+                        emptyMessage="No tasks assigned to you right now."
+                    />
+
+                    <PlantSection
+                        title="Others' tasks"
+                        plants={othersTasks}
+                        selectedIds={selectedIds}
+                        careEventsByPlant={careEventsByPlant}
+                        onToggleSelect={toggleSelect}
+                        onViewDetail={handleViewDetail}
+                        householdMembers={householdMembers}
+                        onAssignmentChange={handleAssignmentChange}
+                        pendingPlantId={pendingPlantId}
+                    />
+
+                    <PlantSection
+                        title="Available"
+                        plants={availableTasks}
+                        selectedIds={selectedIds}
+                        careEventsByPlant={careEventsByPlant}
+                        onToggleSelect={toggleSelect}
+                        onViewDetail={handleViewDetail}
+                        householdMembers={householdMembers}
+                        onAssignmentChange={handleAssignmentChange}
+                        pendingPlantId={pendingPlantId}
+                        emptyMessage="All tasks are assigned."
+                    />
+                </div>
+            ) : plants.length === 0 ? (
                 <div className="bg-card border-border/50 flex flex-col items-center justify-center gap-2 rounded-xl border p-12 shadow-sm">
                     <p className="text-muted-foreground text-sm font-medium">All caught up!</p>
                     <p className="text-muted-foreground text-xs">No plants need watering right now.</p>

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import type { CareEvent } from "@packages/api/entities/care-events";
+import type { HouseholdMember, ResponsibilityAssignment } from "@packages/api/entities/household";
 import type { Plant } from "@packages/api/entities/plants";
 
 import { PlantListItem } from "./PlantListItem.tsx";
@@ -20,6 +21,7 @@ function makePlant(overrides: Partial<Plant> = {}): Plant {
         location: "living-room",
         luminosity: "medium",
         mistLeaves: true,
+        isShared: false,
         soilType: "Well-draining mix",
         wateringFrequency: "1-week",
         wateringQuantity: "200ml",
@@ -106,5 +108,65 @@ export const WithCareAttributionDue: Story = {
     args: {
         plant: makePlant({ nextWateringDate: FAR_PAST }),
         recentCareEvent: makeCareEvent()
+    }
+};
+
+const sampleMembers: HouseholdMember[] = [
+    { id: "member-1", householdId: "household-1", userId: "user-alice", userName: "Alice", role: "owner", joinedDate: FIXED_CREATION },
+    { id: "member-2", householdId: "household-1", userId: "user-bob", userName: "Bob", role: "member", joinedDate: FIXED_CREATION }
+];
+
+function makeAssignment(overrides: Partial<ResponsibilityAssignment> = {}): ResponsibilityAssignment {
+    return {
+        id: "assignment-1",
+        plantId: "test-1",
+        householdId: "household-1",
+        assignedUserId: "user-alice",
+        assignedUserName: "Alice",
+        ...overrides
+    };
+}
+
+export const AssignedToSelf: Story = {
+    args: {
+        plant: makePlant(),
+        householdMembers: sampleMembers,
+        assignment: makeAssignment({ assignedUserId: "user-alice", assignedUserName: "Alice" }),
+        onAssignmentChange: () => {}
+    }
+};
+
+export const AssignedToOther: Story = {
+    args: {
+        plant: makePlant(),
+        householdMembers: sampleMembers,
+        assignment: makeAssignment({ assignedUserId: "user-bob", assignedUserName: "Bob" }),
+        onAssignmentChange: () => {}
+    }
+};
+
+export const Unassigned: Story = {
+    args: {
+        plant: makePlant(),
+        householdMembers: sampleMembers,
+        assignment: null,
+        onAssignmentChange: () => {}
+    }
+};
+
+export const AssignmentLoading: Story = {
+    args: {
+        plant: makePlant(),
+        householdMembers: sampleMembers,
+        assignment: makeAssignment(),
+        onAssignmentChange: () => {},
+        isAssignmentPending: true
+    }
+};
+
+export const AssignedWithoutDropdown: Story = {
+    args: {
+        plant: makePlant(),
+        assignment: makeAssignment({ assignedUserId: "user-bob", assignedUserName: "Bob" })
     }
 };

@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 
 import { getUserId } from "../../db/auth/getUserId.ts";
+import { usersDb } from "../../db/auth/usersDb.ts";
 import { householdMembersDb } from "../../db/household/householdMembersDb.ts";
 import { householdsDb } from "../../db/household/householdsDb.ts";
 import { invitationsDb } from "../../db/household/invitationsDb.ts";
@@ -69,7 +70,7 @@ export const managementHouseholdHandlers = [
         return HttpResponse.json(household, { status: 201 });
     }),
 
-    // Get members of a household
+    // Get members of a household (enriched with user names)
     http.get("/api/management/household/:id/members", ({ params }) => {
         const userId = getUserId();
 
@@ -79,8 +80,9 @@ export const managementHouseholdHandlers = [
 
         const { id } = params;
         const members = householdMembersDb.getAllByHousehold(id as string);
+        const enrichedMembers = members.map(member => Object.assign({}, member, { userName: usersDb.getById(member.userId)?.name ?? member.userId }));
 
-        return HttpResponse.json(members);
+        return HttpResponse.json(enrichedMembers);
     }),
 
     // Get invitations for a household
