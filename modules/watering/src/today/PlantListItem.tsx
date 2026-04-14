@@ -1,6 +1,8 @@
+import { formatDistanceToNow } from "date-fns";
 import { Check, Droplets } from "lucide-react";
 import { memo, useCallback } from "react";
 
+import type { CareEvent } from "@packages/api/entities/care-events";
 import type { Plant } from "@packages/api/entities/plants";
 import { Checkbox } from "@packages/components";
 
@@ -13,9 +15,10 @@ interface PlantListItemProps {
     selected?: boolean | undefined;
     onClick: (plant: Plant) => void;
     onToggleSelect?: ((id: string) => void) | undefined;
+    recentCareEvent?: CareEvent | null;
 }
 
-export const PlantListItem = memo(function PlantListItem({ plant, selected = false, onClick, onToggleSelect }: PlantListItemProps) {
+export const PlantListItem = memo(function PlantListItem({ plant, selected = false, onClick, onToggleSelect, recentCareEvent }: PlantListItemProps) {
     const due = isDueForWatering(plant);
 
     const handleToggleSelect = useCallback(() => onToggleSelect?.(plant.id), [onToggleSelect, plant.id]);
@@ -36,13 +39,20 @@ export const PlantListItem = memo(function PlantListItem({ plant, selected = fal
                     <Checkbox checked={selected} onCheckedChange={handleToggleSelect} aria-label={`Select ${plant.name}`} />
                 </span>
             )}
-            <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-semibold">{plant.name}</span>
-                {due && (
-                    <>
-                        <Droplets className="text-terracotta size-3.5 shrink-0" aria-hidden="true" />
-                        <span className="sr-only">Due for watering</span>
-                    </>
+            <div className="flex min-w-0 flex-col gap-0.5">
+                <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-sm font-semibold">{plant.name}</span>
+                    {due && (
+                        <>
+                            <Droplets className="text-terracotta size-3.5 shrink-0" aria-hidden="true" />
+                            <span className="sr-only">Due for watering</span>
+                        </>
+                    )}
+                </div>
+                {recentCareEvent && (
+                    <span className="text-muted-foreground text-xs">
+                        Watered by {recentCareEvent.actorName} {formatDistanceToNow(recentCareEvent.timestamp, { addSuffix: true })}
+                    </span>
                 )}
             </div>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{plant.wateringQuantity}</span>

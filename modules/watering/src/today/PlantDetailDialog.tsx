@@ -1,6 +1,7 @@
-import { format } from "date-fns";
-import { Droplets } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { Droplets, Loader2 } from "lucide-react";
 
+import type { CareEvent } from "@packages/api/entities/care-events";
 import type { Plant } from "@packages/api/entities/plants";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Separator } from "@packages/components";
 
@@ -12,6 +13,8 @@ interface PlantDetailDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onMarkWatered?: () => void;
+    isMarkingWatered?: boolean;
+    recentCareEvent?: CareEvent | null;
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -23,7 +26,7 @@ function DetailField({ label, value }: { label: string; value: string }) {
     );
 }
 
-export function PlantDetailDialog({ plant, open, onOpenChange, onMarkWatered }: PlantDetailDialogProps) {
+export function PlantDetailDialog({ plant, open, onOpenChange, onMarkWatered, isMarkingWatered, recentCareEvent }: PlantDetailDialogProps) {
     if (!plant) {
         return null;
     }
@@ -60,6 +63,18 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onMarkWatered }: 
                         </dl>
                     </section>
 
+                    {recentCareEvent && (
+                        <>
+                            <Separator />
+
+                            <section>
+                                <p className="text-muted-foreground text-sm">
+                                    Watered by {recentCareEvent.actorName} {formatDistanceToNow(recentCareEvent.timestamp, { addSuffix: true })}
+                                </p>
+                            </section>
+                        </>
+                    )}
+
                     <Separator />
 
                     <p className="text-muted-foreground text-xs">
@@ -73,9 +88,14 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onMarkWatered }: 
                             variant="default"
                             className="bg-botanical text-botanical-foreground hover:bg-botanical/90 sm:mr-auto"
                             onClick={onMarkWatered}
+                            disabled={isMarkingWatered}
                         >
-                            <Droplets data-icon="inline-start" aria-hidden="true" />
-                            Mark as Watered
+                            {isMarkingWatered ? (
+                                <Loader2 data-icon="inline-start" className="animate-spin" aria-hidden="true" />
+                            ) : (
+                                <Droplets data-icon="inline-start" aria-hidden="true" />
+                            )}
+                            {isMarkingWatered ? "Watering..." : "Mark as Watered"}
                         </Button>
                     )}
                 </DialogFooter>

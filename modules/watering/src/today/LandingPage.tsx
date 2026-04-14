@@ -1,6 +1,7 @@
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useState, useRef, useMemo, useCallback } from "react";
 
+import type { CareEvent } from "@packages/api/entities/care-events";
 import type { Plant } from "@packages/api/entities/plants";
 import { getFrequencyDays } from "@packages/api/entities/plants";
 import { Button, toast } from "@packages/components";
@@ -11,7 +12,7 @@ import { PlantListHeader } from "./PlantListHeader.tsx";
 import { PlantListItem } from "./PlantListItem.tsx";
 import { applyPlantFilters, isDueForWatering } from "./plantUtils.ts";
 import { usePlantFilters } from "./usePlantFilters.ts";
-import { useTodayPlants, useMarkWatered } from "./useTodayPlants.ts";
+import { useTodayPlants, useMarkWatered, useCareEvents, useAllCareEvents } from "./useTodayPlants.ts";
 
 function computeNextWateringDate(plant: Plant): Date {
     const days = getFrequencyDays(plant.wateringFrequency);
@@ -30,6 +31,28 @@ export function LandingPage() {
 
     const { data: allPlants, isPending, isError } = useTodayPlants();
     const markWatered = useMarkWatered();
+
+    // Fetch care events for the detail dialog plant
+    const { data: detailCareEvents } = useCareEvents(detailPlant?.id);
+    const detailRecentCareEvent = detailCareEvents?.[0] ?? null;
+
+    // Fetch all care events for list attribution (single query for virtualizer)
+    const { data: allCareEvents } = useAllCareEvents();
+    const careEventsByPlant = useMemo(() => {
+        if (!allCareEvents) {
+            return new Map<string, CareEvent>();
+        }
+
+        const map = new Map<string, CareEvent>();
+        for (const event of allCareEvents) {
+            // Only keep the most recent event per plant (list is already sorted by timestamp desc)
+            if (!map.has(event.plantId)) {
+                map.set(event.plantId, event);
+            }
+        }
+
+        return map;
+    }, [allCareEvents]);
 
     const plants = useMemo(() => {
         if (!allPlants) {
@@ -199,6 +222,7 @@ export function LandingPage() {
                                         selected={selectedIds.has(plant.id)}
                                         onToggleSelect={toggleSelect}
                                         onClick={handleViewDetail}
+                                        recentCareEvent={careEventsByPlant.get(plant.id)}
                                     />
                                 </div>
                             );
@@ -212,6 +236,8 @@ export function LandingPage() {
                 open={detailPlant !== null}
                 onOpenChange={handleDetailOpenChange}
                 onMarkWatered={handleMarkWatered}
+                isMarkingWatered={markWatered.isPending}
+                recentCareEvent={detailRecentCareEvent}
             />
         </div>
     );
