@@ -131,6 +131,7 @@ function generatePlants(count?: number, userId?: string): Plant[] {
             luminosity: pick(luminosityIds),
             mistLeaves: Math.random() > 0.4,
             soilType: Math.random() > 0.3 ? pick(soilTypes) : undefined,
+            isShared: false,
             wateringFrequency: pick(wateringFrequencyIds),
             wateringQuantity: pick(wateringQuantities),
             wateringType: pick(wateringTypeIds),
@@ -144,4 +145,13 @@ function generatePlants(count?: number, userId?: string): Plant[] {
 }
 
 // Pre-generated stable seed data for consistent dev experience
-export const defaultSeedPlants: Plant[] = generatePlants(125, "user-alice").concat(generatePlants(125, "user-bob"));
+const alicePlants = generatePlants(125, "user-alice");
+const bobPlants = generatePlants(125, "user-bob");
+
+// Make first 20 of Alice's plants shared with the sample household
+alicePlants.slice(0, 20).forEach(p => {
+    p.householdId = "household-1";
+    p.isShared = true;
+});
+
+export const defaultSeedPlants: Plant[] = alicePlants.concat(bobPlants);

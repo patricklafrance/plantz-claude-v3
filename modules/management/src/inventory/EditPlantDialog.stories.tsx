@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { userEvent, within } from "storybook/test";
 
-import { createManagementPlantHandlers } from "@packages/api/handlers/management";
-import { makePlant, FAR_PAST, FAR_FUTURE } from "@packages/api/test-utils";
+import { createManagementPlantHandlers, createManagementHouseholdHandlers } from "@packages/api/handlers/management";
+import { makePlant, makeHousehold, FAR_PAST, FAR_FUTURE } from "@packages/api/test-utils";
 
 import { EditPlantDialog } from "./EditPlantDialog.tsx";
 import { queryDecorator, fireflyDecorator } from "./storybook.setup.tsx";
@@ -12,7 +13,12 @@ const editPlants = [
     makePlant({ id: "test-edit-3", name: "Monstera Deliciosa" }),
     makePlant({ id: "test-edit-4", name: "Monstera Deliciosa" }),
     makePlant({ id: "test-edit-5", name: "Monstera Deliciosa" }),
-    makePlant({ id: "test-edit-6", name: "Monstera Deliciosa" })
+    makePlant({ id: "test-edit-6", name: "Monstera Deliciosa" }),
+    makePlant({ id: "test-edit-7", name: "Monstera Deliciosa", isShared: true, householdId: "household-1" }),
+    makePlant({ id: "test-edit-8", name: "Monstera Deliciosa", isShared: false }),
+    makePlant({ id: "test-edit-9", name: "Monstera Deliciosa", isShared: false }),
+    makePlant({ id: "test-edit-10", name: "Monstera Deliciosa", isShared: false }),
+    makePlant({ id: "test-edit-11", name: "Monstera Deliciosa", isShared: true, householdId: "household-1" })
 ];
 
 const meta = {
@@ -136,5 +142,113 @@ export const Closed: Story = {
             name: "Monstera Deliciosa"
         }),
         open: false
+    }
+};
+
+const householdHandlers = createManagementHouseholdHandlers({
+    household: makeHousehold({ id: "household-1", name: "Green Thumb Family" }),
+    members: [],
+    invitations: []
+});
+
+export const WithSharingToggleOn: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-7",
+            name: "Monstera Deliciosa",
+            isShared: true,
+            householdId: "household-1"
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...householdHandlers, ...createManagementPlantHandlers(editPlants)]
+        }
+    }
+};
+
+export const WithSharingToggleOff: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-8",
+            name: "Monstera Deliciosa",
+            isShared: false
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...householdHandlers, ...createManagementPlantHandlers(editPlants)]
+        }
+    }
+};
+
+export const NoHousehold: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-9",
+            name: "Monstera Deliciosa",
+            isShared: false
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [
+                ...createManagementHouseholdHandlers({ household: null, members: [], invitations: [] }),
+                ...createManagementPlantHandlers(editPlants)
+            ]
+        }
+    }
+};
+
+// Interactive: Toggling sharing switch to on auto-saves and shows "Saved" indicator
+export const ToggleSharingOn: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-10",
+            name: "Monstera Deliciosa",
+            isShared: false
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...householdHandlers, ...createManagementPlantHandlers(editPlants)]
+        }
+    },
+    play: async () => {
+        // Dialog renders in a portal outside canvasElement, so query document.body
+        const body = within(document.body);
+
+        const sharingSwitch = await body.findByRole("switch", { name: /share with household/i });
+        await userEvent.click(sharingSwitch);
+
+        // Wait for the debounce+save cycle to complete and show "Saved"
+        await body.findByText("Saved");
+    }
+};
+
+// Interactive: Toggling sharing switch to off auto-saves and shows "Saved" indicator
+export const ToggleSharingOff: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-11",
+            name: "Monstera Deliciosa",
+            isShared: true,
+            householdId: "household-1"
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...householdHandlers, ...createManagementPlantHandlers(editPlants)]
+        }
+    },
+    play: async () => {
+        // Dialog renders in a portal outside canvasElement, so query document.body
+        const body = within(document.body);
+
+        const sharingSwitch = await body.findByRole("switch", { name: /share with household/i });
+        await userEvent.click(sharingSwitch);
+
+        // Wait for the debounce+save cycle to complete and show "Saved"
+        await body.findByText("Saved");
     }
 };

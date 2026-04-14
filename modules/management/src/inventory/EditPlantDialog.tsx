@@ -24,6 +24,7 @@ import {
     Separator
 } from "@packages/components";
 
+import { useHousehold } from "../household/useHousehold.ts";
 import { locations, luminosities, wateringFrequencies, wateringTypes } from "./constants.ts";
 import { useUpdatePlant } from "./useManagementPlants.ts";
 
@@ -46,11 +47,13 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
     const [wateringFrequency, setWateringFrequency] = useState("");
     const [wateringQuantity, setWateringQuantity] = useState("");
     const [wateringType, setWateringType] = useState("");
+    const [isShared, setIsShared] = useState(false);
     const [saved, setSaved] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const plantIdRef = useRef<string | null>(null);
 
     const updatePlant = useUpdatePlant();
+    const { data: household } = useHousehold();
 
     useEffect(() => {
         if (plant) {
@@ -61,6 +64,7 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
             setLocation(plant.location);
             setLuminosity(plant.luminosity);
             setMistLeaves(plant.mistLeaves);
+            setIsShared(plant.isShared ?? false);
             setSoilType(plant.soilType ?? "");
             setWateringFrequency(plant.wateringFrequency);
             setWateringQuantity(plant.wateringQuantity);
@@ -86,6 +90,7 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
                 location,
                 luminosity,
                 mistLeaves,
+                isShared,
                 soilType: soilType.trim() || undefined,
                 wateringFrequency,
                 wateringQuantity: wateringQuantity.trim(),
@@ -98,7 +103,20 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
                 }
             }
         );
-    }, [name, description, family, location, luminosity, mistLeaves, soilType, wateringFrequency, wateringQuantity, wateringType, updatePlant]);
+    }, [
+        name,
+        description,
+        family,
+        location,
+        luminosity,
+        mistLeaves,
+        isShared,
+        soilType,
+        wateringFrequency,
+        wateringQuantity,
+        wateringType,
+        updatePlant
+    ]);
 
     useEffect(() => {
         if (!plant || !open) {
@@ -124,6 +142,7 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
         location,
         luminosity,
         mistLeaves,
+        isShared,
         soilType,
         wateringFrequency,
         wateringQuantity,
@@ -299,6 +318,19 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
                             <DatePicker value={plant.nextWateringDate} disabled aria-label="Next watering date" />
                         </div>
                     </fieldset>
+
+                    {!!household && (
+                        <>
+                            <Separator />
+                            <fieldset className="flex flex-col gap-3">
+                                <legend className="text-muted-foreground mb-1 text-xs font-semibold tracking-wider uppercase">Sharing</legend>
+                                <div className="flex items-center gap-3">
+                                    <Label htmlFor="edit-shared">Share with household</Label>
+                                    <Switch id="edit-shared" checked={isShared} onCheckedChange={setIsShared} />
+                                </div>
+                            </fieldset>
+                        </>
+                    )}
 
                     <p className="text-muted-foreground text-xs">
                         Created {format(plant.creationDate, "PPP")} · Updated {format(plant.lastUpdateDate, "PPP")}

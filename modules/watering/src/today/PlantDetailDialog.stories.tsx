@@ -18,6 +18,7 @@ function makePlant(overrides: Partial<Plant> = {}): Plant {
         luminosity: "medium",
         mistLeaves: true,
         soilType: "Well-draining mix",
+        isShared: false,
         wateringFrequency: "1-week",
         wateringQuantity: "200ml",
         wateringType: "surface",
