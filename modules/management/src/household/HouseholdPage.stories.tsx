@@ -30,7 +30,6 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// Visual: A page displays the user's household name and a list of members
 export const WithHousehold: Story = {
     parameters: {
         msw: {
@@ -46,7 +45,6 @@ export const WithHousehold: Story = {
     }
 };
 
-// Visual: When the user has no household, the page displays an empty state prompting them to create one
 export const EmptyState: Story = {
     parameters: {
         msw: {
@@ -59,7 +57,6 @@ export const EmptyState: Story = {
     }
 };
 
-// Visual: Pending invitations are visually distinguishable from active members
 export const WithPendingInvitations: Story = {
     parameters: {
         msw: {
@@ -78,7 +75,6 @@ export const WithPendingInvitations: Story = {
     }
 };
 
-// Visual: The household creation form shows fields for naming the household
 export const CreationForm: Story = {
     parameters: {
         msw: {
@@ -91,7 +87,6 @@ export const CreationForm: Story = {
     }
 };
 
-// Interactive: Submitting the household creation form shows a loading state
 export const CreateHouseholdLoading: Story = {
     parameters: {
         msw: {
@@ -124,7 +119,6 @@ export const CreateHouseholdLoading: Story = {
     }
 };
 
-// Interactive: After household creation, the household name and member list are visible
 export const AfterHouseholdCreation: Story = {
     parameters: {
         msw: {
@@ -137,7 +131,6 @@ export const AfterHouseholdCreation: Story = {
     }
 };
 
-// Interactive: Submitting the invitation form shows a loading state
 export const SendInvitationLoading: Story = {
     parameters: {
         msw: {
@@ -170,7 +163,6 @@ export const SendInvitationLoading: Story = {
     }
 };
 
-// Interactive: After sending an invitation, the invited email appears in the pending invitations area
 export const AfterInvitationSent: Story = {
     parameters: {
         msw: {
@@ -183,14 +175,12 @@ export const AfterInvitationSent: Story = {
     }
 };
 
-// Loading state
 export const Loading: Story = {
     parameters: {
         msw: { handlers: createManagementHouseholdHandlers("loading") }
     }
 };
 
-// Error state
 export const Error: Story = {
     parameters: {
         msw: { handlers: createManagementHouseholdHandlers("error") }

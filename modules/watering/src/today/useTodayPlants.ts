@@ -15,8 +15,8 @@ import { useSession } from "@packages/core-module";
 const API_BASE = "/api/today/plants";
 const QUERY_KEY = ["today", "plants", "list"];
 const CARE_EVENTS_KEY = ["today", "care-events"];
-const HOUSEHOLD_KEY = ["today", "household"];
-const MEMBERS_KEY = ["today", "household", "members"];
+const HOUSEHOLD_KEY = ["management", "household"];
+const MEMBERS_KEY = ["management", "household", "members"];
 
 export interface PlantWithAssignment extends Plant {
     assignment: ResponsibilityAssignment | null;
@@ -165,9 +165,9 @@ export function useMarkWatered() {
                 throw new Error(`Failed to mark plant ${id} as watered: ${response.status}`);
             }
 
-            // Record a care event with the current user as actor
+            // Fire care event best-effort — don't await so it doesn't block the watering mutation
             if (session) {
-                await fetch("/api/today/care-events", {
+                fetch("/api/today/care-events", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -177,7 +177,7 @@ export function useMarkWatered() {
                         eventType: "watered",
                         timestamp: new Date().toISOString()
                     })
-                });
+                }).catch(() => {});
             }
 
             return parsePlant(await response.json());

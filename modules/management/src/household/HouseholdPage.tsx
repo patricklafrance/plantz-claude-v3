@@ -87,6 +87,7 @@ function InvitationForm({ householdId }: { householdId: string }) {
 function HouseholdView({ householdId, householdName }: { householdId: string; householdName: string }) {
     const { data: members, isPending: membersLoading } = useHouseholdMembers(householdId);
     const { data: invitations, isPending: invitationsLoading } = useHouseholdInvitations(householdId);
+    const pendingInvitations = invitations?.filter(inv => inv.status === "pending") ?? [];
 
     return (
         <div className="mx-auto w-full max-w-2xl space-y-6 p-6">
@@ -121,19 +122,17 @@ function HouseholdView({ householdId, householdName }: { householdId: string; ho
                 <h2 className="text-foreground text-lg font-medium">Pending Invitations</h2>
                 {invitationsLoading ? (
                     <p className="text-muted-foreground text-sm">Loading invitations...</p>
-                ) : invitations && invitations.filter(inv => inv.status === "pending").length > 0 ? (
+                ) : pendingInvitations.length > 0 ? (
                     <ul className="space-y-2">
-                        {invitations
-                            .filter(inv => inv.status === "pending")
-                            .map(invitation => (
-                                <li
-                                    key={invitation.id}
-                                    className="bg-card border-border/50 flex items-center justify-between rounded-lg border border-dashed px-4 py-3"
-                                >
-                                    <span className="text-muted-foreground text-sm">{invitation.email}</span>
-                                    <Badge variant="outline">pending</Badge>
-                                </li>
-                            ))}
+                        {pendingInvitations.map(invitation => (
+                            <li
+                                key={invitation.id}
+                                className="bg-card border-border/50 flex items-center justify-between rounded-lg border border-dashed px-4 py-3"
+                            >
+                                <span className="text-muted-foreground text-sm">{invitation.email}</span>
+                                <Badge variant="outline">pending</Badge>
+                            </li>
+                        ))}
                     </ul>
                 ) : (
                     <p className="text-muted-foreground text-sm">No pending invitations.</p>
