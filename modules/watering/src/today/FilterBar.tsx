@@ -19,9 +19,9 @@ import {
     Switch
 } from "@packages/components";
 
-import { locations, luminosities, wateringFrequencies, wateringTypes } from "./constants.ts";
+import { assignmentOptions, locations, luminosities, wateringFrequencies, wateringTypes } from "./constants.ts";
 import { getOptionLabel } from "./plantUtils.ts";
-import type { PlantFilters } from "./usePlantFilters.ts";
+import type { AssignmentFilter, PlantFilters } from "./usePlantFilters.ts";
 
 interface FilterBarProps {
     filters: PlantFilters;
@@ -29,6 +29,7 @@ interface FilterBarProps {
     onClear: () => void;
     hasActiveFilters: boolean;
     showDueForWatering?: boolean;
+    showAssignment?: boolean;
 }
 
 function FilterRow({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
@@ -72,7 +73,7 @@ function FilterSelect({
     );
 }
 
-export function FilterBar({ filters, onFilterChange, onClear, hasActiveFilters, showDueForWatering = true }: FilterBarProps) {
+export function FilterBar({ filters, onFilterChange, onClear, hasActiveFilters, showDueForWatering = true, showAssignment = false }: FilterBarProps) {
     const activePopoverCount = useMemo(() => {
         return [
             filters.location,
@@ -81,9 +82,10 @@ export function FilterBar({ filters, onFilterChange, onClear, hasActiveFilters, 
             filters.soilType,
             filters.wateringFrequency,
             filters.wateringType,
-            showDueForWatering && filters.dueForWatering
+            showDueForWatering && filters.dueForWatering,
+            showAssignment && filters.assignment !== "all"
         ].filter(Boolean).length;
-    }, [filters, showDueForWatering]);
+    }, [filters, showDueForWatering, showAssignment]);
 
     const activeChips = useMemo(() => {
         const chips: { key: string; label: string; onRemove: () => void }[] = [];
@@ -121,9 +123,13 @@ export function FilterBar({ filters, onFilterChange, onClear, hasActiveFilters, 
         if (showDueForWatering && filters.dueForWatering) {
             chips.push({ key: "dueForWatering", label: "Due for watering", onRemove: () => onFilterChange("dueForWatering", false) });
         }
+        if (showAssignment && filters.assignment !== "all") {
+            const label = assignmentOptions.find(o => o.id === filters.assignment)?.label ?? filters.assignment;
+            chips.push({ key: "assignment", label, onRemove: () => onFilterChange("assignment", "all" as AssignmentFilter) });
+        }
 
         return chips;
-    }, [filters, onFilterChange, showDueForWatering]);
+    }, [filters, onFilterChange, showDueForWatering, showAssignment]);
 
     return (
         <div className="flex flex-col gap-2">
@@ -150,10 +156,10 @@ export function FilterBar({ filters, onFilterChange, onClear, hasActiveFilters, 
                         Filters
                         {activePopoverCount > 0 && <Badge className="ml-0.5 min-w-5 rounded-full px-1 text-[10px]">{activePopoverCount}</Badge>}
                     </PopoverTrigger>
-                    <PopoverContent align="start" className="w-80 p-0">
+                    <PopoverContent align="start" className="w-80 p-0" aria-label="Filter options">
                         <div className="flex flex-col">
                             <div className="flex flex-col gap-3 p-4">
-                                <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Environment</h4>
+                                <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Environment</p>
                                 <FilterRow label="Location" htmlFor="filter-location">
                                     <FilterSelect
                                         id="filter-location"
@@ -190,7 +196,7 @@ export function FilterBar({ filters, onFilterChange, onClear, hasActiveFilters, 
                             </div>
                             <Separator />
                             <div className="flex flex-col gap-3 p-4">
-                                <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Watering</h4>
+                                <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Watering</p>
                                 <FilterRow label="Frequency" htmlFor="filter-frequency">
                                     <FilterSelect
                                         id="filter-frequency"
@@ -218,6 +224,22 @@ export function FilterBar({ filters, onFilterChange, onClear, hasActiveFilters, 
                                     </FilterRow>
                                 )}
                             </div>
+                            {showAssignment && (
+                                <>
+                                    <Separator />
+                                    <div className="flex flex-col gap-3 p-4">
+                                        <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">Assignment</p>
+                                        <FilterRow label="Show" htmlFor="filter-assignment">
+                                            <FilterSelect
+                                                id="filter-assignment"
+                                                value={filters.assignment === "all" ? null : filters.assignment}
+                                                onChange={v => onFilterChange("assignment", (v ?? "all") as AssignmentFilter)}
+                                                options={assignmentOptions}
+                                            />
+                                        </FilterRow>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </PopoverContent>
                 </Popover>

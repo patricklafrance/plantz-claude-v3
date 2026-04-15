@@ -8,7 +8,7 @@ export function useHouseholdMe() {
     return useQuery({
         queryKey: HOUSEHOLD_ME_QUERY_KEY,
         queryFn: async () => {
-            const response = await fetch("/api/household/me");
+            const response = await fetch("/api/household");
 
             if (response.status === 404) {
                 return null;

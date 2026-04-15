@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { getUserId } from "../../db/auth/getUserId.ts";
 import { usersDb } from "../../db/auth/usersDb.ts";
 import { careEventsDb } from "../../db/care-events/careEventsDb.ts";
+import { householdDb, householdMembersDb } from "../../db/household/householdDb.ts";
 import { plantsDb } from "../../db/plants/plantsDb.ts";
 
 export const todayPlantHandlers = [
@@ -13,9 +14,21 @@ export const todayPlantHandlers = [
             return new HttpResponse(null, { status: 401 });
         }
 
-        const plants = plantsDb.getAllByUser(userId);
+        const userPlants = plantsDb.getAllByUser(userId);
 
-        return HttpResponse.json(plants);
+        // Also include shared household plants
+        const household = householdDb.getByMember(userId, householdMembersDb);
+        let allPlants = userPlants;
+
+        if (household) {
+            const householdPlants = plantsDb.getAllByHousehold(household.id);
+            // Merge, avoiding duplicates (plants owned by this user that also have householdId)
+            const userPlantIds = new Set(userPlants.map(p => p.id));
+            const additionalPlants = householdPlants.filter(p => !userPlantIds.has(p.id));
+            allPlants = userPlants.concat(additionalPlants);
+        }
+
+        return HttpResponse.json(allPlants);
     }),
 
     http.put("/api/today/plants/:id", async ({ params, request }) => {

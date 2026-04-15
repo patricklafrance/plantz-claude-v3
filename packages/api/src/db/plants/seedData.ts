@@ -143,5 +143,67 @@ function generatePlants(count?: number, userId?: string): Plant[] {
     return plants;
 }
 
+// Shared household plants with stable IDs for testing
+const sharedPlants: Plant[] = [
+    {
+        id: "shared-plant-1",
+        userId: "user-alice",
+        name: "Shared Monstera",
+        description: "A shared household monstera plant.",
+        family: "Araceae",
+        location: "living-room",
+        luminosity: "medium",
+        mistLeaves: true,
+        soilType: "Potting mix",
+        wateringFrequency: "1-week",
+        wateringQuantity: "300ml",
+        wateringType: "deep",
+        nextWateringDate: randomDate(-3, 1),
+        creationDate: new Date(2025, 0, 10),
+        lastUpdateDate: new Date(),
+        householdId: "household-1",
+        assignedUserId: "user-alice",
+        lastCareEvent: { actorName: "Bob", performedDate: new Date(Date.now() - 1 * 60 * 60 * 1000) }
+    },
+    {
+        id: "shared-plant-2",
+        userId: "user-bob",
+        name: "Shared Fiddle Leaf",
+        description: "A shared household fiddle leaf fig.",
+        family: "Moraceae",
+        location: "bedroom",
+        luminosity: "high",
+        mistLeaves: false,
+        soilType: "Peat moss",
+        wateringFrequency: "1.5-weeks",
+        wateringQuantity: "250ml",
+        wateringType: "surface",
+        nextWateringDate: randomDate(-2, 1),
+        creationDate: new Date(2025, 0, 12),
+        lastUpdateDate: new Date(),
+        householdId: "household-1",
+        assignedUserId: "user-bob"
+    },
+    {
+        id: "shared-plant-3",
+        userId: "user-alice",
+        name: "Shared Snake Plant",
+        description: "A shared household snake plant.",
+        family: "Asparagaceae",
+        location: "kitchen",
+        luminosity: "low",
+        mistLeaves: false,
+        soilType: "Cactus mix",
+        wateringFrequency: "2-weeks",
+        wateringQuantity: "150ml",
+        wateringType: "surface",
+        nextWateringDate: randomDate(-1, 1),
+        creationDate: new Date(2025, 0, 15),
+        lastUpdateDate: new Date(),
+        householdId: "household-1"
+        // No assignedUserId — unassigned shared plant
+    }
+];
+
 // Pre-generated stable seed data for consistent dev experience
-export const defaultSeedPlants: Plant[] = generatePlants(125, "user-alice").concat(generatePlants(125, "user-bob"));
+export const defaultSeedPlants: Plant[] = generatePlants(125, "user-alice").concat(generatePlants(125, "user-bob"), sharedPlants);

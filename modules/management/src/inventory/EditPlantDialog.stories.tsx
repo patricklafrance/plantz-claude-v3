@@ -8,7 +8,10 @@ import { makePlant, FAR_PAST, FAR_FUTURE } from "@packages/api/test-utils";
 import { EditPlantDialog } from "./EditPlantDialog.tsx";
 import { queryDecorator, fireflyDecorator } from "./storybook.setup.tsx";
 
-const testHousehold = { id: "household-1", name: "Green Thumbs", memberIds: ["user-alice"] };
+const testHousehold = {
+    household: { id: "household-1", name: "Green Thumbs", createdByUserId: "user-alice", creationDate: new Date("2025-01-01") },
+    members: [{ householdId: "household-1", userId: "user-alice", userName: "Alice", role: "owner" as const, joinedDate: new Date("2025-01-01") }]
+};
 
 const editPlants = [
     makePlant({ id: "test-edit-1", name: "Monstera Deliciosa" }),
@@ -170,7 +173,7 @@ export const NoHousehold: Story = {
     },
     parameters: {
         msw: {
-            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers("none")]
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers({ household: null, members: [] })]
         }
     }
 };

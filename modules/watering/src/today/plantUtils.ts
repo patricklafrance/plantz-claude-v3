@@ -14,7 +14,7 @@ export function isDueForWatering(plant: Plant, now?: Date): boolean {
     return next <= today;
 }
 
-export function applyPlantFilters(plants: Plant[], filters: PlantFilters): Plant[] {
+export function applyPlantFilters(plants: Plant[], filters: PlantFilters, currentUserId?: string): Plant[] {
     let result = plants;
 
     if (filters.name) {
@@ -42,6 +42,22 @@ export function applyPlantFilters(plants: Plant[], filters: PlantFilters): Plant
     if (filters.soilType) {
         const needle = filters.soilType.toLowerCase();
         result = result.filter(p => p.soilType?.toLowerCase().includes(needle));
+    }
+    if (filters.assignment !== "all" && currentUserId) {
+        switch (filters.assignment) {
+            case "mine":
+                // Plants assigned to current user OR personal plants (no householdId) OR unassigned shared plants
+                result = result.filter(p => !p.householdId || p.assignedUserId === currentUserId || !p.assignedUserId);
+                break;
+            case "others":
+                // Plants assigned to other household members (not current user, and has an assignment)
+                result = result.filter(p => p.householdId && p.assignedUserId && p.assignedUserId !== currentUserId);
+                break;
+            case "unassigned":
+                // Shared plants with no assignment
+                result = result.filter(p => p.householdId && !p.assignedUserId);
+                break;
+        }
     }
 
     return result;
