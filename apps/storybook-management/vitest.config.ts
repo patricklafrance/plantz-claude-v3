@@ -12,7 +12,7 @@ export default defineConfig({
     // https://github.com/storybookjs/storybook/issues/32049
     // Remove when Storybook ships #33875 (preview annotations as optimizer entries).
     optimizeDeps: {
-        include: ["react/jsx-dev-runtime", "react/jsx-runtime"]
+        include: ["react/jsx-dev-runtime", "react/jsx-runtime", "msw", "msw/browser"]
     },
     plugins: [
         storybookTest({

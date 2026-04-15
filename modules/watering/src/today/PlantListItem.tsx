@@ -61,12 +61,12 @@ export const PlantListItem = memo(function PlantListItem({ plant, selected = fal
                         </>
                     )}
                 </div>
-                {isShared && plant.lastCareEvent ? (
+                {plant.lastCareEvent && (
                     <span className="text-muted-foreground truncate text-xs">
-                        Watered by {plant.lastCareEvent.actorName} {formatDistanceToNow(plant.lastCareEvent.performedDate, { addSuffix: true })}
+                        {isShared
+                            ? `Watered by ${plant.lastCareEvent.actorName} ${formatDistanceToNow(plant.lastCareEvent.performedDate, { addSuffix: true })}`
+                            : `Last watered ${formatDistanceToNow(plant.lastCareEvent.performedDate, { addSuffix: true })}`}
                     </span>
-                ) : (
-                    plant.lastCareEvent && <span className="text-muted-foreground truncate text-xs">Last: {plant.lastCareEvent.actorName}</span>
                 )}
             </div>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{plant.wateringQuantity}</span>

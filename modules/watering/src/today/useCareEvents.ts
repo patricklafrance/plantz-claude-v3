@@ -10,11 +10,7 @@ interface CareEventResult {
 export function useCareEvents(plantId: string | null) {
     return useQuery({
         queryKey: ["today", "care-events", plantId],
-        queryFn: async () => {
-            if (!plantId) {
-                return { events: [] as CareEventResult[] };
-            }
-
+        queryFn: async (): Promise<{ events: CareEventResult[] }> => {
             const res = await fetch(`/api/today/plants/${plantId}/care-events`);
 
             if (!res.ok) {

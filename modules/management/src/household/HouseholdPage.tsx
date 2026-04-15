@@ -257,10 +257,7 @@ function IncomingInvitationsSection() {
             <ul className="space-y-2">
                 {incoming.data.map(invitation => (
                     <li key={invitation.id} className="bg-card border-border/50 flex items-center justify-between rounded-lg border px-4 py-3">
-                        <div className="flex flex-col">
-                            <span className="text-foreground">{invitation.householdName}</span>
-                            <span className="text-muted-foreground text-sm">From: {invitation.inviteeEmail}</span>
-                        </div>
+                        <span className="text-foreground">{invitation.householdName}</span>
                         <div className="flex gap-2">
                             <Button size="sm" onClick={() => respond.mutate({ id: invitation.id, status: "accepted" })} disabled={respond.isPending}>
                                 {respond.isPending && respond.variables?.id === invitation.id && respond.variables?.status === "accepted"

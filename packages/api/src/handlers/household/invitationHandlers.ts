@@ -4,6 +4,7 @@ import { getUserId } from "../../db/auth/getUserId.ts";
 import { usersDb } from "../../db/auth/usersDb.ts";
 import { householdDb, householdMembersDb } from "../../db/household/householdDb.ts";
 import { invitationDb } from "../../db/invitation/invitationDb.ts";
+import { generateId } from "../../db/utils/generateId.ts";
 import type { Invitation } from "../../entities/invitation/types.ts";
 
 export const invitationHandlers = [
@@ -24,10 +25,7 @@ export const invitationHandlers = [
 
         const body = (await request.json()) as Record<string, unknown>;
 
-        const invitationId =
-            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                ? crypto.randomUUID()
-                : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        const invitationId = generateId();
 
         const invitation = invitationDb.insert({
             id: invitationId,

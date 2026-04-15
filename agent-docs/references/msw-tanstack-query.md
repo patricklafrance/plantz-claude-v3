@@ -76,13 +76,13 @@ Key patterns:
 
 ## API Package vs. Module Boundary
 
-| Concern                                | Where it lives                                | Why                                                       |
-| -------------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
-| Entity types (`Plant`, `User`)         | `@packages/api/entities/*`                    | Shared contract — used by handlers, hooks, and test utils |
-| MSW handlers                           | `@packages/api/handlers/*`                    | Backend simulation — framework-agnostic, no React         |
-| DB singletons + seed                   | `@packages/api/db/*` (internal)               | Shared state across modules                               |
-| Test factories (`makePlant`)           | `@packages/api/test-utils`                    | Shared across storybooks                                  |
-| Query hooks (`useQuery`/`useMutation`) | Module-local (e.g., `useManagementPlants.ts`) | React hooks — consumers of the API, not part of it        |
+| Concern                                                         | Where it lives                                | Why                                                       |
+| --------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
+| Entity types (`Plant`, `User`, `Household`, `Invitation`, etc.) | `@packages/api/entities/*`                    | Shared contract — used by handlers, hooks, and test utils |
+| MSW handlers                                                    | `@packages/api/handlers/*`                    | Backend simulation — framework-agnostic, no React         |
+| DB singletons + seed                                            | `@packages/api/db/*` (internal)               | Shared state across modules                               |
+| Test factories (`makePlant`)                                    | `@packages/api/test-utils`                    | Shared across storybooks                                  |
+| Query hooks (`useQuery`/`useMutation`)                          | Module-local (e.g., `useManagementPlants.ts`) | React hooks — consumers of the API, not part of it        |
 
 The API package has zero React dependency — it's a pure data/handler package. React hooks live in modules next to the components that use them.
 

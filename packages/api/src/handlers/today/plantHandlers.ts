@@ -3,8 +3,9 @@ import { http, HttpResponse } from "msw";
 import { getUserId } from "../../db/auth/getUserId.ts";
 import { usersDb } from "../../db/auth/usersDb.ts";
 import { careEventsDb } from "../../db/care-events/careEventsDb.ts";
-import { householdDb, householdMembersDb } from "../../db/household/householdDb.ts";
+import { householdDb } from "../../db/household/householdDb.ts";
 import { plantsDb } from "../../db/plants/plantsDb.ts";
+import { generateId } from "../../db/utils/generateId.ts";
 
 export const todayPlantHandlers = [
     http.get("/api/today/plants", () => {
@@ -17,7 +18,7 @@ export const todayPlantHandlers = [
         const userPlants = plantsDb.getAllByUser(userId);
 
         // Also include shared household plants
-        const household = householdDb.getByMember(userId, householdMembersDb);
+        const household = householdDb.getByMember(userId);
         let allPlants = userPlants;
 
         if (household) {
@@ -44,18 +45,20 @@ export const todayPlantHandlers = [
         let lastCareEvent: { actorName: string; performedDate: Date } | null = null;
 
         if (actorId) {
+            const now = new Date();
+
             careEventsDb.insert({
-                id: crypto.randomUUID(),
+                id: generateId(),
                 plantId: id as string,
                 userId: actorId,
                 action: "watered",
-                performedDate: new Date()
+                performedDate: now
             });
 
             const actor = usersDb.getById(actorId);
 
             if (actor) {
-                lastCareEvent = { actorName: actor.name, performedDate: new Date() };
+                lastCareEvent = { actorName: actor.name, performedDate: now };
             }
         }
 

@@ -24,8 +24,8 @@ import {
     Separator
 } from "@packages/components";
 
+import { useHousehold } from "../household/useHousehold.ts";
 import { locations, luminosities, wateringFrequencies, wateringTypes } from "./constants.ts";
-import { useHouseholdMe } from "./useHouseholdMe.ts";
 import { useUpdatePlant } from "./useManagementPlants.ts";
 
 interface EditPlantDialogProps {
@@ -55,7 +55,7 @@ export function EditPlantDialog({ plant, open, onOpenChange, onDelete, onMarkWat
     const plantIdRef = useRef<string | null>(null);
 
     const updatePlant = useUpdatePlant();
-    const { data: householdData } = useHouseholdMe();
+    const { data: householdData } = useHousehold();
 
     useEffect(() => {
         if (plant) {

@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { getUserId } from "../../db/auth/getUserId.ts";
 import { usersDb } from "../../db/auth/usersDb.ts";
 import { householdDb, householdMembersDb } from "../../db/household/householdDb.ts";
+import { generateId } from "../../db/utils/generateId.ts";
 import type { Household, HouseholdMember } from "../../entities/household/types.ts";
 
 export const householdHandlers = [
@@ -13,7 +14,7 @@ export const householdHandlers = [
             return new HttpResponse(null, { status: 401 });
         }
 
-        const household = householdDb.getByMember(userId, householdMembersDb);
+        const household = householdDb.getByMember(userId);
 
         if (!household) {
             return new HttpResponse(null, { status: 404 });
@@ -29,7 +30,7 @@ export const householdHandlers = [
             return new HttpResponse(null, { status: 401 });
         }
 
-        const household = householdDb.getByMember(userId, householdMembersDb);
+        const household = householdDb.getByMember(userId);
 
         if (!household) {
             return HttpResponse.json([]);
@@ -50,10 +51,7 @@ export const householdHandlers = [
         const body = (await request.json()) as Record<string, unknown>;
         const now = new Date();
 
-        const id =
-            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                ? crypto.randomUUID()
-                : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        const id = generateId();
 
         const user = usersDb.getById(userId);
 

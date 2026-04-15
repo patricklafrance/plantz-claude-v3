@@ -7,12 +7,8 @@ class HouseholdDb {
         return [...this.#store.values()];
     }
 
-    getByUser(userId: string): Household | undefined {
-        return [...this.#store.values()].find(h => h.createdByUserId === userId);
-    }
-
-    getByMember(userId: string, membersDb: HouseholdMembersDb): Household | undefined {
-        const membership = membersDb.getAll().find(m => m.userId === userId);
+    getByMember(userId: string): Household | undefined {
+        const membership = householdMembersDb.getAll().find(m => m.userId === userId);
 
         if (!membership) {
             return undefined;
