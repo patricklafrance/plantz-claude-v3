@@ -90,25 +90,30 @@ describe("worktree/collector", () => {
 
     // ── Reconciliation of misplaced flat file ──────────────────────────
 
-    it("overwrites per-slice results with a misplaced flat verification-results.md in the main run dir", async () => {
-        // Simulate: worktree has stale first-reviewer results, main run dir has fresh second-reviewer results
-        const runDir = join(worktreePath, ".adlc", "test-run");
-        writeFileSync(join(runDir, "verification-results.md"), "## Failed\n- [ ] Stale from first reviewer");
-
-        // Place a fresh flat file in the main run dir (written by revision reviewer to the wrong location)
-        writeFileSync(join(mainAdlcPath, "verification-results.md"), "## Passed\n- [x] All criteria pass");
-
-        await collectResults(worktreePath, mainAdlcPath, "shared-today-view", "test-run");
-
-        const dest = join(mainAdlcPath, "verification-results", "shared-today-view.md");
-        expect(readFileSync(dest, "utf-8")).toBe("## Passed\n- [x] All criteria pass");
-    });
-
-    it("removes the flat verification-results.md from the main run dir after reconciliation", async () => {
-        writeFileSync(join(mainAdlcPath, "verification-results.md"), "## Passed\n- [x] Fresh results");
+    it("skips reconciliation when worktree already provides verification-results.md", async () => {
+        // Worktree has its own results — the flat file belongs to a different parallel slice
+        writeFileSync(join(mainAdlcPath, "verification-results.md"), "## Passed\n- [x] From another slice");
 
         await collectResults(worktreePath, mainAdlcPath, "slice-1", "test-run");
 
+        const dest = join(mainAdlcPath, "verification-results", "slice-1.md");
+        // Should use the worktree file, NOT the flat file from another slice
+        expect(readFileSync(dest, "utf-8")).toBe("## Passed\n- [x] Criterion A");
+        // Flat file should be untouched (it belongs to another slice)
+        expect(existsSync(join(mainAdlcPath, "verification-results.md"))).toBe(true);
+    });
+
+    it("uses flat file reconciliation when worktree has no verification-results.md", async () => {
+        // Remove worktree verification file — flat file is the only source
+        const runDir = join(worktreePath, ".adlc", "test-run");
+        rmSync(join(runDir, "verification-results.md"));
+        writeFileSync(join(mainAdlcPath, "verification-results.md"), "## Passed\n- [x] From revision reviewer");
+
+        await collectResults(worktreePath, mainAdlcPath, "slice-1", "test-run");
+
+        const dest = join(mainAdlcPath, "verification-results", "slice-1.md");
+        expect(readFileSync(dest, "utf-8")).toBe("## Passed\n- [x] From revision reviewer");
+        // Flat file should be cleaned up after reconciliation
         expect(existsSync(join(mainAdlcPath, "verification-results.md"))).toBe(false);
     });
 

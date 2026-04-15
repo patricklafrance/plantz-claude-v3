@@ -14,7 +14,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import type { HookJSONOutput, StopHookInput } from "../types.ts";
+import type { HookJSONOutput, StopHookInput, SubagentStopHookInput } from "../types.ts";
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -552,14 +552,17 @@ function formatDuration(ms: number): string {
 // ── Stop hook ────────────────────────────────────────────────
 
 /**
- * Stop hook — records metrics for the top-level agent when it completes.
+ * Stop hook — records metrics when any agent completes.
  *
- * SubagentStop only fires for nested agents spawned via the Agent tool.
- * The top-level agent in a `query()` call fires `Stop` instead.
+ * Registered on both Stop (top-level agents from `query()`) and
+ * SubagentStop (nested agents spawned via the Agent tool) so that
+ * every agent appears in run-metrics.json regardless of nesting depth.
  */
-export async function handleStopMetrics(input: StopHookInput): Promise<HookJSONOutput> {
+export async function handleStopMetrics(input: StopHookInput | SubagentStopHookInput): Promise<HookJSONOutput> {
+    const transcriptPath = "agent_transcript_path" in input ? input.agent_transcript_path : input.transcript_path;
+
     if (input.agent_type) {
-        recordMetrics(input.transcript_path, input.agent_type, input.cwd);
+        recordMetrics(transcriptPath, input.agent_type, input.cwd);
     }
     return { continue: true };
 }

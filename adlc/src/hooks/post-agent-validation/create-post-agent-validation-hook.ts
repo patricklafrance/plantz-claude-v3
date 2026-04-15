@@ -19,7 +19,6 @@ import { handlePlacementGate } from "./placement-gate/handler.ts";
 import { handlePlanGate } from "./plan-gate/handler.ts";
 import { handlePlanner } from "./planner/handler.ts";
 import { handleReviewer } from "./reviewer/handler.ts";
-import { handleSimplify } from "./simplify/handler.ts";
 
 type HandlerFn = (cwd: string) => string[] | Promise<string[]>;
 
@@ -33,8 +32,7 @@ const handlers: Record<string, HandlerFn> = {
     "feature-planner": handlePlanner,
     "fix-planner": handlePlanner,
     "feature-reviewer": handleReviewer,
-    "fix-reviewer": handleReviewer,
-    simplify: handleSimplify
+    "fix-reviewer": handleReviewer
 };
 
 export function createPostAgentValidationHook() {

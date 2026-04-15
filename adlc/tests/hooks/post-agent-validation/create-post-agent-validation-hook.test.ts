@@ -33,9 +33,6 @@ vi.mock("../../../src/hooks/post-agent-validation/planner/handler.js", () => ({
 vi.mock("../../../src/hooks/post-agent-validation/reviewer/handler.js", () => ({
     handleReviewer: vi.fn<any>(() => [])
 }));
-vi.mock("../../../src/hooks/post-agent-validation/simplify/handler.js", () => ({
-    handleSimplify: vi.fn<any>(async () => [])
-}));
 vi.mock("../../../src/hooks/post-agent-validation/challenge-arbiter/handler.js", () => ({
     handleChallengeArbiter: vi.fn<any>(() => [])
 }));

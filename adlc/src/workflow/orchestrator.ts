@@ -16,7 +16,6 @@ import { runMonitor } from "./steps/monitor.ts";
 import { runPlacement } from "./steps/placement.ts";
 import { runPlan } from "./steps/plan.ts";
 import { runPr, runPrUpdate } from "./steps/pr.ts";
-import { runSimplify } from "./steps/simplify.ts";
 import { runSlices } from "./steps/slices/run-slices.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -168,33 +167,26 @@ export async function run(options: OrchestratorOptions): Promise<void> {
             // Post-code steps: supervisor kills are warnings, not fatal.
             // Code is already committed — aborting here would lose a fully-implemented feature.
 
-            // Step 3: Simplify
-            const doneSimplify = progress.step(3, "Simplify");
-            const fixSimplifyHooks = freshHooks();
-            await runSimplify(cwd, agents, progress, fixSimplifyHooks.hooks);
-            warnSupervisorKill("simplify", fixSimplifyHooks.supervisorState.fatalReason);
-            doneSimplify();
-
             let prNumber: string;
 
             if (input.type === "fix-pr") {
-                // Step 4: PR Update — push fix results to the existing PR.
-                const donePrUpdate = progress.step(4, "PR Update");
+                // Step 3: PR Update — push fix results to the existing PR.
+                const donePrUpdate = progress.step(3, "PR Update");
                 const prUpdateHooks = freshHooks();
                 prNumber = await runPrUpdate({ prNumber: input.prNumber, description }, cwd, agents, progress, prUpdateHooks.hooks);
                 warnSupervisorKill("pr-update", prUpdateHooks.supervisorState.fatalReason);
                 donePrUpdate();
             } else {
-                // Step 4: Pull Request — create a new PR for the fix.
-                const donePR = progress.step(4, "Pull Request");
+                // Step 3: Pull Request — create a new PR for the fix.
+                const donePR = progress.step(3, "Pull Request");
                 const fixPrHooks = freshHooks();
                 prNumber = await runPr(description, cwd, agents, progress, fixPrHooks.hooks);
                 warnSupervisorKill("pull-request", fixPrHooks.supervisorState.fatalReason);
                 donePR();
             }
 
-            // Step 5: Monitor CI
-            const doneMonitor = progress.step(5, "Monitor CI");
+            // Step 4: Monitor CI
+            const doneMonitor = progress.step(4, "Monitor CI");
             const fixMonitorHooks = freshHooks();
             await runMonitor(cwd, agents, progress, fixMonitorHooks.hooks, prNumber);
             warnSupervisorKill("monitor", fixMonitorHooks.supervisorState.fatalReason);
@@ -232,29 +224,22 @@ export async function run(options: OrchestratorOptions): Promise<void> {
             // Post-code steps: supervisor kills are warnings, not fatal.
             // Code is already committed — aborting here would lose a fully-implemented feature.
 
-            // Step 4: Simplify
-            const doneSimplify = progress.step(4, "Simplify");
-            const simplifyHooks = freshHooks();
-            await runSimplify(cwd, agents, progress, simplifyHooks.hooks);
-            warnSupervisorKill("simplify", simplifyHooks.supervisorState.fatalReason);
-            doneSimplify();
-
-            // Step 5: Document
-            const doneDocument = progress.step(5, "Document");
+            // Step 4: Document
+            const doneDocument = progress.step(4, "Document");
             const documentHooks = freshHooks();
             await runDocument(cwd, agents, progress, documentHooks.hooks);
             warnSupervisorKill("document", documentHooks.supervisorState.fatalReason);
             doneDocument();
 
-            // Step 6: Pull Request
-            const donePR = progress.step(6, "Pull Request");
+            // Step 5: Pull Request
+            const donePR = progress.step(5, "Pull Request");
             const prHooks = freshHooks();
             const prNumber = await runPr(description, cwd, agents, progress, prHooks.hooks);
             warnSupervisorKill("pull-request", prHooks.supervisorState.fatalReason);
             donePR();
 
-            // Step 7: Monitor CI
-            const doneMonitor = progress.step(7, "Monitor CI");
+            // Step 6: Monitor CI
+            const doneMonitor = progress.step(6, "Monitor CI");
             const monitorHooks = freshHooks();
             await runMonitor(cwd, agents, progress, monitorHooks.hooks, prNumber);
             warnSupervisorKill("monitor", monitorHooks.supervisorState.fatalReason);

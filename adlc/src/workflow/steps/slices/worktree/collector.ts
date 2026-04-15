@@ -46,9 +46,11 @@ export async function collectResults(worktreePath: string, mainRunDir: string, s
     // Reconcile stale per-slice results with a misplaced flat file.
     // When a slice goes through revision cycles, the revision reviewer sometimes
     // writes verification-results.md to the main run dir instead of the worktree.
-    // If such a flat file exists AND references this slice, it's the freshest result
-    // — overwrite the per-slice copy and clean up the flat file.
-    reconcileVerificationResults(mainRunDir, sliceName);
+    // Only reconcile if the worktree didn't already provide a file — otherwise
+    // the flat file likely belongs to a different slice running in parallel.
+    if (!resultsFile) {
+        reconcileVerificationResults(mainRunDir, sliceName);
+    }
 
     // Copy explorer summary → explorer-notes/{sliceName}.md
     const explorerFile = findFile("current-explorer-summary.md", wtRunDir, worktreePath);

@@ -45,7 +45,7 @@ export function createHooks(_options?: { cwd?: string }): { hooks: SDKHooks; sup
             PreToolUse: [{ matcher: "Bash", hooks: [preCommitHook, rewritesHook] }, { hooks: [guardsHook, supervisorPreHook] }],
             PostToolUse: [{ matcher: "Bash", hooks: [supervisorPostHook] }],
             Stop: [{ hooks: [stopMetricsHook] }],
-            SubagentStop: [{ hooks: [postAgentValidationHook] }]
+            SubagentStop: [{ hooks: [stopMetricsHook, postAgentValidationHook] }]
         },
         supervisorState: state
     };
