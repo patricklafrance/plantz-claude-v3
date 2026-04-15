@@ -66,3 +66,54 @@ export const NoLastCareEvent: Story = {
         plant: makePlant({ id: "plant-5", name: "Peace Lily", nextWateringDate: FAR_FUTURE })
     }
 };
+
+// Shared plant with household indicator
+export const SharedPlant: Story = {
+    args: {
+        plant: makePlant({
+            id: "shared-1",
+            name: "Shared Monstera",
+            nextWateringDate: FAR_PAST,
+            householdId: "household-1"
+        })
+    }
+};
+
+// Shared plant showing who last watered it and when
+export const SharedWithCareEvent: Story = {
+    args: {
+        plant: makePlant({
+            id: "shared-2",
+            name: "Shared Fiddle Leaf",
+            nextWateringDate: FAR_PAST,
+            householdId: "household-1",
+            lastCareEvent: { actorName: "Bob", performedDate: new Date(Date.now() - 2 * 60 * 60 * 1000) }
+        })
+    }
+};
+
+// Shared plant recently watered by another member (de-emphasized)
+export const SharedRecentlyWateredByOther: Story = {
+    args: {
+        plant: makePlant({
+            id: "shared-3",
+            name: "Shared Snake Plant",
+            nextWateringDate: FAR_PAST,
+            householdId: "household-1",
+            userId: "user-bob",
+            lastCareEvent: { actorName: "Bob", performedDate: new Date(Date.now() - 1 * 60 * 60 * 1000) }
+        }),
+        currentUserId: "user-alice"
+    }
+};
+
+// Personal plant (no householdId) -- no shared indicator
+export const PersonalPlant: Story = {
+    args: {
+        plant: makePlant({
+            id: "personal-1",
+            name: "My Personal Cactus",
+            nextWateringDate: FAR_PAST
+        })
+    }
+};

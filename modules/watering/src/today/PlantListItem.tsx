@@ -1,4 +1,5 @@
-import { Check, Droplets } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Check, Droplets, Share2 } from "lucide-react";
 import { memo, useCallback } from "react";
 
 import type { Plant } from "@packages/api/entities/plants";
@@ -13,17 +14,30 @@ interface PlantListItemProps {
     selected?: boolean | undefined;
     onClick: (plant: Plant) => void;
     onToggleSelect?: ((id: string) => void) | undefined;
+    currentUserId?: string | undefined;
 }
 
-export const PlantListItem = memo(function PlantListItem({ plant, selected = false, onClick, onToggleSelect }: PlantListItemProps) {
+function isRecentlyWateredByOther(plant: Plant, currentUserId?: string): boolean {
+    if (!plant.lastCareEvent || !plant.householdId || !currentUserId) {
+        return false;
+    }
+
+    const hoursSince = (Date.now() - plant.lastCareEvent.performedDate.getTime()) / (1000 * 60 * 60);
+
+    return plant.lastCareEvent.actorName !== "Unknown" && hoursSince < 24 && plant.userId !== currentUserId;
+}
+
+export const PlantListItem = memo(function PlantListItem({ plant, selected = false, onClick, onToggleSelect, currentUserId }: PlantListItemProps) {
     const due = isDueForWatering(plant);
+    const isShared = !!plant.householdId;
+    const deEmphasize = isRecentlyWateredByOther(plant, currentUserId);
 
     const handleToggleSelect = useCallback(() => onToggleSelect?.(plant.id), [onToggleSelect, plant.id]);
     const handleClick = useCallback(() => onClick(plant), [onClick, plant]);
 
     return (
         <div
-            className={`border-border relative flex h-full items-center gap-3 border-b px-5 py-2.5 transition-colors ${PLANT_LIST_GRID} ${due ? "bg-terracotta/5 border-l-terracotta border-l-2" : "hover:bg-secondary/40"}`}
+            className={`border-border relative flex h-full items-center gap-3 border-b px-5 py-2.5 transition-colors ${PLANT_LIST_GRID} ${due ? "bg-terracotta/5 border-l-terracotta border-l-2" : "hover:bg-secondary/40"} ${deEmphasize ? "opacity-50" : ""}`}
         >
             <button
                 type="button"
@@ -39,6 +53,7 @@ export const PlantListItem = memo(function PlantListItem({ plant, selected = fal
             <div className="flex min-w-0 flex-col">
                 <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold">{plant.name}</span>
+                    {isShared && <Share2 className="text-botanical size-3.5 shrink-0" aria-label="Shared plant" />}
                     {due && (
                         <>
                             <Droplets className="text-terracotta size-3.5 shrink-0" aria-hidden="true" />
@@ -46,7 +61,13 @@ export const PlantListItem = memo(function PlantListItem({ plant, selected = fal
                         </>
                     )}
                 </div>
-                {plant.lastCareEvent && <span className="text-muted-foreground truncate text-xs">Last: {plant.lastCareEvent.actorName}</span>}
+                {isShared && plant.lastCareEvent ? (
+                    <span className="text-muted-foreground truncate text-xs">
+                        Watered by {plant.lastCareEvent.actorName} {formatDistanceToNow(plant.lastCareEvent.performedDate, { addSuffix: true })}
+                    </span>
+                ) : (
+                    plant.lastCareEvent && <span className="text-muted-foreground truncate text-xs">Last: {plant.lastCareEvent.actorName}</span>
+                )}
             </div>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{plant.wateringQuantity}</span>
             <span className="text-muted-foreground hidden truncate text-sm md:block">{getOptionLabel(wateringTypes, plant.wateringType)}</span>

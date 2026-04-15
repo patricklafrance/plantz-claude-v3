@@ -25,3 +25,9 @@ export const wateringTypes = [
     { id: "deep", label: "Deep" },
     { id: "surface", label: "Surface" }
 ] as const;
+
+export const assignmentOptions = [
+    { id: "mine", label: "My tasks" },
+    { id: "others", label: "Others' tasks" },
+    { id: "unassigned", label: "Unassigned" }
+] as const;

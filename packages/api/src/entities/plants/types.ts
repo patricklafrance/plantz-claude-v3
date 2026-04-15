@@ -14,6 +14,7 @@ export interface Plant {
     nextWateringDate: Date;
     creationDate: Date;
     householdId?: string | null;
+    assignedUserId?: string | null;
     lastUpdateDate: Date;
     lastCareEvent?: { actorName: string; performedDate: Date } | null;
 }
