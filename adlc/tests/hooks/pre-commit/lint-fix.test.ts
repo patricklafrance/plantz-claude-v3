@@ -18,8 +18,8 @@ describe("pre-commit lint-fix", () => {
         const result = await lintFix("/tmp/test");
         expect(result).toEqual([]);
 
-        // Should have called git add -u after lint-fix
-        expect(run).toHaveBeenCalledWith("/tmp/test", "git add -u");
+        // Should re-stage all indexed files (not just tracked) after lint-fix
+        expect(run).toHaveBeenCalledWith("/tmp/test", "git diff --cached --name-only -z | xargs -0 git add --");
     });
 
     it("returns error when lint-fix fails", async () => {

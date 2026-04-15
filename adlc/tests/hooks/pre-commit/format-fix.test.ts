@@ -17,8 +17,8 @@ describe("pre-commit format-fix", () => {
         const result = await formatFix("/tmp/test");
         expect(result).toEqual([]);
 
-        // Should have called git add -u after formatting
-        expect(run).toHaveBeenCalledWith("/tmp/test", "git add -u");
+        // Should re-stage all indexed files (not just tracked) after formatting
+        expect(run).toHaveBeenCalledWith("/tmp/test", "git diff --cached --name-only -z | xargs -0 git add --");
     });
 
     it("retries once on the known CSS import resolver race condition", async () => {
