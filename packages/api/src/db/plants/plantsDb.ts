@@ -11,6 +11,10 @@ class PlantsDb {
         return [...this.#store.values()].filter(plant => plant.userId === userId).toSorted((a, b) => a.name.localeCompare(b.name));
     }
 
+    getAllByHousehold(householdId: string): Plant[] {
+        return [...this.#store.values()].filter(plant => plant.householdId === householdId).toSorted((a, b) => a.name.localeCompare(b.name));
+    }
+
     get(id: string): Plant | undefined {
         return this.#store.get(id);
     }

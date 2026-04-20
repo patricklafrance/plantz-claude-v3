@@ -10,6 +10,7 @@ import { PlantDetailDialog } from "./PlantDetailDialog.tsx";
 import { PlantListHeader } from "./PlantListHeader.tsx";
 import { PlantListItem } from "./PlantListItem.tsx";
 import { applyPlantFilters, isDueForWatering } from "./plantUtils.ts";
+import { useCurrentUserId } from "./useCurrentUser.ts";
 import { usePlantFilters } from "./usePlantFilters.ts";
 import { useTodayPlants, useMarkWatered } from "./useTodayPlants.ts";
 
@@ -27,6 +28,7 @@ export function LandingPage() {
     const [detailPlant, setDetailPlant] = useState<Plant | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const listRef = useRef<HTMLDivElement>(null);
+    const currentUserId = useCurrentUserId();
 
     const { data: allPlants, isPending, isError } = useTodayPlants();
     const markWatered = useMarkWatered();
@@ -40,8 +42,8 @@ export function LandingPage() {
         const sorted = allPlants.toSorted((a, b) => a.name.localeCompare(b.name));
         const duePlants = sorted.filter(p => isDueForWatering(p));
 
-        return applyPlantFilters(duePlants, filters);
-    }, [allPlants, filters]);
+        return applyPlantFilters(duePlants, filters, currentUserId ?? undefined);
+    }, [allPlants, filters, currentUserId]);
 
     const virtualizer = useWindowVirtualizer({
         count: plants.length,
@@ -157,6 +159,7 @@ export function LandingPage() {
                 onClear={clearFilters}
                 hasActiveFilters={hasActiveFilters}
                 showDueForWatering={false}
+                showAssignment={!!currentUserId}
             />
 
             {selectedCount > 0 && (
@@ -199,6 +202,7 @@ export function LandingPage() {
                                         selected={selectedIds.has(plant.id)}
                                         onToggleSelect={toggleSelect}
                                         onClick={handleViewDetail}
+                                        currentUserId={currentUserId ?? undefined}
                                     />
                                 </div>
                             );

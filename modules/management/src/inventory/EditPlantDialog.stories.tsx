@@ -1,10 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { userEvent, within } from "storybook/test";
 
+import { createHouseholdHandlers } from "@packages/api/handlers/household";
 import { createManagementPlantHandlers } from "@packages/api/handlers/management";
 import { makePlant, FAR_PAST, FAR_FUTURE } from "@packages/api/test-utils";
 
 import { EditPlantDialog } from "./EditPlantDialog.tsx";
 import { queryDecorator, fireflyDecorator } from "./storybook.setup.tsx";
+
+const testHousehold = {
+    household: { id: "household-1", name: "Green Thumbs", createdByUserId: "user-alice", creationDate: new Date("2025-01-01") },
+    members: [{ householdId: "household-1", userId: "user-alice", userName: "Alice", role: "owner" as const, joinedDate: new Date("2025-01-01") }]
+};
 
 const editPlants = [
     makePlant({ id: "test-edit-1", name: "Monstera Deliciosa" }),
@@ -12,7 +19,9 @@ const editPlants = [
     makePlant({ id: "test-edit-3", name: "Monstera Deliciosa" }),
     makePlant({ id: "test-edit-4", name: "Monstera Deliciosa" }),
     makePlant({ id: "test-edit-5", name: "Monstera Deliciosa" }),
-    makePlant({ id: "test-edit-6", name: "Monstera Deliciosa" })
+    makePlant({ id: "test-edit-6", name: "Monstera Deliciosa" }),
+    makePlant({ id: "test-edit-7", name: "Monstera Deliciosa" }),
+    makePlant({ id: "test-edit-8", name: "Monstera Deliciosa", householdId: "household-1" })
 ];
 
 const meta = {
@@ -30,7 +39,9 @@ const meta = {
                 "dark desktop": { theme: "dark", viewport: 1280 }
             }
         },
-        msw: { handlers: createManagementPlantHandlers(editPlants) }
+        msw: {
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers(testHousehold)]
+        }
     },
     args: {
         open: true,
@@ -136,5 +147,109 @@ export const Closed: Story = {
             name: "Monstera Deliciosa"
         }),
         open: false
+    }
+};
+
+export const WithHousehold: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-7",
+            name: "Monstera Deliciosa"
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers(testHousehold)]
+        }
+    }
+};
+
+export const NoHousehold: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-7",
+            name: "Monstera Deliciosa"
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers({ household: null, members: [] })]
+        }
+    }
+};
+
+export const SharingEnabled: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-8",
+            name: "Monstera Deliciosa",
+            householdId: "household-1"
+        }),
+        _defaultSharing: true
+    },
+    parameters: {
+        msw: {
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers(testHousehold)]
+        }
+    }
+};
+
+export const ToggleSharingOn: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-7",
+            name: "Monstera Deliciosa"
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers(testHousehold)]
+        }
+    },
+    play: async ({ canvasElement }) => {
+        const doc = within(canvasElement.ownerDocument.body);
+        const toggle = await doc.findByRole("switch", { name: "Share with household" });
+        await userEvent.click(toggle);
+    }
+};
+
+export const ToggleSharingOff: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-8",
+            name: "Monstera Deliciosa",
+            householdId: "household-1"
+        }),
+        _defaultSharing: true
+    },
+    parameters: {
+        msw: {
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers(testHousehold)]
+        }
+    },
+    play: async ({ canvasElement }) => {
+        const doc = within(canvasElement.ownerDocument.body);
+        const toggle = await doc.findByRole("switch", { name: "Share with household" });
+        await userEvent.click(toggle);
+    }
+};
+
+export const SharingToggleSaved: Story = {
+    args: {
+        plant: makePlant({
+            id: "test-edit-7",
+            name: "Monstera Deliciosa"
+        })
+    },
+    parameters: {
+        msw: {
+            handlers: [...createManagementPlantHandlers(editPlants), ...createHouseholdHandlers(testHousehold)]
+        }
+    },
+    play: async ({ canvasElement }) => {
+        const doc = within(canvasElement.ownerDocument.body);
+        const toggle = await doc.findByRole("switch", { name: "Share with household" });
+        await userEvent.click(toggle);
+        await doc.findByText("Saved");
     }
 };

@@ -4,3 +4,4 @@
 @source "../../../packages/core-plants/src/**/*.{ts,tsx}";
 @source "../../../modules/management/src/inventory/**/*.{ts,tsx}";
 @source "../../../modules/management/src/account/**/*.{ts,tsx}";
+@source "../../../modules/management/src/household/**/*.{ts,tsx}";

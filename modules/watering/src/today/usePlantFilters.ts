@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 
+export type AssignmentFilter = "all" | "mine" | "others" | "unassigned";
+
 export interface PlantFilters {
     name: string;
     location: string | null;
@@ -9,6 +11,7 @@ export interface PlantFilters {
     wateringFrequency: string | null;
     wateringType: string | null;
     dueForWatering: boolean;
+    assignment: AssignmentFilter;
 }
 
 const defaultFilters: PlantFilters = {
@@ -19,7 +22,8 @@ const defaultFilters: PlantFilters = {
     soilType: "",
     wateringFrequency: null,
     wateringType: null,
-    dueForWatering: false
+    dueForWatering: false,
+    assignment: "all"
 };
 
 export function usePlantFilters() {
@@ -41,7 +45,8 @@ export function usePlantFilters() {
         filters.soilType !== "" ||
         filters.wateringFrequency !== null ||
         filters.wateringType !== null ||
-        filters.dueForWatering;
+        filters.dueForWatering ||
+        filters.assignment !== "all";
 
     return { filters, updateFilter, clearFilters, hasActiveFilters };
 }

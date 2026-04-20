@@ -24,7 +24,7 @@ export default defineConfig({
         globalSetup: ["./vitest.globalSetup.ts"],
         browser: {
             enabled: true,
-            // @ts-expect-error — pnpm resolves two vitest instances (different @opentelemetry peer hashes); types are identical at runtime
+            // @ts-expect-error — tsgo resolves duplicate vitest types from different @opentelemetry peer paths
             provider: playwright(),
             headless: true,
             instances: [{ browser: "chromium" }]

@@ -3,7 +3,7 @@
     "workspaces": {
         ".": {
             "entry": ["scripts/*.ts", "adlc.config.ts", ".claude/hooks/post-compact.mjs"],
-            "ignoreDependencies": ["netlify-cli", "agent-browser"]
+            "ignoreDependencies": ["netlify-cli"]
         },
         "apps/host": {
             "entry": ["src/index.tsx", "rsbuild.build.ts", "rsbuild.dev.ts"],
@@ -43,18 +43,20 @@
             ]
         },
         "modules/management": {
-            "entry": ["src/inventory/index.ts", "src/account/index.ts"]
+            "entry": ["src/inventory/index.ts", "src/account/index.ts", "src/household/index.ts"]
         },
         "modules/watering": {
             "entry": ["src/today/index.ts"]
         },
         "packages/components": {
-            "entry": ["rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs"],
-            "ignoreDependencies": ["@tailwindcss/postcss"]
+            "entry": ["src/index.ts", "rslib.build.ts", "rslib.dev.ts", "postcss.config.mjs"],
+            "ignoreDependencies": ["@tailwindcss/postcss"],
+            "includeEntryExports": false
         },
         "adlc": {
-            "entry": ["rslib.build.ts"],
-            "ignoreDependencies": ["@rsbuild/core"]
+            "entry": ["src/index.ts", "src/cli.ts", "rslib.build.ts"],
+            "ignoreDependencies": ["@rsbuild/core"],
+            "includeEntryExports": false
         },
         "apps/storybook-packages": {
             "ignoreDependencies": [

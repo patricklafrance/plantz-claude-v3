@@ -1,7 +1,11 @@
 import { http, HttpResponse } from "msw";
 
 import { getUserId } from "../../db/auth/getUserId.ts";
+import { usersDb } from "../../db/auth/usersDb.ts";
+import { careEventsDb } from "../../db/care-events/careEventsDb.ts";
+import { householdDb } from "../../db/household/householdDb.ts";
 import { plantsDb } from "../../db/plants/plantsDb.ts";
+import { generateId } from "../../db/utils/generateId.ts";
 
 export const todayPlantHandlers = [
     http.get("/api/today/plants", () => {
@@ -11,9 +15,21 @@ export const todayPlantHandlers = [
             return new HttpResponse(null, { status: 401 });
         }
 
-        const plants = plantsDb.getAllByUser(userId);
+        const userPlants = plantsDb.getAllByUser(userId);
 
-        return HttpResponse.json(plants);
+        // Also include shared household plants
+        const household = householdDb.getByMember(userId);
+        let allPlants = userPlants;
+
+        if (household) {
+            const householdPlants = plantsDb.getAllByHousehold(household.id);
+            // Merge, avoiding duplicates (plants owned by this user that also have householdId)
+            const userPlantIds = new Set(userPlants.map(p => p.id));
+            const additionalPlants = householdPlants.filter(p => !userPlantIds.has(p.id));
+            allPlants = userPlants.concat(additionalPlants);
+        }
+
+        return HttpResponse.json(allPlants);
     }),
 
     http.put("/api/today/plants/:id", async ({ params, request }) => {
@@ -25,7 +41,46 @@ export const todayPlantHandlers = [
             return new HttpResponse(null, { status: 404 });
         }
 
-        return HttpResponse.json(plant);
+        const actorId = getUserId();
+        let lastCareEvent: { actorName: string; performedDate: Date } | null = null;
+
+        if (actorId) {
+            const now = new Date();
+
+            careEventsDb.insert({
+                id: generateId(),
+                plantId: id as string,
+                userId: actorId,
+                action: "watered",
+                performedDate: now
+            });
+
+            const actor = usersDb.getById(actorId);
+
+            if (actor) {
+                lastCareEvent = { actorName: actor.name, performedDate: now };
+            }
+        }
+
+        return HttpResponse.json({ ...plant, lastCareEvent });
+    }),
+
+    http.get("/api/today/plants/:id/care-events", ({ params }) => {
+        const { id } = params;
+        const events = careEventsDb.getByPlant(id as string).slice(0, 5);
+
+        const resolved = events.map(e => {
+            const actor = usersDb.getById(e.userId);
+
+            return {
+                id: e.id,
+                action: e.action,
+                performedDate: e.performedDate,
+                actorName: actor?.name ?? "Unknown"
+            };
+        });
+
+        return HttpResponse.json({ events: resolved });
     }),
 
     http.delete("/api/today/plants/:id", ({ params }) => {

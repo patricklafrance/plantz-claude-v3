@@ -12,7 +12,7 @@ export default defineConfig({
     // https://github.com/storybookjs/storybook/issues/32049
     // Remove when Storybook ships #33875 (preview annotations as optimizer entries).
     optimizeDeps: {
-        include: ["react/jsx-dev-runtime", "react/jsx-runtime"]
+        include: ["react/jsx-dev-runtime", "react/jsx-runtime", "msw", "msw/browser"]
     },
     plugins: [
         storybookTest({
@@ -24,7 +24,7 @@ export default defineConfig({
         globalSetup: ["./vitest.globalSetup.ts"],
         browser: {
             enabled: true,
-            // @ts-expect-error — pnpm resolves two vitest instances (different @opentelemetry peer hashes); types are identical at runtime
+            // @ts-expect-error — tsgo resolves duplicate vitest types from different @opentelemetry peer paths
             provider: playwright(),
             headless: true,
             instances: [{ browser: "chromium" }]
